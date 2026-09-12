@@ -1,0 +1,2237 @@
+{
+  "observed_at": "2026-09-12T12:27:38.411258-04:00",
+  "mission_started_at": "2026-09-12T09:27:31-04:00",
+  "elapsed_hours": 3.0020586827777778,
+  "jobs": [
+    {
+      "package": "/queue2/jobs/R1-da-3-4",
+      "job_id": "10414481",
+      "stage": "producer",
+      "cpus": 4,
+      "submitted_at": "2026-09-12T10:02:23.354342-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R1-da-3-4",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue2/configs/R1/da-3-4.yaml",
+        "--resume"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "COMPLETED",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414481-gy8zabdp/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "active_assignment_workers": 3,
+      "accounting": {
+        "job_id": "10414481",
+        "name": "trace-q2-R1-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:40:56",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R1-da-11-1",
+      "job_id": "10414482",
+      "stage": "producer",
+      "cpus": 4,
+      "submitted_at": "2026-09-12T10:02:23.380088-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R1-da-11-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue2/configs/R1/da-11-1.yaml",
+        "--resume"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "RUNNING",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414482-r6zq8tir/status.json",
+      "assignments": {
+        "completed": 2,
+        "running": 1
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "active_assignment_workers": 3,
+      "pending_reason": "babel-l5-32",
+      "accounting": {
+        "job_id": "10414482",
+        "name": "trace-q2-R1-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "01:15:48",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R1-da-18-1",
+      "job_id": "10414483",
+      "stage": "producer",
+      "cpus": 4,
+      "submitted_at": "2026-09-12T10:02:23.403083-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R1-da-18-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue2/configs/R1/da-18-1.yaml",
+        "--resume"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "COMPLETED",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414483-5rc81con/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "active_assignment_workers": 3,
+      "accounting": {
+        "job_id": "10414483",
+        "name": "trace-q2-R1-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:24:59",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R2-da-3-4",
+      "job_id": "10414484",
+      "stage": "producer",
+      "cpus": 4,
+      "submitted_at": "2026-09-12T10:02:23.425506-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R2-da-3-4",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue2/configs/R2/da-3-4.yaml",
+        "--resume"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "COMPLETED",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414484-1tbrdow5/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "active_assignment_workers": 3,
+      "accounting": {
+        "job_id": "10414484",
+        "name": "trace-q2-R2-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:21:31",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R2-da-11-1",
+      "job_id": "10414485",
+      "stage": "producer",
+      "cpus": 4,
+      "submitted_at": "2026-09-12T10:02:23.447035-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R2-da-11-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml",
+        "--resume"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "RUNNING",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414485-78jkoc4v/status.json",
+      "assignments": {
+        "completed": 2,
+        "running": 1
+      },
+      "assignment_failures": [],
+      "current_failure": {
+        "category": "transient_connection",
+        "error_type": "APITimeoutError",
+        "next_automatic_action": "bounded operation owner decides retry; inspect attempt record",
+        "operation": "evolution-generation",
+        "time": 1789222525.6981192
+      },
+      "active_assignment_workers": 3,
+      "pending_reason": "babel-m9-20",
+      "accounting": {
+        "job_id": "10414485",
+        "name": "trace-q2-R2-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:58:50",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R2-da-18-1",
+      "job_id": "10414486",
+      "stage": "producer",
+      "cpus": 4,
+      "submitted_at": "2026-09-12T10:02:23.468233-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R2-da-18-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue2/configs/R2/da-18-1.yaml",
+        "--resume"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "COMPLETED",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414486-o23mvpo4/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "active_assignment_workers": 3,
+      "accounting": {
+        "job_id": "10414486",
+        "name": "trace-q2-R2-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:28:36",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R1-audit",
+      "job_id": "10414487",
+      "stage": "audit",
+      "cpus": 8,
+      "submitted_at": "2026-09-12T10:02:23.490431-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterok:10414481:10414482:10414483",
+        "--job-name=trace-q2-R1-audit",
+        "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+        "R1"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "accounting": {
+        "job_id": "10414487",
+        "name": "trace-q2-R1-audit",
+        "state": "PREEMPTED",
+        "exit_code": "0:0",
+        "elapsed": "00:04:51",
+        "cpus": "8",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R2-audit",
+      "job_id": "10414488",
+      "stage": "audit",
+      "cpus": 8,
+      "submitted_at": "2026-09-12T10:02:23.511254-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterok:10414484:10414485:10414486,afterany:10414487",
+        "--job-name=trace-q2-R2-audit",
+        "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+        "R2"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "accounting": {
+        "job_id": "10414488",
+        "name": "trace-q2-R2-audit",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:04:04",
+        "cpus": "8",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/comparison-report",
+      "job_id": "10414489",
+      "stage": "report",
+      "cpus": 1,
+      "submitted_at": "2026-09-12T10:02:23.532822-04:00",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterok:10414487:10414488",
+        "experiments/biomnibench-v21-to45/queue2/report.sbatch"
+      ],
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "accounting": {
+        "job_id": "10414489",
+        "name": "trace-q2-report",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:00:01",
+        "cpus": "1",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R1-audit-preemption-resume",
+      "job_id": "10414945",
+      "stage": "audit_recovery",
+      "source_job": "10414487",
+      "reason": "Slurm PREEMPTED; preserve successful judgments, native missing-only resume of the same nine assignments",
+      "cpus": 4,
+      "request_workers": 32,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--cpus-per-task=4",
+        "--dependency=afterany:10414488",
+        "--job-name=trace-q2-R1-audit-resume",
+        "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+        "R1"
+      ],
+      "submitted_at": "2026-09-12T15:44:20.457901+00:00",
+      "accounting": {
+        "job_id": "10414945",
+        "name": "trace-q2-R1-audit-resume",
+        "state": "PREEMPTED",
+        "exit_code": "0:0",
+        "elapsed": "00:07:00",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R1-remaining-task-audits",
+      "job_id": "10415055",
+      "stage": "audit_remaining_tasks",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R1-remaining-audits",
+        "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+        "R1",
+        "da-11-1",
+        "da-18-1"
+      ],
+      "tasks": [
+        "da-11-1",
+        "da-18-1"
+      ],
+      "excluded_blocked_task": "da-3-4",
+      "cpus": 4,
+      "request_workers": 32,
+      "execution_commit": "b69a6a3",
+      "execution_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-scope-20260912",
+      "submitted_at": "2026-09-12T16:06:46.685554+00:00",
+      "slurm_state": "FAILED",
+      "exit_code": "1:0",
+      "provider_calls": 0,
+      "failure": "Original config path/source identity not retained by cross-checkout operational driver; native predispatch rejected.",
+      "accounting": {
+        "job_id": "10415055",
+        "name": "trace-q2-R1-remaining-audits",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:00:02",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R2-remaining-task-audits",
+      "job_id": "10415056",
+      "stage": "audit_remaining_tasks",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--cpus-per-task=4",
+        "--job-name=trace-q2-R2-remaining-audits",
+        "--dependency=afterany:10415055",
+        "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+        "R2",
+        "da-11-1",
+        "da-18-1"
+      ],
+      "tasks": [
+        "da-11-1",
+        "da-18-1"
+      ],
+      "excluded_blocked_task": "da-3-4",
+      "cpus": 4,
+      "request_workers": 32,
+      "execution_commit": "b69a6a3",
+      "execution_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-scope-20260912",
+      "submitted_at": "2026-09-12T16:06:46.712014+00:00",
+      "slurm_state": "FAILED",
+      "exit_code": "1:0",
+      "provider_calls": 0,
+      "failure": "Original config path/source identity not retained by cross-checkout operational driver; native predispatch rejected.",
+      "accounting": {
+        "job_id": "10415056",
+        "name": "trace-q2-R2-remaining-audits",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:00:01",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R1-original-source-remaining-audits",
+      "job_id": "10415063",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--partition=preempt",
+        "--qos=preempt_cpu_qos",
+        "--cpus-per-task=4",
+        "--mem=256G",
+        "--time=2-00:00:00",
+        "--no-requeue",
+        "--job-name=trace-q2-R1-original-source-audit",
+        "--output=experiments/biomnibench-v21-to45/queue2/audit-%j.log",
+        "--error=experiments/biomnibench-v21-to45/queue2/audit-%j.err",
+        "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912\nexport PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1\nexport TMPDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-${SLURM_JOB_ID}\nmkdir -p \"$TMPDIR\"\nexec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python /home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py R1 da-11-1 da-18-1"
+      ],
+      "stage": "audit_remaining_tasks",
+      "tasks": [
+        "da-11-1",
+        "da-18-1"
+      ],
+      "scientific_source_commit": "534e797",
+      "scientific_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
+      "dispatch_commit": "8c6dfd8",
+      "dispatch_script": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py",
+      "cpus": 4,
+      "request_workers": 32,
+      "submitted_at": "2026-09-12T16:11:51.457703+00:00",
+      "source_validation": "all twelve terminal assignment sources accepted under original config paths, provider-free",
+      "slurm_state": "RUNNING",
+      "startup_verified": "native_detect da-11-1, no source-validation or runtime error at12:15 EDT",
+      "accounting": {
+        "job_id": "10415063",
+        "name": "trace-q2-R1-original-source-audit",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:07:44",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue2/jobs/R2-original-source-remaining-audits",
+      "job_id": "10415064",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--partition=preempt",
+        "--qos=preempt_cpu_qos",
+        "--cpus-per-task=4",
+        "--mem=256G",
+        "--time=2-00:00:00",
+        "--no-requeue",
+        "--job-name=trace-q2-R2-original-source-audit",
+        "--output=experiments/biomnibench-v21-to45/queue2/audit-%j.log",
+        "--error=experiments/biomnibench-v21-to45/queue2/audit-%j.err",
+        "--dependency=afterany:10415063",
+        "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912\nexport PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1\nexport TMPDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-${SLURM_JOB_ID}\nmkdir -p \"$TMPDIR\"\nexec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python /home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py R2 da-11-1 da-18-1"
+      ],
+      "stage": "audit_remaining_tasks",
+      "tasks": [
+        "da-11-1",
+        "da-18-1"
+      ],
+      "scientific_source_commit": "534e797",
+      "scientific_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
+      "dispatch_commit": "8c6dfd8",
+      "dispatch_script": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py",
+      "cpus": 4,
+      "request_workers": 32,
+      "submitted_at": "2026-09-12T16:11:51.483999+00:00",
+      "source_validation": "all twelve terminal assignment sources accepted under original config paths, provider-free",
+      "slurm_state": "PENDING",
+      "accounting": {
+        "job_id": "10415064",
+        "name": "trace-q2-R2-original-source-audit",
+        "state": "RUNNING",
+        "exit_code": "0:0",
+        "elapsed": "00:07:09",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-fixed/da-3-4",
+      "job_id": "10414549",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-fixed-da-3-4",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:03.931263-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414549-nr18wfk2/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414549",
+        "name": "trace-q3-semi-fixed-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:03:20",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-fixed/da-11-1",
+      "job_id": "10414550",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-fixed-da-11-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:03.954511-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414550-sg3lbpp1/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414550",
+        "name": "trace-q3-semi-fixed-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:12:09",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-fixed/da-18-1",
+      "job_id": "10414551",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-fixed-da-18-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:03.977009-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414551-wei8enpe/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414551",
+        "name": "trace-q3-semi-fixed-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:08:02",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-fixed/da-3-4",
+      "job_id": "10414552",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-fixed-da-3-4",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:03.999264-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414552-oul7cjr6/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414552",
+        "name": "trace-q3-score_only-fixed-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:05:38",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-fixed/da-11-1",
+      "job_id": "10414553",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-fixed-da-11-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.063071-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414553-sm7mzyih/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414553",
+        "name": "trace-q3-score_only-fixed-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:19:38",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-fixed/da-18-1",
+      "job_id": "10414554",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-fixed-da-18-1",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.087860-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414554-al2rekr2/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414554",
+        "name": "trace-q3-score_only-fixed-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:10:54",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-trace/da-3-4",
+      "job_id": "10414555",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-trace-da-3-4",
+        "--dependency=afterany:10414549",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.112461-04:00",
+      "slurm_state": "COMPLETED",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414555-3xyu1z2y/status.json",
+      "assignments": {
+        "completed": 3
+      },
+      "assignment_failures": [],
+      "current_failure": {
+        "category": "transient_connection",
+        "error_type": "APITimeoutError",
+        "next_automatic_action": "bounded operation owner decides retry; inspect attempt record",
+        "operation": "evolution-generation",
+        "time": 1789224423.4052627
+      },
+      "accounting": {
+        "job_id": "10414555",
+        "name": "trace-q3-semi-trace-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:18:09",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-trace/da-11-1",
+      "job_id": "10414556",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-trace-da-11-1",
+        "--dependency=afterany:10414550",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.135647-04:00",
+      "slurm_state": "RUNNING",
+      "pending_reason": "babel-l5-32",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414556-oie4iov8/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": {
+        "category": "transient_connection",
+        "error_type": "APITimeoutError",
+        "next_automatic_action": "bounded operation owner decides retry; inspect attempt record",
+        "operation": "evolution-generation",
+        "time": 1789224584.0814104
+      },
+      "accounting": {
+        "job_id": "10414556",
+        "name": "trace-q3-semi-trace-da-11-1",
+        "state": "PREEMPTED",
+        "exit_code": "0:0",
+        "elapsed": "00:17:28",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-trace/da-18-1",
+      "job_id": "10414557",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-trace-da-18-1",
+        "--dependency=afterany:10414551",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.158011-04:00",
+      "slurm_state": "RUNNING",
+      "pending_reason": "babel-m5-20",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414557-5dy8b4mi/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414557",
+        "name": "trace-q3-semi-trace-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:33:37",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace/da-3-4",
+      "job_id": "10414558",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-trace-da-3-4",
+        "--dependency=afterany:10414552",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-trace/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.182917-04:00",
+      "slurm_state": "RUNNING",
+      "pending_reason": "babel-m9-20",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414558-3qnl8tx2/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414558",
+        "name": "trace-q3-score_only-trace-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:32:49",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace/da-11-1",
+      "job_id": "10414559",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-trace-da-11-1",
+        "--dependency=afterany:10414553",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-trace/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.207584-04:00",
+      "slurm_state": "RUNNING",
+      "pending_reason": "babel-m9-32",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414559-t6paey8z/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414559",
+        "name": "trace-q3-score_only-trace-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:50:39",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace/da-18-1",
+      "job_id": "10414560",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-trace-da-18-1",
+        "--dependency=afterany:10414554",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-trace/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.233339-04:00",
+      "slurm_state": "RUNNING",
+      "pending_reason": "babel-l9-20",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414560-7u74w0gi/status.json",
+      "assignments": {
+        "running": 3
+      },
+      "assignment_failures": [],
+      "current_failure": null,
+      "accounting": {
+        "job_id": "10414560",
+        "name": "trace-q3-score_only-trace-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:24:00",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-fixed/da-3-4",
+      "job_id": "10414561",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-full-fixed-da-3-4",
+        "--dependency=afterany:10414555",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/full-fixed/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.258061-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(None)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414561",
+        "name": "trace-q3-full-fixed-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:02:04",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-fixed/da-11-1",
+      "job_id": "10414562",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-full-fixed-da-11-1",
+        "--dependency=afterany:10414556",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/full-fixed/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.283882-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414562",
+        "name": "trace-q3-full-fixed-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:16:44",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-fixed/da-18-1",
+      "job_id": "10414563",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-full-fixed-da-18-1",
+        "--dependency=afterany:10414557",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/full-fixed/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.308082-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414563",
+        "name": "trace-q3-full-fixed-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:02:53",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/user_simulator-fixed/da-3-4",
+      "job_id": "10414564",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-user_simulator-fixed-da-3-4",
+        "--dependency=afterany:10414558",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/user_simulator-fixed/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.333156-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414564",
+        "name": "trace-q3-user_simulator-fixed-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:05:08",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/user_simulator-fixed/da-11-1",
+      "job_id": "10414565",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-user_simulator-fixed-da-11-1",
+        "--dependency=afterany:10414559",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/user_simulator-fixed/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.356516-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414565",
+        "name": "trace-q3-user_simulator-fixed-da-11-1",
+        "state": "RUNNING",
+        "exit_code": "0:0",
+        "elapsed": "00:38:30",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/user_simulator-fixed/da-18-1",
+      "job_id": "10414566",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-user_simulator-fixed-da-18-1",
+        "--dependency=afterany:10414560",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/user_simulator-fixed/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.380248-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414566",
+        "name": "trace-q3-user_simulator-fixed-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:07:17",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-trace/da-3-4",
+      "job_id": "10414567",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-full-trace-da-3-4",
+        "--dependency=afterany:10414561",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/full-trace/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.405062-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414567",
+        "name": "trace-q3-full-trace-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:16:25",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-trace/da-11-1",
+      "job_id": "10414568",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-full-trace-da-11-1",
+        "--dependency=afterany:10414562",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/full-trace/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.431245-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414568",
+        "name": "trace-q3-full-trace-da-11-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:39:03",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-trace/da-18-1",
+      "job_id": "10414569",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-full-trace-da-18-1",
+        "--dependency=afterany:10414563",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/full-trace/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.455137-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414569",
+        "name": "trace-q3-full-trace-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:20:17",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace-no-appendix/da-3-4",
+      "job_id": "10414570",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-trace-no-appendix-da-3-4",
+        "--dependency=afterany:10414564",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-trace-no-appendix/da-3-4.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.479085-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414570",
+        "name": "trace-q3-score_only-trace-no-appendix-da-3-4",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:37:43",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace-no-appendix/da-11-1",
+      "job_id": "10414571",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-trace-no-appendix-da-11-1",
+        "--dependency=afterany:10414565",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-trace-no-appendix/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.503060-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414571",
+        "name": "trace-q3-score_only-trace-no-appendix-da-11-1",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace-no-appendix/da-18-1",
+      "job_id": "10414572",
+      "stage": "producer",
+      "cpus": 4,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-score_only-trace-no-appendix-da-18-1",
+        "--dependency=afterany:10414566",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/score_only-trace-no-appendix/da-18-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.527009-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414572",
+        "name": "trace-q3-score_only-trace-no-appendix-da-18-1",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:38:25",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-fixed/audit",
+      "job_id": "10414573",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414549:10414550:10414551",
+        "--job-name=trace-q3-audit-semi-fixed",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "semi-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.549545-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(QOSMaxCpuPerUserLimit)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414573",
+        "name": "trace-q3-audit-semi-fixed",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:16:23",
+        "cpus": "8",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-fixed/report",
+      "job_id": "10414574",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414573",
+        "--job-name=trace-q3-report-semi-fixed",
+        "experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "semi-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.572657-04:00",
+      "slurm_state": "CANCELLED by 6011048",
+      "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
+      "scientific_calls": 0,
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414574",
+        "name": "trace-q3-report-semi-fixed",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-fixed/audit",
+      "job_id": "10414575",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414552:10414553:10414554:10414573",
+        "--job-name=trace-q3-audit-score_only-fixed",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "score_only-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.596125-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414575",
+        "name": "trace-q3-audit-score_only-fixed",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:13:29",
+        "cpus": "8",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-fixed/report",
+      "job_id": "10414576",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414575",
+        "--job-name=trace-q3-report-score_only-fixed",
+        "experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "score_only-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.620060-04:00",
+      "slurm_state": "CANCELLED by 6011048",
+      "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
+      "scientific_calls": 0,
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414576",
+        "name": "trace-q3-report-score_only-fixed",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-trace/audit",
+      "job_id": "10414577",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414555:10414556:10414557:10414575",
+        "--job-name=trace-q3-audit-semi-trace",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "semi-trace"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.644433-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "recovery_dependency": "10414859",
+      "recovery_dependencies": [
+        "10415064",
+        "10414859"
+      ],
+      "accounting": {
+        "job_id": "10414577",
+        "name": "trace-q3-audit-semi-trace",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-trace/report",
+      "job_id": "10414578",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414577",
+        "--job-name=trace-q3-report-semi-trace",
+        "experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "semi-trace"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.671019-04:00",
+      "slurm_state": "CANCELLED by 6011048",
+      "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
+      "scientific_calls": 0,
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414578",
+        "name": "trace-q3-report-semi-trace",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace/audit",
+      "job_id": "10414579",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414558:10414559:10414560:10414577",
+        "--job-name=trace-q3-audit-score_only-trace",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "score_only-trace"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.696450-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414579",
+        "name": "trace-q3-audit-score_only-trace",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace/report",
+      "job_id": "10414580",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414579",
+        "--job-name=trace-q3-report-score_only-trace",
+        "experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "score_only-trace"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.720803-04:00",
+      "slurm_state": "CANCELLED by 6011048",
+      "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
+      "scientific_calls": 0,
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414580",
+        "name": "trace-q3-report-score_only-trace",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-fixed/audit",
+      "job_id": "10414581",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414561:10414562:10414563:10414579",
+        "--job-name=trace-q3-audit-full-fixed",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "full-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.747156-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414581",
+        "name": "trace-q3-audit-full-fixed",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-fixed/report",
+      "job_id": "10414582",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414581",
+        "--job-name=trace-q3-report-full-fixed",
+        "experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "full-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.770287-04:00",
+      "slurm_state": "CANCELLED by 6011048",
+      "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
+      "scientific_calls": 0,
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414582",
+        "name": "trace-q3-report-full-fixed",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/user_simulator-fixed/audit",
+      "job_id": "10414583",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414564:10414565:10414566:10414581",
+        "--job-name=trace-q3-audit-user_simulator-fixed",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "user_simulator-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.794063-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414583",
+        "name": "trace-q3-audit-user_simulator-fixed",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/user_simulator-fixed/report",
+      "job_id": "10414584",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414583",
+        "--job-name=trace-q3-report-user_simulator-fixed",
+        "experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "user_simulator-fixed"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.818254-04:00",
+      "slurm_state": "CANCELLED by 6011048",
+      "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
+      "scientific_calls": 0,
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414584",
+        "name": "trace-q3-report-user_simulator-fixed",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/full-trace/audit",
+      "job_id": "10414585",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414567:10414568:10414569:10414583",
+        "--job-name=trace-q3-audit-full-trace",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "full-trace"
+      ],
+      "submitted_at": "2026-09-12T10:28:04.843591-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414585",
+        "name": "trace-q3-audit-full-trace",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-trace-no-appendix/audit",
+      "job_id": "10414593",
+      "stage": "audit",
+      "cpus": 8,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414570:10414571:10414572:10414585",
+        "--job-name=trace-q3-audit-score_only-trace-no-appendix",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "score_only-trace-no-appendix"
+      ],
+      "submitted_at": "2026-09-12T10:30:02.873208-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414593",
+        "name": "trace-q3-audit-score_only-trace-no-appendix",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi/collector",
+      "job_id": "10414594",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--partition=preempt",
+        "--qos=preempt_cpu_qos",
+        "--cpus-per-task=1",
+        "--mem=16G",
+        "--time=02:00:00",
+        "--no-requeue",
+        "--dependency=afterany:10414573:10414577",
+        "--job-name=trace-q3-semi-collector",
+        "--output=experiments/biomnibench-v21-to45/queue3/collector-%j.log",
+        "--error=experiments/biomnibench-v21-to45/queue3/collector-%j.err",
+        "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py semi-fixed\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py semi-trace\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py compare semi"
+      ],
+      "submitted_at": "2026-09-12T10:30:02.896927-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414594",
+        "name": "trace-q3-semi-collector",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only/collector",
+      "job_id": "10414595",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--partition=preempt",
+        "--qos=preempt_cpu_qos",
+        "--cpus-per-task=1",
+        "--mem=16G",
+        "--time=02:00:00",
+        "--no-requeue",
+        "--dependency=afterany:10414575:10414579",
+        "--job-name=trace-q3-score_only-collector",
+        "--output=experiments/biomnibench-v21-to45/queue3/collector-%j.log",
+        "--error=experiments/biomnibench-v21-to45/queue3/collector-%j.err",
+        "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py score_only-fixed\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py score_only-trace\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py compare score_only"
+      ],
+      "submitted_at": "2026-09-12T10:30:02.922836-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414595",
+        "name": "trace-q3-score_only-collector",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/matrix/collector",
+      "job_id": "10414596",
+      "stage": "report",
+      "cpus": 1,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--partition=preempt",
+        "--qos=preempt_cpu_qos",
+        "--cpus-per-task=1",
+        "--mem=16G",
+        "--time=02:00:00",
+        "--no-requeue",
+        "--dependency=afterany:10414581:10414583:10414585:10414593:10414594:10414595",
+        "--job-name=trace-q3-matrix-collector",
+        "--output=experiments/biomnibench-v21-to45/queue3/collector-%j.log",
+        "--error=experiments/biomnibench-v21-to45/queue3/collector-%j.err",
+        "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py full-fixed\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py user_simulator-fixed\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py full-trace\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py score_only-trace-no-appendix\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py compare full\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py compare user_simulator\n/usr/bin/env PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912 PYTHONDONTWRITEBYTECODE=1 /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python experiments/biomnibench-v21-to45/queue3/report.py compare"
+      ],
+      "submitted_at": "2026-09-12T10:30:02.947514-04:00",
+      "slurm_state": "PENDING",
+      "pending_reason": "(Dependency)",
+      "observed_at": "2026-09-12T10:59:09.275939-04:00",
+      "accounting": {
+        "job_id": "10414596",
+        "name": "trace-q3-matrix-collector",
+        "state": "PENDING",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-trace/da-11-1-recovery",
+      "job_id": "10414859",
+      "stage": "producer_recovery",
+      "cpus": 4,
+      "source_job": "10414556",
+      "reason": "Slurm PREEMPTED 0:0; native child terminated -15; preserve all sealed checkpoints and resume only same three unfinished assignments",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--account=dfried",
+        "--cpus-per-task=4",
+        "--job-name=trace-q3-semi-da11-resume",
+        "scripts/babel/experiment.sbatch",
+        "--profile",
+        "dev3-4",
+        "revise",
+        "--experiment",
+        "experiments/biomnibench-v21-to45/queue3/configs/semi-trace/da-11-1.yaml",
+        "--resume"
+      ],
+      "submitted_at": "2026-09-12T15:26:33.543333+00:00",
+      "accounting": {
+        "job_id": "10414859",
+        "name": "trace-q3-semi-da11-resume",
+        "state": "RUNNING",
+        "exit_code": "0:0",
+        "elapsed": "00:46:10",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/semi-fixed/audit-recovery",
+      "job_id": "10414883",
+      "stage": "audit_recovery",
+      "cpus": 8,
+      "source_job": "10414573",
+      "reason": "Six unfinished Opus rubric judgments on da-11-1: max_tokens/refusal provider stops and duplicate JSON keys; not a demonstrated network timeout. One native missing-only resume; preserve complete score/quality/direct judgments and all invalid attempts.",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414575",
+        "--job-name=trace-q3-semi-fixed-audit-resume",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "semi-fixed"
+      ],
+      "submitted_at": "2026-09-12T15:29:21.302673+00:00",
+      "accounting": {
+        "job_id": "10414883",
+        "name": "trace-q3-semi-fixed-audit-resume",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:01:47",
+        "cpus": "8",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue3/jobs/score_only-fixed/audit-recovery",
+      "job_id": "10414965",
+      "stage": "audit_recovery",
+      "source_job": "10414575",
+      "reason": "Eight incomplete Opus rubric judgments on da-11-1, terminal max_tokens(6)/duplicate key(1)/refusal(1); one unchanged native missing-only resume, not a network-timeout claim",
+      "cpus": 4,
+      "request_workers": 32,
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--cpus-per-task=4",
+        "--dependency=afterany:10414883",
+        "--job-name=trace-q3-score-fixed-audit-resume",
+        "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+        "score_only-fixed"
+      ],
+      "submitted_at": "2026-09-12T15:50:48.515341+00:00",
+      "accounting": {
+        "job_id": "10414965",
+        "name": "trace-q3-score-fixed-audit-resume",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:02:24",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue6/seed_jobs/0",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-results30-seeds-0",
+        "experiments/biomnibench-v21-to45/queue6/seeds.sbatch",
+        "0"
+      ],
+      "submitted_at": "2026-09-12T15:24:33.352980+00:00",
+      "cpus": 4,
+      "native_workers": 4,
+      "stderr": "",
+      "job_id": "10414853",
+      "status": "submitted",
+      "slurm_state": "RUNNING",
+      "exit_code": "0:0",
+      "elapsed": "00:05:22",
+      "allocated_cpus": "4",
+      "observed_at": "2026-09-12T11:30:25.040180-04:00",
+      "accounting": {
+        "job_id": "10414853",
+        "name": "trace-results30-seeds-0",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:19:58",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue6/seed_jobs/1",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-results30-seeds-1",
+        "experiments/biomnibench-v21-to45/queue6/seeds.sbatch",
+        "1"
+      ],
+      "submitted_at": "2026-09-12T15:24:33.379927+00:00",
+      "cpus": 4,
+      "native_workers": 4,
+      "stderr": "",
+      "job_id": "10414854",
+      "status": "submitted",
+      "slurm_state": "PENDING",
+      "exit_code": "0:0",
+      "elapsed": "00:00:00",
+      "allocated_cpus": "0",
+      "observed_at": "2026-09-12T11:30:25.040180-04:00",
+      "accounting": {
+        "job_id": "10414854",
+        "name": "trace-results30-seeds-1",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:36:19",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue6/seed_jobs/0-resume",
+      "job_id": "10415010",
+      "source_job": "10414853",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-results30-seeds-0-resume",
+        "experiments/biomnibench-v21-to45/queue6/seeds.sbatch",
+        "0"
+      ],
+      "submitted_at": "2026-09-12T15:58:12.389737+00:00",
+      "cpus": 4,
+      "native_workers": 4,
+      "completed_blocks_reused": 12,
+      "missing_blocks": 3,
+      "recovery": "One native missing-only seed invocation; failed partial blocks archived in queue7 seed-recovery-preparation.json",
+      "slurm_state": "FAILED",
+      "exit_code": "1:0",
+      "elapsed": "00:09:47",
+      "recovered_blocks": 2,
+      "remaining_missing_blocks": 1,
+      "accounting": {
+        "job_id": "10415010",
+        "name": "trace-results30-seeds-0-resume",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:09:47",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue7/seed_jobs/0",
+      "job_id": "10415017",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10415010",
+        "--job-name=trace-results45-seeds-0",
+        "experiments/biomnibench-v21-to45/queue7/seeds.sbatch",
+        "0"
+      ],
+      "submitted_at": "2026-09-12T15:58:39.355051+00:00",
+      "dependency": "10415010",
+      "cpus": 4,
+      "native_workers": 4,
+      "expected_seed_blocks": 24,
+      "slurm_state": "RUNNING",
+      "accounting": {
+        "job_id": "10415017",
+        "name": "trace-results45-seeds-0",
+        "state": "RUNNING",
+        "exit_code": "0:0",
+        "elapsed": "00:16:57",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue7/seed_jobs/1",
+      "job_id": "10415018",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--dependency=afterany:10414854",
+        "--job-name=trace-results45-seeds-1",
+        "experiments/biomnibench-v21-to45/queue7/seeds.sbatch",
+        "1"
+      ],
+      "submitted_at": "2026-09-12T15:58:39.380472+00:00",
+      "dependency": "10414854",
+      "cpus": 4,
+      "native_workers": 4,
+      "expected_seed_blocks": 21,
+      "slurm_state": "PENDING",
+      "accounting": {
+        "job_id": "10415018",
+        "name": "trace-results45-seeds-1",
+        "state": "RUNNING",
+        "exit_code": "0:0",
+        "elapsed": "00:09:44",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "queue": "queue2",
+      "cell": "R1",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue2",
+      "cell": "R2",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "full-fixed",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "full-trace",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "semi-fixed",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "semi-trace",
+      "expected": 9,
+      "completed": 7,
+      "running": 2,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "score_only-fixed",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "score_only-trace",
+      "expected": 9,
+      "completed": 9,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "user_simulator-fixed",
+      "expected": 9,
+      "completed": 8,
+      "running": 1,
+      "not_yet_in_ledger": 0
+    },
+    {
+      "queue": "queue3",
+      "cell": "score_only-trace-no-appendix",
+      "expected": 9,
+      "completed": 6,
+      "not_yet_in_ledger": 3
+    }
+  ],
+  "seeds": {
+    "results30": {
+      "expected_blocks": 30,
+      "sealed_blocks": 24,
+      "by_task": {
+        "da-19-3": 2,
+        "da-3-5": 3,
+        "da-26-2": 2,
+        "da-20-4": 3,
+        "da-8-1": 2,
+        "da-1-3": 2,
+        "da-5-1": 3,
+        "da-4-6": 2,
+        "da-26-4": 2,
+        "da-4-1": 3
+      }
+    },
+    "results45-added15": {
+      "expected_blocks": 45,
+      "sealed_blocks": 7,
+      "by_task": {
+        "da-24-3": 2,
+        "da-9-7": 3,
+        "da-6-5": 2
+      }
+    }
+  },
+  "provider_calls": 0,
+  "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text"
+}

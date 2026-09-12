@@ -1432,3 +1432,7 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12
 
 - 11:47 EDT: Queue7 fixes Full-v2.1 through the official final15:90 added records,270 cumulative Full fixed/trace records with3replicates. No Results30 prompt selection; User/other-policy expansion awaits their own complete evidence. See docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md.
+
+## 2026-09-12 — Added-task heldout authority
+
+- 12:39 EDT: User authorizes the committed rigorous-V2 prompt (47463ca) for newly generated expansion heldouts; preserve the historical twenty-task pool and report the old/new generation difference. This resolves the heldout-policy hold; no task membership or treatment recipe changes.

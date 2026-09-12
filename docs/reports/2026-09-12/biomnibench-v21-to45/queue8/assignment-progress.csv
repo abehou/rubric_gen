@@ -1,0 +1,11 @@
+queue,cell,expected,completed,not_yet_in_ledger,running
+queue2,R1,9,9,0,
+queue2,R2,9,9,0,
+queue3,full-fixed,9,9,0,
+queue3,full-trace,9,9,0,
+queue3,semi-fixed,9,9,0,
+queue3,semi-trace,9,7,0,2
+queue3,score_only-fixed,9,9,0,
+queue3,score_only-trace,9,9,0,
+queue3,user_simulator-fixed,9,8,0,1
+queue3,score_only-trace-no-appendix,9,6,3,

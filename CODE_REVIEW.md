@@ -662,3 +662,7 @@
 - 12:04 EDT: R1/R2 native outcome rubric requests are rejected by Anthropic as Schema is too complex; shared schema/provider handling needs owner review, with exact receipts retained. A tested private task subset prevents that blocked task from suppressing independent audits; no scientific request/schema change or retry workaround was added.
 
 - 12:10 EDT: Cross-checkout audit task dispatch10415055/10415056 failed native source identity validation before provider work; the driver had derived config paths from its own file. Respect the existing project-root environment and run with the exact original library/config source; add a regression for path binding, with broader shared-schema descendants excluded from this recovery.
+
+## 2026-09-12 — Reviewed runtime reuse for trace audit responses
+
+- 12:46 EDT: c451942 already resolves the observed nested-schema rejection and preserves successful historical scores through native adoption; isolated copies0b58da6/9233e64 passed514 focused tests and573 saved-record replays unchanged. Output-format instructions change for missing requests, while scientific grading and completed evidence remain fixed; no separate recovery framework is introduced.

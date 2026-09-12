@@ -54,7 +54,7 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Resolve added-task heldout prompt authority; continue seed lanes and scoped dev3 recoveries. Results30 revisions/audits remain unlaunched pending heldout inputs; preserve all completed20 records.",
+  "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
   "updated_at": "2026-09-12T11:36:58.247223-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
@@ -1803,7 +1803,7 @@
         "remaining_missing_blocks": 1
       }
     },
-    "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
+    "heldout_authority": "authorized committed rigorous-V2 for new tasks; preserve historical20",
     "revision_jobs": [],
     "audit_jobs": [],
     "progress": {
@@ -1899,7 +1899,7 @@
     },
     "revision_jobs": [],
     "audit_jobs": [],
-    "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
+    "heldout_authority": "authorized committed rigorous-V2 for new tasks; preserve historical20",
     "handoff": {
       "at": "2026-09-12T16:14:39.014108+00:00",
       "completed_scale_records": 120,
@@ -1911,5 +1911,13 @@
       "remaining_input_decision": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
       "audit_issue": "Permanent HTTP400 schema complexity in R1/R2 da-3-4; Semi/Score fixed six/eight Opus requests remain at native attempt limit; preserve all complete judgments"
     }
+  },
+  "heldout_decision": {
+    "status": "authorized",
+    "at": "2026-09-12T12:39:00-04:00",
+    "user_instruction": "Use the committed rigorous-V2 prompt; document the old/new generation difference",
+    "prompt_commit": "47463ca",
+    "scope": "new expansion tasks; historical twenty-task heldouts remain unchanged",
+    "reporting": "separate original20, additional10, final15; report old/new generation difference"
   }
 }

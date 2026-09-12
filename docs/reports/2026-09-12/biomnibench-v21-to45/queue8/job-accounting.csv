@@ -1,0 +1,64 @@
+package,job_id,name,state,exit_code,elapsed,cpus,total_cpu
+/queue2/jobs/R1-da-3-4,10414481,trace-q2-R1-da-3-4,COMPLETED,0:0,00:40:56,4,00:00:00
+/queue2/jobs/R1-da-11-1,10414482,trace-q2-R1-da-11-1,COMPLETED,0:0,01:15:48,4,00:00:00
+/queue2/jobs/R1-da-18-1,10414483,trace-q2-R1-da-18-1,COMPLETED,0:0,00:24:59,4,00:00:00
+/queue2/jobs/R2-da-3-4,10414484,trace-q2-R2-da-3-4,COMPLETED,0:0,00:21:31,4,00:00:00
+/queue2/jobs/R2-da-11-1,10414485,trace-q2-R2-da-11-1,COMPLETED,0:0,00:58:50,4,00:00:00
+/queue2/jobs/R2-da-18-1,10414486,trace-q2-R2-da-18-1,COMPLETED,0:0,00:28:36,4,00:00:00
+/queue2/jobs/R1-audit,10414487,trace-q2-R1-audit,PREEMPTED,0:0,00:04:51,8,00:00:00
+/queue2/jobs/R2-audit,10414488,trace-q2-R2-audit,FAILED,1:0,00:04:04,8,00:00:00
+/queue2/jobs/comparison-report,10414489,trace-q2-report,FAILED,1:0,00:00:01,1,00:00:00
+/queue2/jobs/R1-audit-preemption-resume,10414945,trace-q2-R1-audit-resume,PREEMPTED,0:0,00:07:00,4,00:00:00
+/queue2/jobs/R1-remaining-task-audits,10415055,trace-q2-R1-remaining-audits,FAILED,1:0,00:00:02,4,00:00:00
+/queue2/jobs/R2-remaining-task-audits,10415056,trace-q2-R2-remaining-audits,FAILED,1:0,00:00:01,4,00:00:00
+/queue2/jobs/R1-original-source-remaining-audits,10415063,trace-q2-R1-original-source-audit,FAILED,1:0,00:07:44,4,00:00:00
+/queue2/jobs/R2-original-source-remaining-audits,10415064,trace-q2-R2-original-source-audit,RUNNING,0:0,00:07:09,4,00:00:00
+/queue3/jobs/semi-fixed/da-3-4,10414549,trace-q3-semi-fixed-da-3-4,COMPLETED,0:0,00:03:20,4,00:00:00
+/queue3/jobs/semi-fixed/da-11-1,10414550,trace-q3-semi-fixed-da-11-1,COMPLETED,0:0,00:12:09,4,00:00:00
+/queue3/jobs/semi-fixed/da-18-1,10414551,trace-q3-semi-fixed-da-18-1,COMPLETED,0:0,00:08:02,4,00:00:00
+/queue3/jobs/score_only-fixed/da-3-4,10414552,trace-q3-score_only-fixed-da-3-4,COMPLETED,0:0,00:05:38,4,00:00:00
+/queue3/jobs/score_only-fixed/da-11-1,10414553,trace-q3-score_only-fixed-da-11-1,COMPLETED,0:0,00:19:38,4,00:00:00
+/queue3/jobs/score_only-fixed/da-18-1,10414554,trace-q3-score_only-fixed-da-18-1,COMPLETED,0:0,00:10:54,4,00:00:00
+/queue3/jobs/semi-trace/da-3-4,10414555,trace-q3-semi-trace-da-3-4,COMPLETED,0:0,00:18:09,4,00:00:00
+/queue3/jobs/semi-trace/da-11-1,10414556,trace-q3-semi-trace-da-11-1,PREEMPTED,0:0,00:17:28,4,00:00:00
+/queue3/jobs/semi-trace/da-18-1,10414557,trace-q3-semi-trace-da-18-1,COMPLETED,0:0,00:33:37,4,00:00:00
+/queue3/jobs/score_only-trace/da-3-4,10414558,trace-q3-score_only-trace-da-3-4,COMPLETED,0:0,00:32:49,4,00:00:00
+/queue3/jobs/score_only-trace/da-11-1,10414559,trace-q3-score_only-trace-da-11-1,COMPLETED,0:0,00:50:39,4,00:00:00
+/queue3/jobs/score_only-trace/da-18-1,10414560,trace-q3-score_only-trace-da-18-1,COMPLETED,0:0,00:24:00,4,00:00:00
+/queue3/jobs/full-fixed/da-3-4,10414561,trace-q3-full-fixed-da-3-4,COMPLETED,0:0,00:02:04,4,00:00:00
+/queue3/jobs/full-fixed/da-11-1,10414562,trace-q3-full-fixed-da-11-1,COMPLETED,0:0,00:16:44,4,00:00:00
+/queue3/jobs/full-fixed/da-18-1,10414563,trace-q3-full-fixed-da-18-1,COMPLETED,0:0,00:02:53,4,00:00:00
+/queue3/jobs/user_simulator-fixed/da-3-4,10414564,trace-q3-user_simulator-fixed-da-3-4,COMPLETED,0:0,00:05:08,4,00:00:00
+/queue3/jobs/user_simulator-fixed/da-11-1,10414565,trace-q3-user_simulator-fixed-da-11-1,RUNNING,0:0,00:38:30,4,00:00:00
+/queue3/jobs/user_simulator-fixed/da-18-1,10414566,trace-q3-user_simulator-fixed-da-18-1,COMPLETED,0:0,00:07:17,4,00:00:00
+/queue3/jobs/full-trace/da-3-4,10414567,trace-q3-full-trace-da-3-4,COMPLETED,0:0,00:16:25,4,00:00:00
+/queue3/jobs/full-trace/da-11-1,10414568,trace-q3-full-trace-da-11-1,COMPLETED,0:0,00:39:03,4,00:00:00
+/queue3/jobs/full-trace/da-18-1,10414569,trace-q3-full-trace-da-18-1,COMPLETED,0:0,00:20:17,4,00:00:00
+/queue3/jobs/score_only-trace-no-appendix/da-3-4,10414570,trace-q3-score_only-trace-no-appendix-da-3-4,COMPLETED,0:0,00:37:43,4,00:00:00
+/queue3/jobs/score_only-trace-no-appendix/da-11-1,10414571,trace-q3-score_only-trace-no-appendix-da-11-1,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/score_only-trace-no-appendix/da-18-1,10414572,trace-q3-score_only-trace-no-appendix-da-18-1,COMPLETED,0:0,00:38:25,4,00:00:00
+/queue3/jobs/semi-fixed/audit,10414573,trace-q3-audit-semi-fixed,FAILED,1:0,00:16:23,8,00:00:00
+/queue3/jobs/semi-fixed/report,10414574,trace-q3-report-semi-fixed,CANCELLED by 6011048,0:0,00:00:00,0,00:00:00
+/queue3/jobs/score_only-fixed/audit,10414575,trace-q3-audit-score_only-fixed,FAILED,1:0,00:13:29,8,00:00:00
+/queue3/jobs/score_only-fixed/report,10414576,trace-q3-report-score_only-fixed,CANCELLED by 6011048,0:0,00:00:00,0,00:00:00
+/queue3/jobs/semi-trace/audit,10414577,trace-q3-audit-semi-trace,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/semi-trace/report,10414578,trace-q3-report-semi-trace,CANCELLED by 6011048,0:0,00:00:00,0,00:00:00
+/queue3/jobs/score_only-trace/audit,10414579,trace-q3-audit-score_only-trace,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/score_only-trace/report,10414580,trace-q3-report-score_only-trace,CANCELLED by 6011048,0:0,00:00:00,0,00:00:00
+/queue3/jobs/full-fixed/audit,10414581,trace-q3-audit-full-fixed,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/full-fixed/report,10414582,trace-q3-report-full-fixed,CANCELLED by 6011048,0:0,00:00:00,0,00:00:00
+/queue3/jobs/user_simulator-fixed/audit,10414583,trace-q3-audit-user_simulator-fixed,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/user_simulator-fixed/report,10414584,trace-q3-report-user_simulator-fixed,CANCELLED by 6011048,0:0,00:00:00,0,00:00:00
+/queue3/jobs/full-trace/audit,10414585,trace-q3-audit-full-trace,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/score_only-trace-no-appendix/audit,10414593,trace-q3-audit-score_only-trace-no-appendix,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/semi/collector,10414594,trace-q3-semi-collector,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/score_only/collector,10414595,trace-q3-score_only-collector,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/matrix/collector,10414596,trace-q3-matrix-collector,PENDING,0:0,00:00:00,0,00:00:00
+/queue3/jobs/semi-trace/da-11-1-recovery,10414859,trace-q3-semi-da11-resume,RUNNING,0:0,00:46:10,4,00:00:00
+/queue3/jobs/semi-fixed/audit-recovery,10414883,trace-q3-semi-fixed-audit-resume,FAILED,1:0,00:01:47,8,00:00:00
+/queue3/jobs/score_only-fixed/audit-recovery,10414965,trace-q3-score-fixed-audit-resume,FAILED,1:0,00:02:24,4,00:00:00
+/queue6/seed_jobs/0,10414853,trace-results30-seeds-0,FAILED,1:0,00:19:58,4,00:00:00
+/queue6/seed_jobs/1,10414854,trace-results30-seeds-1,FAILED,1:0,00:36:19,4,00:00:00
+/queue6/seed_jobs/0-resume,10415010,trace-results30-seeds-0-resume,FAILED,1:0,00:09:47,4,00:00:00
+/queue7/seed_jobs/0,10415017,trace-results45-seeds-0,RUNNING,0:0,00:16:57,4,00:00:00
+/queue7/seed_jobs/1,10415018,trace-results45-seeds-1,RUNNING,0:0,00:09:44,4,00:00:00

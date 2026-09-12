@@ -1,0 +1,143 @@
+{
+  "reviewed_patch": "c451942",
+  "records": [
+    {
+      "cell": "semi-fixed",
+      "task": "da-3-4",
+      "status": "native_replay_valid",
+      "preserved_record_count": 60,
+      "planned_count": 60,
+      "complete_stage_reused": true,
+      "missing_count": 0,
+      "missing_jobs": [],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-3-4.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/semi-fixed/da-3-4/audit/biomnibench-da-factorial-r10-a6b32df6717c/rubric_score"
+    },
+    {
+      "cell": "semi-fixed",
+      "task": "da-11-1",
+      "status": "native_replay_valid",
+      "preserved_record_count": 54,
+      "planned_count": 60,
+      "complete_stage_reused": false,
+      "missing_count": 6,
+      "missing_jobs": [
+        {
+          "key": "1f9f6110d7c55978ed6e1a1a4b17cee8",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "b564dd7d930d2ece1115b6bfffe38816",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "27dcd5f0ad22fb5c7d5159495ea86622",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "c9a93ba0243716fd80bd82c4552aada6",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "425c2253ae693f72ff116ce5e47c4773",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "e69b4050e59c36d19a73e83a1246f4e0",
+          "model": "claude-opus-5"
+        }
+      ],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-11-1.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/semi-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score"
+    },
+    {
+      "cell": "semi-fixed",
+      "task": "da-18-1",
+      "status": "native_replay_valid",
+      "preserved_record_count": 60,
+      "planned_count": 60,
+      "complete_stage_reused": true,
+      "missing_count": 0,
+      "missing_jobs": [],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/configs/semi-fixed/da-18-1.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/semi-fixed/da-18-1/audit/biomnibench-da-factorial-r10-f2bc6c66b703/rubric_score"
+    },
+    {
+      "cell": "score_only-fixed",
+      "task": "da-3-4",
+      "status": "native_replay_valid",
+      "preserved_record_count": 60,
+      "planned_count": 60,
+      "complete_stage_reused": true,
+      "missing_count": 0,
+      "missing_jobs": [],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-3-4.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-3-4/audit/biomnibench-da-factorial-r10-a6b32df6717c/rubric_score"
+    },
+    {
+      "cell": "score_only-fixed",
+      "task": "da-11-1",
+      "status": "native_replay_valid",
+      "preserved_record_count": 52,
+      "planned_count": 60,
+      "complete_stage_reused": false,
+      "missing_count": 8,
+      "missing_jobs": [
+        {
+          "key": "daaaa3e83a367f2a417ca67ac2f7d457",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "789ca11b8f64e01898c78f0e90d8b37b",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "1f9f6110d7c55978ed6e1a1a4b17cee8",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "416e9a56b19a1b4f824587445e2274b2",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "725030396107f8ebe0a5255972225646",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "425c2253ae693f72ff116ce5e47c4773",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "a8b6f97eea84415918a8c678855d3763",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "cab9311997c440e0d51bd7c4c16b15f3",
+          "model": "claude-opus-5"
+        }
+      ],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-11-1.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score"
+    },
+    {
+      "cell": "score_only-fixed",
+      "task": "da-18-1",
+      "status": "native_replay_valid",
+      "preserved_record_count": 60,
+      "planned_count": 60,
+      "complete_stage_reused": true,
+      "missing_count": 0,
+      "missing_jobs": [],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/configs/score_only-fixed/da-18-1.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-18-1/audit/biomnibench-da-factorial-r10-f2bc6c66b703/rubric_score"
+    }
+  ],
+  "elapsed_seconds": 115.52316471096128,
+  "provider_calls": 0
+}

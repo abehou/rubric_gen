@@ -1,0 +1,255 @@
+{
+  "reviewed_patch": "c451942",
+  "records": [
+    {
+      "cell": "R1",
+      "task": "da-3-4",
+      "status": "native_replay_valid",
+      "preserved_record_count": 66,
+      "planned_count": 70,
+      "complete_stage_reused": false,
+      "missing_count": 4,
+      "missing_jobs": [
+        {
+          "key": "685b2d9158ac83fa8f37160ea78cf87e",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "53e1756ff937423af9bd64305f925ef4",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "694fe9ed3ad9b589d79530bd000e236f",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "117426b22df0b2655f91f07c43da579f",
+          "model": "claude-opus-5"
+        }
+      ],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R1/da-3-4.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-3-4/audit/biomnibench-da-factorial-r10-52b5b60c83d3/rubric_score"
+    },
+    {
+      "cell": "R1",
+      "task": "da-11-1",
+      "status": "native_replay_valid",
+      "preserved_record_count": 46,
+      "planned_count": 66,
+      "complete_stage_reused": false,
+      "missing_count": 20,
+      "missing_jobs": [
+        {
+          "key": "725030396107f8ebe0a5255972225646",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "250d11735989356b753c65b5ac137a40",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "ad2f78c13ac6ea6b0aeb76c56d0f54f2",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "197d814ca0bb69c94da2d16bb6df6d92",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "d32a9e0544bcc621e57a462a930f62fd",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "5e5c89198272823be13053eeffac757e",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "ad29503e88cbf1cd983948e13ff4e3b8",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "b7da52a166d5be0bccc511fe6cabb754",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "8b0d91962da3aa2d77b8b277980f6a5c",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "32a975ae07876193fb52d7cf0a43376c",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "daaaa3e83a367f2a417ca67ac2f7d457",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "789ca11b8f64e01898c78f0e90d8b37b",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "98c8c2f9c8b888917631da9770e3eb72",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "1f9f6110d7c55978ed6e1a1a4b17cee8",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "94a66639dbf46761fe6a7fc030566a6e",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "d411d8b59135c6338fc30f016bd7fe86",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "4257890dc7a3c37c91a5734c8ce62737",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "e0666df673f5bd8db94792e85e3199d9",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "62bccf072096906c37f22c777ef09606",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "0c7839e369d1c30c78d94e6f4d82caa9",
+          "model": "claude-opus-5"
+        }
+      ],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R1/da-11-1.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R1/da-11-1/audit/biomnibench-da-factorial-r10-cccddfcd24be/rubric_score"
+    },
+    {
+      "cell": "R1",
+      "task": "da-18-1",
+      "status": "not_started",
+      "provider_calls": 0
+    },
+    {
+      "cell": "R2",
+      "task": "da-3-4",
+      "status": "native_replay_valid",
+      "preserved_record_count": 63,
+      "planned_count": 70,
+      "complete_stage_reused": false,
+      "missing_count": 7,
+      "missing_jobs": [
+        {
+          "key": "c6762c8386c977e4628ff05f3aad1de7",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "33d28e15e5e5a6452502367793e7aab6",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "7555e6918239ea336665bc040520b504",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "5040ec118dcc148f18eba4982bdd25c5",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "5feab6020dd797077ca459607f468f43",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "1835acdf929d15144a039fabfa2ec23b",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "7355ae391a5806bfded9622b897db46e",
+          "model": "claude-opus-5"
+        }
+      ],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R2/da-3-4.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-3-4/audit/biomnibench-da-factorial-r10-ce0089308f07/rubric_score"
+    },
+    {
+      "cell": "R2",
+      "task": "da-11-1",
+      "status": "native_replay_valid",
+      "preserved_record_count": 52,
+      "planned_count": 66,
+      "complete_stage_reused": false,
+      "missing_count": 14,
+      "missing_jobs": [
+        {
+          "key": "889435ed6fd27cd64d0bd75cf8a18f67",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "1ecaa2c0ff52460292ed9cfe52c34c40",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "4394ca2de9ff6eeb0b45887160cb9063",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "32a975ae07876193fb52d7cf0a43376c",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "daaaa3e83a367f2a417ca67ac2f7d457",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "789ca11b8f64e01898c78f0e90d8b37b",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "98c8c2f9c8b888917631da9770e3eb72",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "1f9f6110d7c55978ed6e1a1a4b17cee8",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "cbd1762a653a861890e24fbe0740bd3c",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "72e167c1edad511352f5a04d46a975ea",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "51ab1d2664deb452b9680ee4d9f750d0",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "a66cc989e82e4b62ed53c3d9b613ca03",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "b45f0318fbdee66f935374d6e63cdf70",
+          "model": "claude-opus-5"
+        },
+        {
+          "key": "8016f34d3e23abb5dbf4580de77a17cd",
+          "model": "claude-opus-5"
+        }
+      ],
+      "provider_calls": 0,
+      "source_config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml",
+      "output": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/R2/da-11-1/audit/biomnibench-da-factorial-r10-f831941a2edd/rubric_score"
+    },
+    {
+      "cell": "R2",
+      "task": "da-18-1",
+      "status": "not_started",
+      "provider_calls": 0
+    }
+  ],
+  "elapsed_seconds": 82.61313260300085,
+  "provider_calls": 0
+}
