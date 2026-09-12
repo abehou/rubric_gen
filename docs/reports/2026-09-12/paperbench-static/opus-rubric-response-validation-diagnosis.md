@@ -238,3 +238,9 @@ The companion attempt table carries all task, condition and rubric-role fields. 
 | `fbaafcb95d33aaf48a9a2d982073f4ec` | robust-clip | 1 | 70 | duplicate_conflicting_blocks / duplicate_conflicting_blocks / duplicate_conflicting_blocks | True | False |
 | `fca1d6f0a39486da1372dac69913cdd4` | sequential-neural-score-estimation | 1 | 67 | duplicate_conflicting_blocks / duplicate_conflicting_blocks / duplicate_conflicting_blocks | True | False |
 | `fdca9397afa95a7961869098d3acd846` | sample-specific-masks | 1 | 87 | duplicate_conflicting_blocks / duplicate_conflicting_blocks / duplicate_conflicting_blocks | True | False |
+
+## V6 server compilation and v7 follow-up
+
+The single authorized production smoke10414045 at57f54af used the 306-criterion fre/rep-003/User-simulator-static/final-heldout-2 cell. Anthropic rejected its required keyed binary-tree schema with HTTP400 `Schema is too complex.` (request `req_011CeyXrNhwP8iStoSLkn1mh`); no generation or score was published, and no bulk recovery ran.
+
+This establishes a provider compiler limit beyond local schema validity; it does not identify an internal size threshold. V7 replaces each tree with a required plain string of explicit global-index/level-index/reason rows, preserving strict local scientific validation. See the updated [fix report](opus-rubric-response-validation-fix.md) for exact schema measurements, compatibility tests and staged live outcomes. The original140-judgment/420-attempt census above remains unchanged.

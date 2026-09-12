@@ -102,7 +102,7 @@ def test_eight_minute_stream_preserves_request_and_usage(monkeypatch, provider, 
                      overall_reasoning='evidence')
     wire = canonical
     if audit:
-        wire = dict(criteria={'tail': '0|evidence'} if provider == 'anthropic' else
+        wire = dict(criteria={'tail': '0|0|evidence'} if provider == 'anthropic' else
                     [dict(level_index=0, reason='evidence')], overall_reasoning='evidence')
     requests, streams, clients = _install_network(monkeypatch, provider, json.dumps(wire))
     grade = rubric_judge.grade_rubric_score if audit else full_rubric_judge.grade_full_rubric
@@ -173,17 +173,28 @@ def _wire(items):
     return dict(criteria=criteria, overall_reasoning='fixture reasoning')
 
 
+def _strings(items):
+    full, tail = divmod(len(items), 64)
+    criteria = {f'block_{i}': '\n'.join(f'{j}|{items[j]}' for j in range(64*i, 64*i+64))
+                for i in range(full)}
+    if tail:
+        criteria['tail'] = '\n'.join(f'{j}|{items[j]}' for j in range(full*64, len(items)))
+    return dict(criteria=criteria, overall_reasoning='fixture reasoning')
+
+
 @pytest.mark.parametrize('count', [1, 2, 63, 64, 65, 67, 70, 77, 86, 87, 92, 120, 126, 128, 145, 178, 255, 306, 403, 872, 1000])
-@pytest.mark.parametrize('contract', [indexed_rubric.V5_STRUCTURED_OUTPUT, indexed_rubric.STRUCTURED_OUTPUT])
+@pytest.mark.parametrize('contract', [indexed_rubric.V5_STRUCTURED_OUTPUT, indexed_rubric.V6_STRUCTURED_OUTPUT, indexed_rubric.STRUCTURED_OUTPUT])
 def test_indexed_round_trip_order_levels_and_scores(count, contract):
     rubric = _many_criterion_rubric(count).replace('A=1 B=0', 'A=2 B=-1')
     levels = rubric_judge.parse_rubric_levels_strict(rubric)
     # Unique evidence and alternating levels expose any swapped/duplicated leaf.
     items = [dict(level_index=i % 2, reason=f'evidence {i}|kept') for i in range(count)]
     wire = _wire([f"{v['level_index']}|{v['reason']}" for v in items])
-    if count >= 64 and contract == indexed_rubric.STRUCTURED_OUTPUT:
+    if count >= 64 and contract == indexed_rubric.V6_STRUCTURED_OUTPUT:
         wire['criteria']['full_blocks'] = {f"block_{b['block_index']}": b['values']
                                            for b in wire['criteria']['full_blocks']}
+    if contract == indexed_rubric.STRUCTURED_OUTPUT:
+        wire = _strings([f"{v['level_index']}|{v['reason']}" for v in items])
     schema = indexed_rubric.output_schema(count, contract=contract)
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(wire)
@@ -418,7 +429,7 @@ def test_openai_terminal_failure_is_rejected(monkeypatch, status):
 
 def test_sparse_criterion_ids_follow_contract_order():
     levels = {'criterion_88': {'C': 3, 'D': -2}, 'criterion_3': {'A': 7, 'B': 0}}
-    decoded = indexed_rubric.decode_output(json.dumps(_wire(['1|first', '0|second'])), 2)
+    decoded = indexed_rubric.decode_output(json.dumps(_strings(['1|first', '0|second'])), 2)
     report = rubric_judge.parse_rubric_score_output(decoded, levels)
     assert list(report['criteria']) == ['criterion_88', 'criterion_3']
     assert report['criteria'] == {'criterion_88': {'level': 'D', 'reason': 'first'},

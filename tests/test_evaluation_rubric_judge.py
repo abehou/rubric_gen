@@ -195,7 +195,7 @@ def test_anthropic_audit_request_omits_deprecated_temperature(
         captured["request"] = kwargs
         return SimpleNamespace(
             content=[SimpleNamespace(type="text", text=json.dumps({
-                "criteria": {"tail": "0|The artifact is complete."},
+                "criteria": {"tail": "0|0|The artifact is complete."},
                 "overall_reasoning": "The evidence satisfies the criterion.",
             }))],
             model="claude-opus-5", id="response-1",
@@ -246,7 +246,7 @@ def test_rh_grading_normalizes_wire_reports_and_attests_engine(
     def generate(spec, *, payload, schema):
         calls.append((payload, schema))
         return FullRubricGeneration(
-            text=json.dumps({"criteria": {"tail": "0|The artifact is complete."},
+            text=json.dumps({"criteria": {"tail": "0|0|The artifact is complete."},
                              "overall_reasoning": "The evidence satisfies the criterion."}),
             provider=spec.provider,
             requested_model=spec.requested_model,

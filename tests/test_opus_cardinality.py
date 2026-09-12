@@ -17,7 +17,7 @@ from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner
 from rubric_gen.submission_revision.judging.full_rubric_protocol import FullRubricGeneration, FullRubricJudgeError
 from test_evaluation_rubric_judge import _many_criterion_rubric
 from test_revision_evaluation import _target
-from test_runtime_reliability import _wire
+from test_runtime_reliability import _wire, _strings
 
 
 def _keyed(items):
@@ -39,11 +39,11 @@ def test_keyed_schema_and_decoder_require_every_block_and_leaf(count, damage):
     elif damage == 'missing-tail': del value['criteria']['tail']
     elif damage == 'bad-tail': value['criteria']['tail'] = {}  # even a single-leaf tail is mandatory
     else: blocks['block_0'] = '0|evidence'
-    schema = judge_module._anthropic_rubric_score_schema(wire.output_schema(count))
+    schema = judge_module._anthropic_rubric_score_schema(wire.output_schema(count, contract=wire.V6_STRUCTURED_OUTPUT))
     with pytest.raises(ValidationError):
         Draft202012Validator(schema).validate(value)
     with pytest.raises(FullRubricJudgeError):
-        wire.decode_output(json.dumps(value), count)
+        wire.decode_output(json.dumps(value), count, contract=wire.V6_STRUCTURED_OUTPUT)
 
 
 def test_duplicate_keys_rejected_before_json_object_can_collapse_them():
@@ -51,29 +51,29 @@ def test_duplicate_keys_rejected_before_json_object_can_collapse_them():
     tree = json.dumps(value['criteria']['full_blocks']['block_0'])
     text = json.dumps(value).replace('"block_0": ' + tree, '"block_0": ' + tree + ', "block_0": ' + tree)
     with pytest.raises(FullRubricJudgeError, match='duplicate JSON key'):
-        wire.decode_output(text, 92)
+        wire.decode_output(text, 92, contract=wire.V6_STRUCTURED_OUTPUT)
 
 
 @pytest.mark.parametrize('leaf', ['x', 'y', 'placeholder', '', '0|', '0| \n ', ':0|evidence', '01|evidence'])
 def test_v6_leaf_pattern_enforces_existing_decimal_and_nonempty_reason_contract(leaf):
     value = _keyed([leaf])
     with pytest.raises(ValidationError):
-        Draft202012Validator(wire.output_schema(1)).validate(value)
+        Draft202012Validator(wire.output_schema(1, contract=wire.V6_STRUCTURED_OUTPUT)).validate(value)
     with pytest.raises(FullRubricJudgeError):
-        judge_module.parse_rubric_score_output(wire.decode_output(json.dumps(value), 1),
+        judge_module.parse_rubric_score_output(wire.decode_output(json.dumps(value), 1, contract=wire.V6_STRUCTURED_OUTPUT),
                                              {'criterion_1': {'A': 1, 'B': 0}})
 
 
 @pytest.mark.parametrize('leaf', ['0|reason', '12| multiline\nreason ', '1|contains | delimiter'])
 def test_leaf_pattern_allows_existing_reason_text(leaf):
-    Draft202012Validator(wire.output_schema(1)).validate(_keyed([leaf]))
+    Draft202012Validator(wire.output_schema(1, contract=wire.V6_STRUCTURED_OUTPUT)).validate(_keyed([leaf]))
 
 
 def test_criterion_specific_level_bounds_and_overall_reasoning_still_fail():
     for leaf, reasoning in [('3|evidence', 'overall'), ('0|evidence', '')]:
         value = _keyed([leaf]); value['overall_reasoning'] = reasoning
         with pytest.raises(FullRubricJudgeError):
-            judge_module.parse_rubric_score_output(wire.decode_output(json.dumps(value), 1),
+            judge_module.parse_rubric_score_output(wire.decode_output(json.dumps(value), 1, contract=wire.V6_STRUCTURED_OUTPUT),
                                                  {'criterion_1': {'A': 1, 'B': 0}})
 
 
@@ -89,7 +89,7 @@ def test_explicit_v5_replay_accepts_only_identical_redundant_blocks(count):
         wire.decode_output(json.dumps(duplicate), count, contract=wire.V5_STRUCTURED_OUTPUT)
     assert wire.replay_saved_v5_output(json.dumps(duplicate), count) == wire.decode_output(
         json.dumps(original), count, contract=wire.V5_STRUCTURED_OUTPUT)
-    assert wire.decode_output(json.dumps(_keyed(items)), count) == wire.decode_output(
+    assert wire.decode_output(json.dumps(_keyed(items)), count, contract=wire.V6_STRUCTURED_OUTPUT) == wire.decode_output(
         json.dumps(original), count, contract=wire.V5_STRUCTURED_OUTPUT)
     duplicate['criteria']['full_blocks'][-1]['values']['left'] = '1|conflicting evidence'
     with pytest.raises(FullRubricJudgeError, match='conflicting'):
@@ -99,7 +99,8 @@ def test_explicit_v5_replay_accepts_only_identical_redundant_blocks(count):
         wire.replay_saved_v5_output(json.dumps(missing), count)
 
 
-def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, sol=0):
+def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, sol=0, old_contract=wire.V5_STRUCTURED_OUTPUT):
+    assert missing == 0 or old_contract == wire.V5_STRUCTURED_OUTPUT
     target = _target(tmp_path)
     (tmp_path / 'instruction.md').write_text('Implement the task.')
     small = tmp_path / 'small.txt'; small.write_text(_many_criterion_rubric(1))
@@ -135,12 +136,12 @@ def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, 
         judge = judge_for(old)
         spec = judge_module.build_rubric_score_run_spec(rubric_text=judge.rubric.text,
             review_text=review, answer_text='answer', requested_model=model,
-            seed=judge._grading_seed(review, 'answer'), indexed_contract=wire.V5_STRUCTURED_OUTPUT)
+            seed=judge._grading_seed(review, 'answer'), indexed_contract=old_contract)
         entry = jobs._rubric_score_plan_entry(job=old, judge=judge, review_text=review, answer_text='answer',
             shape=judge_module.full_rubric_cost_shape(judge.rubric.text, review_text=review, answer_text='answer').as_json())
         entry['grading_identity'] = old.grading_identity
         entries.append(entry)
-        generation = FullRubricGeneration(text=json.dumps(_wire(['0|evidence'] * spec.criterion_count)
+        generation = FullRubricGeneration(text=json.dumps((_wire if old_contract == wire.V5_STRUCTURED_OUTPUT else _keyed if old_contract == wire.V6_STRUCTURED_OUTPUT else _strings)(['0|evidence'] * spec.criterion_count)
             if model.startswith('claude') else {'criteria': [{'level_index': 0, 'reason': 'evidence'}],
                                               'overall_reasoning': 'fixture reasoning'}),
             provider=spec.provider, requested_model=model, effective_model=model, response_id=f'original-{i}',
@@ -192,7 +193,7 @@ def test_native_resume_760_valid_140_exhausted_preserves_records_and_attempts(tm
         assert spec.provider == 'anthropic'
         calls.append(json.loads(payload)['artifact_evidence']['workspace_review'])
         assert spec.as_json()['structured_output_contract'] == wire.STRUCTURED_OUTPUT
-        return FullRubricGeneration(text=json.dumps(_keyed(['0|evidence'] * spec.criterion_count)),
+        return FullRubricGeneration(text=json.dumps(_strings(['0|evidence'] * spec.criterion_count)),
             provider=spec.provider, requested_model=spec.requested_model, effective_model=spec.requested_model,
             response_id='new-fixture', request_parameters=judge_module._request_parameters(spec), usage={})
 
@@ -274,3 +275,17 @@ def test_repaired_attempt_budget_remains_bounded_across_resumes(tmp_path, monkey
             runner._run_job(current)
     assert len(calls) == 3
     assert len(list((runner.root / 'artifacts' / old[0].key).rglob('failed-attempt-*.json'))) == 3
+
+
+@pytest.mark.parametrize('contract', [wire.V5_STRUCTURED_OUTPUT, wire.V6_STRUCTURED_OUTPUT, wire.STRUCTURED_OUTPUT])
+def test_native_resume_preserves_each_recorded_wire_provenance(tmp_path, monkeypatch, contract):
+    runner, _, old = _fixture_panel(tmp_path, monkeypatch, valid=1, missing=0, salvage=0, old_contract=contract)
+    before={p:(p.read_bytes(),p.stat().st_mtime_ns) for p in runner.root.rglob('*') if p.is_file()}
+    def forbidden(*args, **kwargs):
+        raise AssertionError('valid saved judgments must not invoke providers')
+    monkeypatch.setattr(judge_module, '_generate_response', forbidden)
+    runner.preflight()
+    assert len(runner._reused_records)==1
+    record=runner._run_job(runner._prepared.unique_jobs[0])
+    assert record['engine_execution']['structured_output_contract']==contract
+    assert all((p.read_bytes(),p.stat().st_mtime_ns)==value for p,value in before.items())

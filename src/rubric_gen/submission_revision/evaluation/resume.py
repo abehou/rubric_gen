@@ -185,7 +185,8 @@ def validate_saved_rubric(runner, job, record, path):
     from rubric_gen.artifacts.hashing import sha256_text
     prompt_hashes = {current['system_prompt_sha256'], sha256_text(RUBRIC_SCORE_SYSTEM_PROMPT)}
     if spec.provider == 'anthropic' and execution.get('structured_output_contract') in {
-            indexed_rubric.V5_STRUCTURED_OUTPUT, indexed_rubric.STRUCTURED_OUTPUT}:
+            indexed_rubric.V5_STRUCTURED_OUTPUT, indexed_rubric.V6_STRUCTURED_OUTPUT,
+            indexed_rubric.STRUCTURED_OUTPUT}:
         # Reconstruct only the recorded format paragraph with the unchanged
         # scientific instructions; no arbitrary producer-source whitelist.
         prompt_hashes = {sha256_text(_system_prompt('anthropic', execution['structured_output_contract']))}
