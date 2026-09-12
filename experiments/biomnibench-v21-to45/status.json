@@ -317,13 +317,35 @@
         "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)"
+      },
+      "R1-audit-preemption-resume": {
+        "job_id": "10414945",
+        "stage": "audit_recovery",
+        "source_job": "10414487",
+        "reason": "Slurm PREEMPTED; preserve successful judgments, native missing-only resume of the same nine assignments",
+        "cpus": 4,
+        "request_workers": 32,
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--cpus-per-task=4",
+          "--dependency=afterany:10414488",
+          "--job-name=trace-q2-R1-audit-resume",
+          "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+          "R1"
+        ],
+        "submitted_at": "2026-09-12T15:44:20.457901+00:00"
       }
     },
     "tests_passed": 86,
     "native_input_checks": 6,
     "execution_commit": "534e797998c3059c1582034e07b1c2d664d2ce10",
     "execution_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
-    "startup_summary": "All six producers running, three active assignments each; no recorded assignment failure. Two audits and report pending dependencies."
+    "startup_summary": "All six producers running, three active assignments each; no recorded assignment failure. Two audits and report pending dependencies.",
+    "report_recovery_dependencies": [
+      "10414945",
+      "10414488"
+    ]
   },
   "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls.",
   "queue3": {
@@ -1077,7 +1099,7 @@
         "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "recovery_dependency": "10414859",
         "recovery_dependencies": [
-          "10414883",
+          "10414965",
           "10414859"
         ]
       },
@@ -1350,6 +1372,24 @@
           "semi-fixed"
         ],
         "submitted_at": "2026-09-12T15:29:21.302673+00:00"
+      },
+      "score_only-fixed/audit-recovery": {
+        "job_id": "10414965",
+        "stage": "audit_recovery",
+        "source_job": "10414575",
+        "reason": "Eight incomplete Opus rubric judgments on da-11-1, terminal max_tokens(6)/duplicate key(1)/refusal(1); one unchanged native missing-only resume, not a network-timeout claim",
+        "cpus": 4,
+        "request_workers": 32,
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--cpus-per-task=4",
+          "--dependency=afterany:10414883",
+          "--job-name=trace-q3-score-fixed-audit-resume",
+          "experiments/biomnibench-v21-to45/queue3/audit.sbatch",
+          "score_only-fixed"
+        ],
+        "submitted_at": "2026-09-12T15:50:48.515341+00:00"
       }
     },
     "output_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/",

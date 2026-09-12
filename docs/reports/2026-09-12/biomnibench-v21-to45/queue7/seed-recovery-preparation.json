@@ -1,0 +1,47 @@
+{
+  "observed_at": "2026-09-12T15:53:49.152473+00:00",
+  "source_job": "10414853",
+  "retained_complete_blocks": 12,
+  "completed_manifest_paths": [
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/seeds/tasks/da-8-1/rep-003/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/seeds/tasks/da-20-4/rep-003/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/seeds/tasks/da-20-4/rep-001/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/seeds/tasks/da-20-4/rep-002/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/seeds/tasks/da-4-1/rep-003/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/seeds/tasks/da-4-1/rep-002/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/seeds/tasks/da-4-1/rep-001/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/seeds/tasks/da-3-5/rep-001/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/seeds/tasks/da-3-5/rep-002/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/seeds/tasks/da-5-1/rep-002/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/seeds/tasks/da-5-1/rep-001/manifest.json",
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/seeds/tasks/da-5-1/rep-003/manifest.json"
+  ],
+  "archived_incomplete_blocks": [
+    {
+      "task": "da-8-1",
+      "replicate": 1,
+      "source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/seeds/tasks/da-8-1/rep-001",
+      "preserved_copy": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seed-failures-from-10414853/da-8-1/rep-001",
+      "failure_class": "required_public_outputs_missing",
+      "native_resume": "same original task config, preserve all completed blocks"
+    },
+    {
+      "task": "da-8-1",
+      "replicate": 2,
+      "source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/seeds/tasks/da-8-1/rep-002",
+      "preserved_copy": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seed-failures-from-10414853/da-8-1/rep-002",
+      "failure_class": "required_public_outputs_missing",
+      "native_resume": "same original task config, preserve all completed blocks"
+    },
+    {
+      "task": "da-3-5",
+      "replicate": 3,
+      "source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/seeds/tasks/da-3-5/rep-003",
+      "preserved_copy": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seed-failures-from-10414853/da-3-5/rep-003",
+      "failure_class": "required_public_outputs_missing",
+      "native_resume": "same original task config, preserve all completed blocks"
+    }
+  ],
+  "maximum_additional_native_invocations": 1,
+  "provider_calls": 0
+}

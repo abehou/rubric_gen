@@ -1,0 +1,210 @@
+[
+  {
+    "judgment_key": "319444e1d3fa15d0de2ff9654ef7d072",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/319444e1d3fa15d0de2ff9654ef7d072/evaluations/s010/afbc7d360094c5b202853386d708726ba7ab18286c1b19e4976cb2011d0e7da6/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/319444e1d3fa15d0de2ff9654ef7d072/evaluations/s010/afbc7d360094c5b202853386d708726ba7ab18286c1b19e4976cb2011d0e7da6/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/319444e1d3fa15d0de2ff9654ef7d072/evaluations/s010/afbc7d360094c5b202853386d708726ba7ab18286c1b19e4976cb2011d0e7da6/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "keyed rubric output has a duplicate JSON key",
+        "error_type": "FullRubricJudgeError",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "49ea9e1d7c7c4801b4e8118da347e231",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/49ea9e1d7c7c4801b4e8118da347e231/evaluations/s006/b41812a937252617e66ccac1110e79c6092b7dc88b76ed85bf966c6564ecef4a/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/49ea9e1d7c7c4801b4e8118da347e231/evaluations/s006/b41812a937252617e66ccac1110e79c6092b7dc88b76ed85bf966c6564ecef4a/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/49ea9e1d7c7c4801b4e8118da347e231/evaluations/s006/b41812a937252617e66ccac1110e79c6092b7dc88b76ed85bf966c6564ecef4a/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "6454ad3e7c1afafe1f66477748bddb39",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/6454ad3e7c1afafe1f66477748bddb39/evaluations/s000/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/6454ad3e7c1afafe1f66477748bddb39/evaluations/s000/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "keyed rubric output is not exact JSON",
+        "error_type": "FullRubricJudgeError",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/6454ad3e7c1afafe1f66477748bddb39/evaluations/s000/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: refusal",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "6d5ab0490a2661153206d0177929be24",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/6d5ab0490a2661153206d0177929be24/evaluations/s000/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/6d5ab0490a2661153206d0177929be24/evaluations/s000/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "keyed rubric output has a duplicate JSON key",
+        "error_type": "FullRubricJudgeError",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/6d5ab0490a2661153206d0177929be24/evaluations/s000/6c0a99247a309b13e59deff7bf4d149b0cedeace41e7fbc99425f8e8b465d182/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "8af7ca4fd30505e65dfefd9a3ee5f43d",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/8af7ca4fd30505e65dfefd9a3ee5f43d/evaluations/s000/a48e7c998de910adc26ac6de1be6951df4bfea4ad3f1332c599ac1f75c796fac/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/8af7ca4fd30505e65dfefd9a3ee5f43d/evaluations/s000/a48e7c998de910adc26ac6de1be6951df4bfea4ad3f1332c599ac1f75c796fac/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "keyed rubric output is not exact JSON",
+        "error_type": "FullRubricJudgeError",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/8af7ca4fd30505e65dfefd9a3ee5f43d/evaluations/s000/a48e7c998de910adc26ac6de1be6951df4bfea4ad3f1332c599ac1f75c796fac/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "ad208f246e6393997ee29ce2a745c0c9",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/ad208f246e6393997ee29ce2a745c0c9/evaluations/s000/a48e7c998de910adc26ac6de1be6951df4bfea4ad3f1332c599ac1f75c796fac/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/ad208f246e6393997ee29ce2a745c0c9/evaluations/s000/a48e7c998de910adc26ac6de1be6951df4bfea4ad3f1332c599ac1f75c796fac/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/ad208f246e6393997ee29ce2a745c0c9/evaluations/s000/a48e7c998de910adc26ac6de1be6951df4bfea4ad3f1332c599ac1f75c796fac/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "bfe2aaad6cc8273dfc0ec1ff212f3f2d",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/bfe2aaad6cc8273dfc0ec1ff212f3f2d/evaluations/s010/afbc7d360094c5b202853386d708726ba7ab18286c1b19e4976cb2011d0e7da6/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/bfe2aaad6cc8273dfc0ec1ff212f3f2d/evaluations/s010/afbc7d360094c5b202853386d708726ba7ab18286c1b19e4976cb2011d0e7da6/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/bfe2aaad6cc8273dfc0ec1ff212f3f2d/evaluations/s010/afbc7d360094c5b202853386d708726ba7ab18286c1b19e4976cb2011d0e7da6/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  },
+  {
+    "judgment_key": "fcc70c306a42c11d169194a451e0c7e8",
+    "attempts": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/fcc70c306a42c11d169194a451e0c7e8/evaluations/s000/b41812a937252617e66ccac1110e79c6092b7dc88b76ed85bf966c6564ecef4a/failed-attempt-001.json",
+        "attempt": 1,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/fcc70c306a42c11d169194a451e0c7e8/evaluations/s000/b41812a937252617e66ccac1110e79c6092b7dc88b76ed85bf966c6564ecef4a/failed-attempt-002.json",
+        "attempt": 2,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      },
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/score_only-fixed/da-11-1/audit/biomnibench-da-factorial-r10-c13f1d94cbbd/rubric_score/artifacts/fcc70c306a42c11d169194a451e0c7e8/evaluations/s000/b41812a937252617e66ccac1110e79c6092b7dc88b76ed85bf966c6564ecef4a/failed-attempt-003.json",
+        "attempt": 3,
+        "error": "Anthropic response stopped before a complete answer: max_tokens",
+        "error_type": "IncompleteProviderResponse",
+        "kind": "rubric-gen-revision-rubric-failure"
+      }
+    ]
+  }
+]
