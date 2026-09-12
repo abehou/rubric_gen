@@ -1,0 +1,157 @@
+{
+  "purpose": "Queue 5 ordinary scale decision; no new execution or provenance transformation",
+  "source_result": "docs/reports/2026-09-11/trace-attack-defense-v2.1/results.json",
+  "source_accounting": "docs/reports/2026-09-11/trace-attack-defense-v2.1/accounting.json",
+  "scientific_incumbent": "attack_defense_v2.1",
+  "full_recipe_ready_for_characterization": "attack_defense_v2.1",
+  "selected_new_user_recipe": null,
+  "confirmation_status": "await_complete_primary_dev3_comparison_and_nomination",
+  "new_result20_status": "not_launched_no_selected_confirmed_user_recipe",
+  "provider_calls": 0,
+  "new_assignments": 0,
+  "new_audits": 0,
+  "result20_tasks": [
+    "da-10-1",
+    "da-10-3",
+    "da-12-2",
+    "da-12-4",
+    "da-13-1",
+    "da-13-3",
+    "da-13-5",
+    "da-13-6",
+    "da-14-1",
+    "da-14-3",
+    "da-14-8",
+    "da-15-1",
+    "da-15-2",
+    "da-15-7",
+    "da-15-8",
+    "da-16-1",
+    "da-18-5",
+    "da-18-7",
+    "da-19-1",
+    "da-19-6"
+  ],
+  "replicates": 3,
+  "result20_randomization_seed": 20260820,
+  "existing_core": {
+    "assignments": 240,
+    "trace_assignments": 120,
+    "fixed_assignments": 120,
+    "auditor_rows": 480,
+    "all_reused_in_current_mission": true,
+    "trace_unique_required_judgments": 3668,
+    "trace_unique_completed_judgments": 3668,
+    "trace_per_arm_including_shared": {
+      "full": 2202,
+      "user": 2210
+    },
+    "trace_judgments_shared_between_arms": 744,
+    "static_judgment_accounting": "Separate frozen native sources; 720 V2 H judgments already verified. No invented combined count.",
+    "original_trace_production": "118 unchanged v2 assignments plus two v2.1 recoveries; all 120 are existing evidence now"
+  },
+  "possible_new_user_result20": {
+    "total_assignment_records": 240,
+    "trace_records": 120,
+    "reused_full_fixed": 60,
+    "reused_user_fixed": 60,
+    "reused_full_trace": 60,
+    "newly_executed_user_trace": 60,
+    "historical_user_v21_retained_outside_new_core": 60,
+    "condition": "Only after one nominated User recipe has a coherent independent confirmation"
+  },
+  "confirmation": {
+    "tasks": [
+      "da-3-4",
+      "da-11-1",
+      "da-18-1"
+    ],
+    "replicates": 3,
+    "seed": 20260806,
+    "new_control_continuations": 9,
+    "new_candidate_continuations": 9,
+    "upstream": "Reuse actual canonical control s000, selected/development/heldout pool and realized g1 sources from queue-2 native input receipts",
+    "continuations": "Fresh disjoint native output roots; no importing sampled continuations or selecting favorable results",
+    "scope": "One independent matched continuation block per selected candidate, at most 18 assignments; development tasks, not untouched validation",
+    "prior_satisfying_independent_block_found": false
+  },
+  "unchanged_definitions": {
+    "panel": [
+      "claude-opus-5",
+      "gpt-5.6-sol"
+    ],
+    "W": "weak selected-base",
+    "W_train": "selected-base plus active learned penalties",
+    "S": "strong selected",
+    "H": "canonical V2 heldout",
+    "A": "absolute rubric-free quality",
+    "windows": [
+      "full_trajectory",
+      "post_update",
+      "final_artifact",
+      "final_revision"
+    ],
+    "post_update_baseline_index": 2,
+    "post_update_first_affected_index": 3,
+    "bootstrap": {
+      "seed": 20260910,
+      "draws": 10000,
+      "unit": "task clusters; all replicates and auditors retained",
+      "RH_point_effect": "confirmed positives / all auditor rows; abstentions retained in bounds and separate denominators",
+      "historical_H": "not compared against V2 H",
+      "original_full": "59 matched assignments; task-equal and row-equal estimates both reported"
+    },
+    "authoritative_aggregation": "equal-weight Sol+Opus; per-auditor and native union retained separately; abstentions remain unresolved"
+  },
+  "current_practical_interpretation": [
+    "W-S near comparator or modestly lower; 0.1-0.5 reduction can be acceptable without statistical significance",
+    "Preserve S/H/A, keep S-H low, interpret H-A with both components, avoid signed-gap overshooting",
+    "Genuine RH reduction where comparator has headroom; all windows reported; zero floors do not establish benefit",
+    "No weighted winner score or newly imposed small-sample threshold"
+  ],
+  "historical_decisions_unchanged": {
+    "full": {
+      "primary_point_thresholds": {
+        "RH": true,
+        "W_minus_S": true,
+        "W_minus_A": true
+      },
+      "mean_quality_safeguards": {
+        "A": true,
+        "S": true
+      },
+      "A_supported_noninferiority": true,
+      "joint_point_pass": true,
+      "joint_supported_pass": true,
+      "primary_statistical_improvement": {
+        "RH": false,
+        "W_minus_S": false,
+        "W_minus_A": true
+      },
+      "joint_statistical_superiority": false
+    },
+    "user": {
+      "primary_point_thresholds": {
+        "RH": true,
+        "W_minus_S": false,
+        "W_minus_A": false
+      },
+      "mean_quality_safeguards": {
+        "A": true,
+        "S": false
+      },
+      "A_supported_noninferiority": true,
+      "joint_point_pass": false,
+      "joint_supported_pass": false,
+      "primary_statistical_improvement": {
+        "RH": true,
+        "W_minus_S": false,
+        "W_minus_A": false
+      },
+      "joint_statistical_superiority": false
+    }
+  },
+  "source_verification": "Catalog checks saved native keys and existing producer receipts; does not claim a new consumer import or repeat whole-run hashes",
+  "native_grouping": "Keep original studies/audits and actual producer metadata. A future User-only native execution can be compared to those unchanged sources only under supported input matching; no producer-identity adapter is added.",
+  "next_scale": "Full fixed versus Full trace v2.1 may proceed to Results30/45 characterization under item 6 task membership; User remains unresolved"
+}

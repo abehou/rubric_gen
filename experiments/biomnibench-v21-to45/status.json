@@ -1,8 +1,8 @@
 {
   "mission_started_at": "2026-09-12T09:27:31-04:00",
   "timezone": "America/New_York",
-  "queue_item": 4,
-  "state": "queue_4_synthesis_complete_current_comparisons_pending",
+  "queue_item": 5,
+  "state": "queue_5_full_incumbent_ready_user_selection_pending",
   "reference_recipe": "attack_defense_v2.1",
   "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
@@ -54,8 +54,8 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Proceed to queue item 5 using v2.1 as incumbent; preserve active producers/audits and collect completed comparisons without partial-outcome selection.",
-  "updated_at": "2026-09-12T10:46:49.396249-04:00",
+  "next_action": "Item 6: prepare supported Full-v2.1 versus fixed scale using approved task membership and existing20 evidence. Continue current dev3 audits; nominate at most one User recipe only after complete primary outcomes, then one independent18-assignment block before any60-assignment User Result20.",
+  "updated_at": "2026-09-12T10:59:09.275939-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -104,7 +104,7 @@
           "experiments/biomnibench-v21-to45/queue2/configs/R1/da-3-4.yaml",
           "--resume"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "COMPLETED",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414481-gy8zabdp/status.json",
         "assignments": {
@@ -133,11 +133,12 @@
           "experiments/biomnibench-v21-to45/queue2/configs/R1/da-11-1.yaml",
           "--resume"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "RUNNING",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414482-r6zq8tir/status.json",
         "assignments": {
-          "running": 3
+          "completed": 2,
+          "running": 1
         },
         "assignment_failures": [],
         "current_failure": null,
@@ -163,7 +164,7 @@
           "experiments/biomnibench-v21-to45/queue2/configs/R1/da-18-1.yaml",
           "--resume"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "COMPLETED",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414483-5rc81con/status.json",
         "assignments": {
@@ -192,7 +193,7 @@
           "experiments/biomnibench-v21-to45/queue2/configs/R2/da-3-4.yaml",
           "--resume"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "COMPLETED",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414484-1tbrdow5/status.json",
         "assignments": {
@@ -221,11 +222,12 @@
           "experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml",
           "--resume"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "RUNNING",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414485-78jkoc4v/status.json",
         "assignments": {
-          "running": 3
+          "completed": 2,
+          "running": 1
         },
         "assignment_failures": [],
         "current_failure": {
@@ -257,7 +259,7 @@
           "experiments/biomnibench-v21-to45/queue2/configs/R2/da-18-1.yaml",
           "--resume"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "COMPLETED",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414486-o23mvpo4/status.json",
         "assignments": {
@@ -280,7 +282,7 @@
           "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
           "R1"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)"
       },
@@ -297,7 +299,7 @@
           "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
           "R2"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)"
       },
@@ -312,7 +314,7 @@
           "--dependency=afterok:10414487:10414488",
           "experiments/biomnibench-v21-to45/queue2/report.sbatch"
         ],
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)"
       }
@@ -360,8 +362,7 @@
         ],
         "submitted_at": "2026-09-12T10:28:03.931263-04:00",
         "slurm_state": "COMPLETED",
-        "pending_reason": "babel-l5-28",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414549-nr18wfk2/status.json",
         "assignments": {
           "completed": 3
@@ -389,8 +390,7 @@
         ],
         "submitted_at": "2026-09-12T10:28:03.954511-04:00",
         "slurm_state": "COMPLETED",
-        "pending_reason": "babel-l9-20",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414550-sg3lbpp1/status.json",
         "assignments": {
           "completed": 3
@@ -418,8 +418,7 @@
         ],
         "submitted_at": "2026-09-12T10:28:03.977009-04:00",
         "slurm_state": "COMPLETED",
-        "pending_reason": "babel-l9-20",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414551-wei8enpe/status.json",
         "assignments": {
           "completed": 3
@@ -447,8 +446,7 @@
         ],
         "submitted_at": "2026-09-12T10:28:03.999264-04:00",
         "slurm_state": "COMPLETED",
-        "pending_reason": "(QOSMaxCpuPerUserLimit)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414552-oul7cjr6/status.json",
         "assignments": {
           "completed": 3
@@ -475,13 +473,11 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.063071-04:00",
-        "slurm_state": "RUNNING",
-        "pending_reason": "babel-n9-24",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "slurm_state": "COMPLETED",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414553-sm7mzyih/status.json",
         "assignments": {
-          "completed": 1,
-          "running": 2
+          "completed": 3
         },
         "assignment_failures": [],
         "current_failure": null
@@ -505,13 +501,11 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.087860-04:00",
-        "slurm_state": "RUNNING",
-        "pending_reason": "babel-l9-20",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "slurm_state": "COMPLETED",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414554-al2rekr2/status.json",
         "assignments": {
-          "completed": 1,
-          "running": 2
+          "completed": 3
         },
         "assignment_failures": [],
         "current_failure": null
@@ -536,15 +530,20 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.112461-04:00",
-        "slurm_state": "RUNNING",
-        "pending_reason": "babel-l9-20",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "slurm_state": "COMPLETED",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414555-3xyu1z2y/status.json",
         "assignments": {
-          "running": 3
+          "completed": 3
         },
         "assignment_failures": [],
-        "current_failure": null
+        "current_failure": {
+          "category": "transient_connection",
+          "error_type": "APITimeoutError",
+          "next_automatic_action": "bounded operation owner decides retry; inspect attempt record",
+          "operation": "evolution-generation",
+          "time": 1789224423.4052627
+        }
       },
       "semi-trace/da-11-1": {
         "job_id": "10414556",
@@ -568,13 +567,19 @@
         "submitted_at": "2026-09-12T10:28:04.135647-04:00",
         "slurm_state": "RUNNING",
         "pending_reason": "babel-l5-32",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414556-oie4iov8/status.json",
         "assignments": {
           "running": 3
         },
         "assignment_failures": [],
-        "current_failure": null
+        "current_failure": {
+          "category": "transient_connection",
+          "error_type": "APITimeoutError",
+          "next_automatic_action": "bounded operation owner decides retry; inspect attempt record",
+          "operation": "evolution-generation",
+          "time": 1789224584.0814104
+        }
       },
       "semi-trace/da-18-1": {
         "job_id": "10414557",
@@ -596,9 +601,15 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.158011-04:00",
-        "slurm_state": "PENDING",
-        "pending_reason": "(QOSMaxCpuPerUserLimit)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "slurm_state": "RUNNING",
+        "pending_reason": "babel-m5-20",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414557-5dy8b4mi/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null
       },
       "score_only-trace/da-3-4": {
         "job_id": "10414558",
@@ -620,9 +631,15 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.182917-04:00",
-        "slurm_state": "PENDING",
-        "pending_reason": "(QOSMaxCpuPerUserLimit)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "slurm_state": "RUNNING",
+        "pending_reason": "babel-m9-20",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414558-3qnl8tx2/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null
       },
       "score_only-trace/da-11-1": {
         "job_id": "10414559",
@@ -644,9 +661,15 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.207584-04:00",
-        "slurm_state": "PENDING",
-        "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "slurm_state": "RUNNING",
+        "pending_reason": "babel-m9-32",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414559-t6paey8z/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null
       },
       "score_only-trace/da-18-1": {
         "job_id": "10414560",
@@ -668,9 +691,15 @@
           "--resume"
         ],
         "submitted_at": "2026-09-12T10:28:04.233339-04:00",
-        "slurm_state": "PENDING",
-        "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "slurm_state": "RUNNING",
+        "pending_reason": "babel-l9-20",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/runs/runtime-10414560-7u74w0gi/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null
       },
       "full-fixed/da-3-4": {
         "job_id": "10414561",
@@ -693,8 +722,8 @@
         ],
         "submitted_at": "2026-09-12T10:28:04.258061-04:00",
         "slurm_state": "PENDING",
-        "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "pending_reason": "(None)",
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-fixed/da-11-1": {
         "job_id": "10414562",
@@ -718,7 +747,7 @@
         "submitted_at": "2026-09-12T10:28:04.283882-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-fixed/da-18-1": {
         "job_id": "10414563",
@@ -742,7 +771,7 @@
         "submitted_at": "2026-09-12T10:28:04.308082-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "user_simulator-fixed/da-3-4": {
         "job_id": "10414564",
@@ -766,7 +795,7 @@
         "submitted_at": "2026-09-12T10:28:04.333156-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "user_simulator-fixed/da-11-1": {
         "job_id": "10414565",
@@ -790,7 +819,7 @@
         "submitted_at": "2026-09-12T10:28:04.356516-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "user_simulator-fixed/da-18-1": {
         "job_id": "10414566",
@@ -814,7 +843,7 @@
         "submitted_at": "2026-09-12T10:28:04.380248-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-trace/da-3-4": {
         "job_id": "10414567",
@@ -838,7 +867,7 @@
         "submitted_at": "2026-09-12T10:28:04.405062-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-trace/da-11-1": {
         "job_id": "10414568",
@@ -862,7 +891,7 @@
         "submitted_at": "2026-09-12T10:28:04.431245-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-trace/da-18-1": {
         "job_id": "10414569",
@@ -886,7 +915,7 @@
         "submitted_at": "2026-09-12T10:28:04.455137-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-trace-no-appendix/da-3-4": {
         "job_id": "10414570",
@@ -910,7 +939,7 @@
         "submitted_at": "2026-09-12T10:28:04.479085-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-trace-no-appendix/da-11-1": {
         "job_id": "10414571",
@@ -934,7 +963,7 @@
         "submitted_at": "2026-09-12T10:28:04.503060-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-trace-no-appendix/da-18-1": {
         "job_id": "10414572",
@@ -958,7 +987,7 @@
         "submitted_at": "2026-09-12T10:28:04.527009-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "semi-fixed/audit": {
         "job_id": "10414573",
@@ -975,7 +1004,7 @@
         "submitted_at": "2026-09-12T10:28:04.549545-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(QOSMaxCpuPerUserLimit)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "semi-fixed/report": {
         "job_id": "10414574",
@@ -993,7 +1022,7 @@
         "slurm_state": "CANCELLED by 6011048",
         "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
         "scientific_calls": 0,
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-fixed/audit": {
         "job_id": "10414575",
@@ -1010,7 +1039,7 @@
         "submitted_at": "2026-09-12T10:28:04.596125-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-fixed/report": {
         "job_id": "10414576",
@@ -1028,7 +1057,7 @@
         "slurm_state": "CANCELLED by 6011048",
         "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
         "scientific_calls": 0,
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "semi-trace/audit": {
         "job_id": "10414577",
@@ -1045,7 +1074,7 @@
         "submitted_at": "2026-09-12T10:28:04.644433-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "semi-trace/report": {
         "job_id": "10414578",
@@ -1063,7 +1092,7 @@
         "slurm_state": "CANCELLED by 6011048",
         "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
         "scientific_calls": 0,
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-trace/audit": {
         "job_id": "10414579",
@@ -1080,7 +1109,7 @@
         "submitted_at": "2026-09-12T10:28:04.696450-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-trace/report": {
         "job_id": "10414580",
@@ -1098,7 +1127,7 @@
         "slurm_state": "CANCELLED by 6011048",
         "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
         "scientific_calls": 0,
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-fixed/audit": {
         "job_id": "10414581",
@@ -1115,7 +1144,7 @@
         "submitted_at": "2026-09-12T10:28:04.747156-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-fixed/report": {
         "job_id": "10414582",
@@ -1133,7 +1162,7 @@
         "slurm_state": "CANCELLED by 6011048",
         "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
         "scientific_calls": 0,
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "user_simulator-fixed/audit": {
         "job_id": "10414583",
@@ -1150,7 +1179,7 @@
         "submitted_at": "2026-09-12T10:28:04.794063-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "user_simulator-fixed/report": {
         "job_id": "10414584",
@@ -1168,7 +1197,7 @@
         "slurm_state": "CANCELLED by 6011048",
         "reason": "Never started; consolidated after QOSMaxSubmitJobPerUserLimit",
         "scientific_calls": 0,
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "full-trace/audit": {
         "job_id": "10414585",
@@ -1185,7 +1214,7 @@
         "submitted_at": "2026-09-12T10:28:04.843591-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only-trace-no-appendix/audit": {
         "job_id": "10414593",
@@ -1202,7 +1231,7 @@
         "submitted_at": "2026-09-12T10:30:02.873208-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "semi/collector": {
         "job_id": "10414594",
@@ -1227,7 +1256,7 @@
         "submitted_at": "2026-09-12T10:30:02.896927-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "score_only/collector": {
         "job_id": "10414595",
@@ -1252,7 +1281,7 @@
         "submitted_at": "2026-09-12T10:30:02.922836-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       },
       "matrix/collector": {
         "job_id": "10414596",
@@ -1277,7 +1306,7 @@
         "submitted_at": "2026-09-12T10:30:02.947514-04:00",
         "slurm_state": "PENDING",
         "pending_reason": "(Dependency)",
-        "observed_at": "2026-09-12T10:46:49.396249-04:00"
+        "observed_at": "2026-09-12T10:59:09.275939-04:00"
       }
     },
     "output_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3/",
@@ -1390,5 +1419,96 @@
         }
       }
     ]
+  },
+  "queue5": {
+    "report": "docs/reports/2026-09-12/biomnibench-v21-to45/queue5/README.md",
+    "full_ready_to_scale_recipe": "attack_defense_v2.1",
+    "selected_new_user_recipe": null,
+    "confirmation": "not launched: no nominated candidate with complete primary outcomes",
+    "new_result20": "not launched: primary dev3 audit and subsequent confirmation pending",
+    "existing_result20_assignment_records": 240,
+    "existing_trace_records": 120,
+    "new_provider_calls": 0,
+    "new_assignments": 0,
+    "current_cells": [
+      {
+        "queue": "queue2",
+        "cell": "R1",
+        "counts": {
+          "completed": 8,
+          "running": 1
+        }
+      },
+      {
+        "queue": "queue2",
+        "cell": "R2",
+        "counts": {
+          "completed": 8,
+          "running": 1
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "semi-fixed",
+        "counts": {
+          "completed": 9
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "score_only-fixed",
+        "counts": {
+          "completed": 9
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "semi-trace",
+        "counts": {
+          "completed": 3,
+          "running": 6
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "score_only-trace",
+        "counts": {
+          "running": 9
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "full-fixed",
+        "counts": {
+          "pending": 9
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "user_simulator-fixed",
+        "counts": {
+          "pending": 9
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "full-trace",
+        "counts": {
+          "pending": 9
+        }
+      },
+      {
+        "queue": "queue3",
+        "cell": "score_only-trace-no-appendix",
+        "counts": {
+          "pending": 9
+        }
+      }
+    ],
+    "audit_states": {
+      "PENDING": 10
+    },
+    "completed_outcome_files": [],
+    "terminal_job_failures": []
   }
 }

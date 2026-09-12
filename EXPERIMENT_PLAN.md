@@ -1412,3 +1412,7 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12 — Queue 4 local-refinement allowance
 
 - 10:50 EDT: The user permits at most two further rounds of two small red-team-specific challengers (six core recipes including R1/R2), with no common feedback/evaluator rewrite or admission relaxation. No new slot is consumed before the current complete paired outcomes exist; proceed with v2.1 incumbent and preserve independent policy comparisons, as recorded in [the synthesis](docs/reports/2026-09-12/biomnibench-v21-to45/queue4/README.md).
+
+## 2026-09-12 — Queue 5 confirmation and conditional Result20
+
+- 11:00 EDT: At most one nominated User recipe may receive one fresh matched canonical18-assignment continuation block, followed only on coherent evidence by one fixed60-assignment User Result20 using180compatible Full/static records. No User recipe is nominated yet; unchanged Full v2.1 may continue to Results30/45 characterization under item6 membership, with historical criteria and current modest-W−S interpretation recorded separately in [the decision](docs/reports/2026-09-12/biomnibench-v21-to45/queue5/README.md).

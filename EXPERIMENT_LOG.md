@@ -2291,3 +2291,7 @@
 ## 2026-09-12 — Queue 4 paired synthesis
 
 - 10:50 EDT: Rechecked all54 historical paired auditor rows/27cases and the canonical9/336control; v3's H rise with nearly stable A differs from v3.2's A loss, and a newly verified equivalent-formula feedback allegation occurred without a learned selection. [Synthesis](docs/reports/2026-09-12/biomnibench-v21-to45/queue4/README.md) keeps v2.1 incumbent while R1/R2 and policy audits finish; no additional recipe/provider call was launched.
+
+## 2026-09-12 — Queue 5 scale decision
+
+- 11:00 EDT: Cataloged all240 existing Result20 core assignments (120trace/120fixed;480final auditor rows), preserving original native sources and3668unique trace judgments; all saved within-arm initial/selected/V2 matches agree. [Scale decision](docs/reports/2026-09-12/biomnibench-v21-to45/queue5/README.md) retains Full v2.1 for characterization; User nomination/one independent block/newResult20 await complete primary evidence, while R1/R2 are8/9 each with audits pending.
