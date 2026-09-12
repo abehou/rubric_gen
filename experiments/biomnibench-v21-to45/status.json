@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T15:24:30-04:00",
+  "updated_at": "2026-09-12T15:28:30-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -1897,7 +1897,16 @@
         "provider_calls_before_failure": "sealed records retained; no scientific result invalidated"
       },
       "source_commit": "e9f476139d6905b13243caa0626a8a009d9b1767",
-      "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2"
+      "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
+      "status": "RUNNING",
+      "seed_state_check": "10416394"
+    },
+    "seed_state_checks": {
+      "failed_job": "10416355",
+      "failure": "collector invoked without required second positional argument ($2), no provider calls",
+      "replacement_job": "10416394",
+      "replacement_dependency": "afterany:10416366",
+      "scope": "provider-free per-replicate check"
     }
   },
   "queue7": {
@@ -2014,7 +2023,12 @@
       "inventory_job": "10416323",
       "inventory_scope": "provider-free per-replicate seed-state check after corrected retries"
     },
-    "inventory_after_retries": "10416323"
+    "inventory_after_retries": "10416323",
+    "seed_state_checks": {
+      "r45_job": "10416323",
+      "scope": "provider-free per-replicate check after corrected retries",
+      "manifest_inventory": "10416170 (completed manifest-only check retained)"
+    }
   },
   "heldout_decision": {
     "status": "authorized",
