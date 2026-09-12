@@ -1,0 +1,218 @@
+{
+  "allocated_cpus": 32,
+  "audit_admission_seconds": 0.0011319031473249197,
+  "audit_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00",
+  "capacity": {
+    "aggregate_concurrency": 60,
+    "audit_studies": 1,
+    "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+    "version": 1
+  },
+  "completed_at": 1789217930.584727,
+  "elapsed_seconds": 94.69142293930054,
+  "error": "RuntimeError: rubric-score rubric judge failed after 1 attempts: block-string rubric block_1 must contain exactly 64 criterion lines",
+  "existing_files_changed": [],
+  "existing_files_compared": 5460,
+  "experiment_id": "paperbench-code-dev-factorial-r10-08ba4d2c0d00",
+  "experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-results20-seed-reuse-fixed-20260912-clone/experiments/babel/paperbench-static-selected-neutral-heldout-rigorous-results20-seed-reuse-fixed.yaml",
+  "locally_salvaged": 0,
+  "normal_native_attempt_limit": 3,
+  "per_smoke_attempt_limit": 1,
+  "preparation_seconds": 58.3399847636465,
+  "provider_calls": 1,
+  "repair_commit": "8bff72545f78f58cd93101043842a134fa04ad38",
+  "revisions_valid": 120,
+  "salvages": [],
+  "slurm_job_id": "10414183",
+  "smoke_request_workers": 1,
+  "smokes": {
+    "306": {
+      "artifact": "final",
+      "artifact_directory": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/1bad50364cf98268e4413885244f14d0",
+      "attempt_id": "05cbed204892d10cd71bd5fbbeb0511f",
+      "condition": "user-simulator-static",
+      "criteria": 306,
+      "error": "RuntimeError: rubric-score rubric judge failed after 1 attempts: block-string rubric block_1 must contain exactly 64 criterion lines",
+      "judgment_key": "1bad50364cf98268e4413885244f14d0",
+      "output_length_failure": false,
+      "provider_calls": 1,
+      "provider_finished_at": 1789217930.3448741,
+      "provider_started_at": 1789217894.2743258,
+      "replicate": 3,
+      "request_spec": {
+        "artifact_bytes": 114345,
+        "authoritative_score": "single-judgment-signed-points",
+        "calls": 1,
+        "criterion_count": 306,
+        "engine_seed": 452535059,
+        "limits": {
+          "max_calls": 1,
+          "max_criteria": 1000,
+          "max_output_tokens_per_call": 32768,
+          "max_request_content_bytes_per_call": 1000000,
+          "max_total_request_content_bytes": 5000000
+        },
+        "max_output_tokens_per_call": 32768,
+        "payload_bytes": 280252,
+        "prompt_cache_control": "default",
+        "provider": "anthropic",
+        "provider_retries": 0,
+        "provider_seed": null,
+        "provider_storage": null,
+        "reasoning_effort": "low",
+        "repository_result_cache": false,
+        "request_content_bytes_per_call": 282606,
+        "request_timeout_seconds": 300.0,
+        "requested_model": "claude-opus-5",
+        "rubric_bytes": 126746,
+        "schema_bytes": 413,
+        "stream": true,
+        "structured_output_contract": "required-block-strings-global-index-level-reason-v7",
+        "system_prompt_sha256": "d0bdb74b1dd381a9df98b0f1e281fa669bb6b4d1d7ff1f27368040537b187ca5",
+        "temperature": null,
+        "timeout_semantics": "network-inactivity",
+        "total_request_content_bytes": 282606
+      },
+      "response_id": "msg_011CeyarpV5fKXn79sfUTEyj",
+      "rubric_roles": [
+        {
+          "name": "holdout",
+          "variant_index": 2
+        }
+      ],
+      "schema_compilation_failure": false,
+      "status": "failed",
+      "stop_reason": "end_turn",
+      "stream_completed": true,
+      "task": "fre",
+      "usage": {
+        "effective_model": "claude-opus-5",
+        "provider": "anthropic",
+        "raw_usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "global",
+          "input_tokens": 122605,
+          "output_tokens": 2441,
+          "output_tokens_details": null,
+          "server_tool_use": null,
+          "service_tier": "standard"
+        },
+        "request_parameters": {
+          "max_output_tokens": 32768,
+          "prompt_cache_control": "default",
+          "provider_retries": 0,
+          "provider_seed": null,
+          "provider_storage": null,
+          "reasoning_effort": "low",
+          "stream": true,
+          "structured_output": "json_schema",
+          "temperature": null,
+          "timeout_seconds": 300.0,
+          "timeout_semantics": "network-inactivity"
+        },
+        "requested_model": "claude-opus-5",
+        "response_id": "msg_011CeyarpV5fKXn79sfUTEyj"
+      }
+    }
+  },
+  "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912",
+  "source_status": " M CODE_REVIEW.md\n M EXPERIMENT_LOG.md\n M EXPERIMENT_RUNS.md\n",
+  "started_at": 1789217835.8933048,
+  "status": "failed",
+  "valid_before": {
+    "claude-opus-5": 760,
+    "gpt-5.6-sol": 900
+  },
+  "response_census": {
+    "job_id": "10414205",
+    "raw_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/1bad50364cf98268e4413885244f14d0/evaluations/s010/c5ce196753c83460890e874043d325de3783e22f2c50326962ace391397b994f/05cbed204892d10cd71bd5fbbeb0511f.attempts/attempt-001.response.json",
+    "provider_calls": 0,
+    "expected_criteria": 306,
+    "total_lines": 65,
+    "extra_indices": [],
+    "duplicate_indices": {},
+    "overall_reasoning_nonempty": true,
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "global",
+      "input_tokens": 122605,
+      "output_tokens": 2441,
+      "output_tokens_details": null,
+      "server_tool_use": null,
+      "service_tier": "standard"
+    },
+    "block_keys": [
+      "block_0",
+      "block_1",
+      "block_2",
+      "block_3",
+      "tail"
+    ],
+    "token_budget": 32768,
+    "schema_bytes": 413,
+    "saved_returned_indices_have_valid_levels": true,
+    "missing_criterion_count": 242,
+    "missing_global_index_range": [
+      64,
+      305
+    ],
+    "blocks": {
+      "block_0": {
+        "line_count": 64,
+        "valid_global_index_count": 64
+      },
+      "block_1": {
+        "line_count": 0,
+        "valid_global_index_count": 0
+      },
+      "block_2": {
+        "line_count": 0,
+        "valid_global_index_count": 0
+      },
+      "block_3": {
+        "line_count": 0,
+        "valid_global_index_count": 0
+      },
+      "tail": {
+        "line_count": 1,
+        "valid_global_index_count": 0
+      }
+    },
+    "tail": "literal placeholder x; no valid criterion row",
+    "locally_salvageable": false
+  },
+  "schema_compilation": "accepted",
+  "scientific_judgment": "rejected_incomplete",
+  "v7_repair_commit": "8bff72545f78f58cd93101043842a134fa04ad38",
+  "smoke_872": "not_run: 306 canonical validation prerequisite failed",
+  "bulk_recovery": "not_launched",
+  "native_v7_attempts_used_for_this_cell": 1,
+  "native_v7_attempt_limit": 3,
+  "scientific_valid_coverage": {
+    "revisions": 120,
+    "full": 60,
+    "user": 60,
+    "sol_rubric": 900,
+    "opus_rubric": 760
+  },
+  "missing_opus_publications": 140,
+  "lossless_v5_replays_still_pending": 2,
+  "provider_needed_judgments": 138,
+  "retries": 0,
+  "slurm_wall_seconds": 96,
+  "provider_execution_seconds": 36.07054829597473,
+  "scientific_scores_imputed": 0,
+  "new_valid_judgments": 0,
+  "preservation": "5460 directly compared files unchanged, including 4560 for all 760 valid Opus judgments and 900 Sol record files.",
+  "inspection_note": "Read-only inspection10414205 completed the raw-row/level census. Earlier10414195 wrote its complete census before a pretty-print-only empty-list IndexError; no scientific mutation or provider call occurred."
+}

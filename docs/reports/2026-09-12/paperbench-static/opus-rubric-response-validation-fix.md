@@ -1,8 +1,10 @@
 # Opus rubric response validation — v7 block strings
 
-**Provider-free v7 verification passed. Live server compilation and scientific recovery are the next authorized stages; neither has run at this checkpoint.** The unchanged scientific panel contains 900/900 Sol and 760/900 Opus rubric judgments, all 120 revisions valid, and completed detector/holistic stages. Two saved v5 judgments are losslessly salvageable; 138 genuinely require provider responses.
+**V7 compiles on Anthropic, but the 306-criterion smoke did not produce a complete scientific judgment. Recovery remains blocked.** The stream ended normally with only indices 0–63 present, three empty full blocks, and a literal `x` tail. All 242 remaining criterion judgments are absent; local validation correctly rejected the response. No score was published or imputed, and the 872 smoke, two local salvage publications, and bulk recovery were not launched.
 
-This implementation uses Astra xhigh in the same isolated cardinality-repair checkout, based directly on durable v6 commit `57f54af532b9589c6f665321d562e16296d2c3fe` and original source `7178f1968594027c7c27960940029363f58f07b3`. The exact v7 commit is created after these provider-free checks and recorded in the live invocation receipt before generation. Moving upstream prompt changes and the separate CPU patch are excluded.
+Exact v7 execution commit: `8bff72545f78f58cd93101043842a134fa04ad38`, committed after provider-free tests/dry validation and pushed before generation to `origin/paperbench-opus-cardinality-v7-20260912`. It is based directly on durable v6 commit `57f54af532b9589c6f665321d562e16296d2c3fe` and original scientific source `7178f1968594027c7c27960940029363f58f07b3`; moving upstream prompts and the separate CPU patch are excluded. Implementation used Astra xhigh in the same isolated repair checkout.
+
+Scientific coverage remains **120/120 valid revisions (60 per condition), Sol 900/900 and Opus 760/900**, with detector/holistic stages complete. Two historical responses remain losslessly salvageable, and 138 judgments genuinely need new provider responses. Final metrics remain withheld.
 
 ## Observed failures and v6 server boundary
 
@@ -71,9 +73,40 @@ The original three-attempt budget, durable attempt/raw-response preservation, st
 | Four detector windows | 0 | 0 | 0 |
 | Holistic absolute + pairwise | 0 | 0 | 0 |
 
-## Staged live execution plan
+## Live 306 outcome — schema accepted, incomplete output
 
-After the local source commit, the exact pinned commit—not a moving upstream merge—runs the two authorized scoped native smokes. First is the same `fre`, replicate 3, User-simulator-static, final heldout-2 306-criterion cell. After native publication/reuse succeeds, publish the two saved-response replays with provider generation forbidden. Then run the unique 872-criterion missing cell: `what-will-my-model-forget`, replicate 1, Full-static, final heldout-2.
+Job `10414183` used the exact pinned v7 production request, evaluator, decoder and normal publisher path. It targeted `fre`, replicate 3, User-simulator-static, final heldout variant 2—the same 306-criterion cell as the v6 compilation failure.
+
+| Check | Result |
+|---|---|
+| Anthropic accepts schema | Yes; 413-byte v7 schema, no HTTP400 |
+| Stream starts and completes | Yes; terminal `end_turn` |
+| `block_0` | 64 rows, global indices 0–63, valid level indices and nonempty reasons |
+| `block_1`, `block_2`, `block_3` | Empty strings, zero rows each |
+| `tail` | Literal `x`, no parseable criterion row |
+| Missing criterion judgments | **242**, indices64–305 |
+| Extra/duplicate global indices | Zero |
+| Output tokens / unchanged budget | **2,441 / 32,768** |
+| max_tokens termination | No |
+| Canonical validation/publication | Rejected; no record published |
+| New provider attempts / retries | **1 / 0** |
+| Two saved-v5 salvage publications | **0**; still pending |
+| 872 live smoke | Not run; required306 success was not reached |
+| Bulk recovery | Not launched |
+
+Exact native failure: `RuntimeError: rubric-score rubric judge failed after 1 attempts: block-string rubric block_1 must contain exactly 64 criterion lines`.
+
+The incomplete response is not locally salvageable: the missing242 judgments do not exist in the provider output. This is a **response omission/placeholder failure**, separate from the resolved306 server-compilation obstacle and separate from output-length truncation. The 872 schema's local size is measured, but its live server/response behavior remains untested. No conclusion about 872 live compilation or max_tokens is claimed.
+
+The one-attempt smoke cap was honored. The ordinary three-attempt runtime policy was not raised or reset; only current v7 attempt001 was consumed. The unsuccessful smoke does not satisfy the user's prerequisite for later stages. No alternate prompt, schema workaround, token-budget increase, or second scientific cell was attempted.
+
+Runtime: **96s Slurm wall time**, 58.340s preparation, 0.001132s audit admission, and 36.071s provider execution. Job ended `FAILED`, exit `1:0`. Peak smoke provider concurrency was one. All **5,460** compared existing files remain byte-identical, including all **4,560** files of the760 valid Opus judgments and all900 Sol record files; zero known-valid judgments were called twice.
+
+The terminal raw response is preserved at `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/1bad50364cf98268e4413885244f14d0/evaluations/s010/c5ce196753c83460890e874043d325de3783e22f2c50326962ace391397b994f/05cbed204892d10cd71bd5fbbeb0511f.attempts/attempt-001.response.json`. Its native attempt/failure records remain beside it. The [compact smoke receipt](opus-rubric-response-validation-v7-smoke.json) records source identity, exact settings/error, usage, row census and preservation. Read-only inspection10414205 made no provider calls or scientific writes.
+
+## Conditional recovery plan — held
+
+The following plan remains conditional on a complete306 smoke; that prerequisite was not met. Scientific execution must continue to use the exact pinned source rather than a moving upstream merge. First is the same `fre`, replicate 3, User-simulator-static, final heldout-2 306-criterion cell. After native publication/reuse succeeds, publish the two saved-response replays with provider generation forbidden. Then run the unique 872-criterion missing cell: `what-will-my-model-forget`, replicate 1, Full-static, final heldout-2.
 
 Each smoke is limited to one real provider attempt, using the production evaluator, streaming transport, decoder and publisher. A schema-compilation error stops further calls. Output max_tokens is reported separately and never raises the token budget. Normal bulk retries remain three.
 
