@@ -486,3 +486,68 @@ Keep the per-user CPU quota at 64, aggregate provider reservation cap at 60, and
 5. **Complete native Sol+Opus auditing and reporting.** Give the existing static audit only its genuinely missing judgments after the shared output problem is resolved; account separately for zero-call replay and new responses. Audit the newly validated/produced conditions through the single global owner. Final condition metrics require complete intended coverage, without imputation; report incomplete coverage explicitly until then. Keep old uniform-rigorous results, corrected fixed-artifact screen, and the corrected full-revision baseline distinct.
 
 Subsequent queued instructions can refine this ordering. Queue 1 is complete; no additional experiment, trace condition, provider probe, CPU-profile patch, or long-job wait was started.
+
+## Current resumed-session state — 2026-09-12 13:59 EDT
+
+This section supersedes the earlier Queue 8 snapshot and records the live state
+after rechecking Slurm and the persisted NFS ledgers. The compact machine-readable
+inventory is [current-status.json](current-status.json); the per-condition table
+is [current-condition-status.csv](current-condition-status.csv). There are no
+active PaperBench jobs. Slurm jobs `10415408` and `10415501` are active trace
+work owned by another session and are out of scope.
+
+The two fixed static cells remain the only terminal non-trace Results20 cells:
+
+| Condition | Revisions | Sol / Opus | Detector / holistic | W | S | H | A | mean S−H | trajectory RH | final-artifact RH |
+|---|---:|---:|---|---:|---:|---:|---:|---:|---|---|
+| Full-static | 60/60 | 900/900 / 900/900 shared static panel | complete / complete | 97.8003 | 63.2648 | 62.3260 | 33.9417 | +0.9389 | [0.5000, 0.5833] | [0, 0.0167] |
+| User-simulator-static | 60/60 | 900/900 / 900/900 shared static panel | complete / complete | 87.1752 | 63.4416 | 62.9950 | 39.2583 | +0.4466 | [0.1000, 0.1500] | 0 |
+
+The aggregate ledger is 90/144 valid dev3 assignments and 223/960 valid
+Results20 assignments. The Results20 total is 120 reused static assignments,
+103 new valid assignments, 77 failed assignments, and 660 assignments that were
+never launched. The six Semi/Score non-static dev3 cells each have 9/9 valid
+assignments. The six Full/User non-static dev3 cells have 0/9 valid assignments
+each; all 54 selected rows failed in the shared owner.
+
+The exact failed dependency chains were inspected before any replacement was
+considered. Failed producer `10414739` made `10414740` and `10414747`
+unsatisfiable; failed producer `10414738` made `10414746` unsatisfiable; the
+unsatisfied `10414740` made `10414748` unsatisfiable; and failed producer
+`10414499` made `10414506`, `10414874`, `10414875`, and `10414876` unable to
+run. Those dependent wrappers were cancelled or failed before scientific
+execution and produced no additional judgments.
+
+The latest native missing-only owners were `10415463` (17 failed Results20
+rows), `10415465` (60 failed score-only offline rows), and `10415466` (54 failed
+Full/User dev3 rows). They selected only previously failed records and created
+no valid new scientific completion. Their terminal provider stream contains:
+
+> Your access token could not be refreshed because your refresh token was revoked. Please log out and sign in again.
+
+The native wrapper recorded `_SolverTurnFailure: provider exited with code 1`
+and stopped the bounded attempt. This is an external credential blocker, not a
+scientific result. No further provider call or bulk recovery is safe until the
+credential is repaired. No completed assignment or valid judgment was rerun.
+
+After credentials are repaired, use only the commands recorded in
+[current-status.json](current-status.json): native `--resume` for
+`semi-score-fixed`, `score-only-offline`, and `full-user-learned`. The fixed
+static study remains complete and must not be resubmitted. The later downstream
+audit owners should be recreated only after their exact producer prerequisite
+is terminal, with one global audit owner. These resumes preserve the current
+study ledgers and attempt archives; they are not fresh cohorts.
+
+The current source references are the pinned corrected static producer
+`7178f1968594027c7c27960940029363f58f07b3`, the Results20 worktree
+`fdd5403abb16e412c003aa7db79d3eaf8cd4b552`, and the dev3 worktree
+`4f67a3b8daca4a545d9c0a67578b283296e63823`. The temporary Opus repair checkout
+is retained as evidence at its pinned v8 source, but its shared protocol was
+not validated for new recovery in this session. The separate CPU-resource-audit
+worktree and all trace/BioMNIBench jobs were left untouched.
+
+This is a durable handoff, not a claim that the 16-condition matrix completed:
+2/16 cells have terminal metrics, 3 cells have partial Results20 revisions,
+6 cells have failed dev3 validation, and 5 cells have validated dev3 inputs but
+no Results20 producer. The final static report remains
+[selected-neutral-heldout-rigorous-results20-final.md](../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md).

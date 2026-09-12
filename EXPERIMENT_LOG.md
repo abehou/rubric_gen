@@ -2347,3 +2347,7 @@
 ## 2026-09-12 — Queue8 completed-evidence synthesis
 
 - 12:45 EDT: Consolidated nine complete historical/development cells and285 saved-artifact rank rows without provider calls; incomplete new cells remain unestimated. Native replay preserved573 audit records under reviewed c451942 (514 tests), preparing missing-only recovery; see docs/reports/2026-09-12/biomnibench-v21-to45/queue8/.
+
+## 2026-09-12 — PaperBench resumed-state handoff
+
+- 13:59 EDT: Rechecked PaperBench Slurm accounting and NFS ledgers: no PaperBench job is active; 90/144 dev3 and 223/960 Results20 assignments are valid, with 77 failed and 660 not launched in Results20. The latest native missing-only owners selected only failed rows but all 131 latest attempts stopped on the revoked provider refresh token; no completed assignment was rerun and the current matrix remains externally blocked.

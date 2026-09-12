@@ -1334,3 +1334,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12
 
 - 12:07 EDT: Final15 seed owners10415017/10415018 use aba77eb and wait behind Results30 recovery10415010/lane10414854; no new-task heldouts or revisions launched. R1/R2 untouched-task audits10415055/10415056 use b69a6a3,4CPUs/32request workers and native resume; permanent da-3-4 schema failures stay preserved and excluded only from dispatch, not reported cohort scope.
+
+## 2026-09-12 — PaperBench current handoff
+
+- 13:59 EDT: PaperBench non-trace state was rechecked after the prior session ended. There are no active PaperBench jobs; failed prerequisites for the cancelled dependency chains were identified, and no replacement was submitted while provider authentication is revoked. Current condition-level coverage and exact native resume commands are in docs/reports/2026-09-12/paperbench-nontrace-results20/current-status.json and current-condition-status.csv.
