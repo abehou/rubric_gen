@@ -12,9 +12,11 @@
 set -euo pipefail
 case "${1:?queue2 or queue3}" in
  queue2) source_root=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912
-         runtime_root=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-q2-original-20260912 ;;
+         runtime_root=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-q2-original-20260912
+         task_driver=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py ;;
  queue3) source_root=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912
-         runtime_root=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-q3-reviewed-20260912 ;;
+         runtime_root=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-q3-reviewed-20260912
+         task_driver=$source_root/experiments/biomnibench-v21-to45/queue3/audit.py ;;
  *) exit 2 ;;
 esac
 scope=$1
@@ -30,10 +32,10 @@ failed=0
 for cell in "$@"; do
   if [ "$scope" = queue2 ]; then
     for task in da-3-4 da-11-1 da-18-1; do
-      if ! "$python_bin" "$driver_root/experiments/biomnibench-v21-to45/queue2/audit.py" "$cell" "$task"; then failed=1; fi
+      if ! "$python_bin" "$task_driver" "$cell" "$task"; then failed=1; fi
     done
   else
-    if ! "$python_bin" "$source_root/experiments/biomnibench-v21-to45/queue3/audit.py" "$cell"; then failed=1; fi
+    if ! "$python_bin" "$task_driver" "$cell"; then failed=1; fi
   fi
 done
 exit "$failed"
