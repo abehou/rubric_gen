@@ -1,6 +1,8 @@
 # PaperBench non-trace Results20 — Queue 5 handoff
 
-**All 360 missing Full/User non-static Results20 assignments now have a queued native owner, conditional on corrected dev3 validation.** At **2026-09-12 11:34 EDT**, the six conditions have **0 reusable, 0 running and 360 missing** assignments. Full-static and User-simulator-static remain **60/60 native-valid each** in their original namespace and were not resubmitted. Across the full 16-condition mission: **120/960 valid Results20 revisions, 840 missing assignments queued, 0 currently running Results20 assignments**. Submission is not scientific completion.
+**All360 missing Full/User non-static Results20 assignments have a queued native owner, conditional on corrected dev3 validation.** At **2026-09-12 11:45 EDT**, these six conditions still have **0 reusable,0 running and360 missing** assignments. The existing Full/User static120 revisions remain valid and untouched. Across the16-condition mission,120 revisions are native-valid; the active Semi/Score fixed Results20 wave now reports **1 newly completed,32 running and87 pending**, with the other720 new assignments queued. The new completion awaits terminal scope validation.
+
+**Static audit recovery10414690 finished incomplete: Sol900/900, Opus897/900.** It added133 valid Opus judgments and left3 exhausted line-count failures; all3 have complete saved-response delimiter candidates that pass read-only canonical validation, but they remain unpublished. No final static metrics are reported.
 
 Full/User dev3 producer **10414499** is pending CPU quota, with **0/54 assignments started**. Its shared dev3 producer **10414497** completed successfully in **1h16m14s**. Semi/Score dev3 now has **72/72 native-valid across all eight Semi/Score-only conditions**. The completed54-assignment learned scope passed the existing native collector in step10414690.1 in315.805s, with zero failures or provider calls. Full/User Results20 job **10414874** cannot execute until **10414506**, the existing provider-free native Full/User dev3 validator, succeeds and Results20 starting-rubric producer **10414739** completes. These dependencies were verified in Slurm; no completed condition or healthy owner was restarted.
 
@@ -14,11 +16,11 @@ Every Results20 row requires 20 canonical tasks × 3 replicates. All non-static 
 | full-offline-rubric | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
 | full-online-rubric | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
 | full-red-team-artifact | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
-| semi-static | 9/9 valid | 0/60 | 10414738 | 10414746 |
+| semi-static | 9/9 valid | 1 completed; final validation pending | 10414738 running | 10414746 |
 | semi-offline-rubric | 9/9 valid | 0/60 | 10414740 | 10414748 |
 | semi-online-rubric | 9/9 valid | 0/60 | 10414740 | 10414748 |
 | semi-red-team-artifact | 9/9 valid | 0/60 | 10414740 | 10414748 |
-| score-only-static | 9/9 valid | 0/60 | 10414738 | 10414746 |
+| score-only-static | 9/9 valid | 0/60 | 10414738 running | 10414746 |
 | score-only-offline-rubric | 9/9 valid | 0/60 | 10414739 | 10414747 |
 | score-only-online-rubric | 9/9 valid | 0/60 | 10414740 | 10414748 |
 | score-only-red-team-artifact | 9/9 valid | 0/60 | 10414740 | 10414748 |
@@ -57,17 +59,31 @@ Commands are recorded exactly in the [compact Queue 5 receipt](queue5-status.jso
 
 The native implementation enforces these timings in `evolution_request.py`, `controller_scoring.py` and `pretreatment_rubrics.py`. `RubricPolicy.uses_red_team_trace` is false for artifact red-team, and versioned trace-defense dispatch requires the separate `red_team_trace` policy plus an explicit version. Neither is selected here. Full/User feedback definitions, solver/model settings, stopping rules, normalization and the Sol+Opus panel remain unchanged. Independent read-only config review found no blocking issue and reproduced the native consumer identity.
 
-## Existing static audit recovery
+## Static recovery terminal result and exact residual diagnosis
 
-Static owner **10414690** started at 11:22:29 EDT from pinned **c6ec87b2fbcc3349d32625d2a8cfe78254d557fb**. Native preparation took **180.448s**. The global audit lease was acquired after **380.773s** of admission wait. Provider execution has now run for approximately **153.3s**; telemetry shows **31 owned reservations**, Anthropic-only active work and no new failure. The progress log has processed **1549/1800 rubric work items**, including reused judgments; that is not a count of new provider calls or a final coverage validation. Queue entries can likewise include locally reusable jobs. The healthy native owner remains intact.
+Native recovery **10414690** ran from pinned **c6ec87b2fbcc3349d32625d2a8cfe78254d557fb**, ending at11:36:40 EDT with exit1 because **3 rubric judgments remain unpublished**. All120 revisions remain valid; native summary coverage is **Sol900/900, Opus897/900**, with all detector/holistic stages complete and reused. The original760 valid Opus judgments, two prior lossless replays and two successful smokes remain preserved; this recovery added **133 valid Opus judgments**. No final-panel metric or score was imputed.
 
-Native-validated coverage at recovery admission was **Sol 900/900, Opus 764/900**, with detector/holistic stages complete. The two lossless v5 replays and successful 306/872 v8 smokes are already published; **136 genuinely missing Opus judgments** were scheduled for native recovery; live new publications await a terminal coverage census. Native preparation reports 600 completed absolute/pairwise judgments reused with producer records unchanged. All original 760 valid Opus judgments remain preserved. Final static W/S/H/A/S−H/RH metrics remain withheld until the full required panel validates. See the [Opus repair report](../paperbench-static/opus-rubric-response-validation-fix.md).
+The exact136 missing keys consumed **158 provider attempts**, including **22 retries**. There were25 failed attempts:120-criterion line-count errors18,178-criterion2,145-criterion1,70-criterion2,126-criterion1, and one `IncompleteProviderResponse` caused by **max_tokens**. That output-length failure recovered within its existing budget; it is not one of the terminal three. Preparation **180.448s**, global audit admission **380.773s**, provider execution **285.742s**, Slurm wall **14m11s**. No Sol/detector/holistic provider work was rescheduled.
+
+All three terminal failures concern **ftrl,120 criteria**, with the unchanged15,360-token per-call budget. All nine attempts saved terminal JSON responses and ended far below that limit. Two responses contain119 newline-delimited rows and omit index119. Seven responses instead place rows on a **single line separated by `|`**: five contain all explicit indices0–119 in order, while two omit index119. The strict native v8 decoder correctly rejected all nine because the declared newline representation was absent or incomplete. The actual provider schema remained182bytes; this is neither schema compilation nor output-length failure.
+
+Read-only diagnostic conversion of the five complete single-line responses retained every explicit global index, level index and entire reason substring, then passed the existing indexed decoder and canonical rubric validator with the exact saved rubric contracts. **Each of the three judgments has at least one complete candidate.** No index/criterion was inferred, no incomplete response was accepted, and no scientific record/raw response was changed. These are **unpublished lossless representation-replay candidates**, not additional valid scientific judgments yet.
+
+| Missing judgment key | Scientific cell | Complete candidate attempts |
+|---|---|---|
+|`0164cfe5c2eb1d5ff576b6b14fda387d`|ftrl, User rep3, final, selected0|[2, 3]|
+|`5123ea33722de6bd82e6535b02c7117a`|ftrl, User rep1, final, original|[2]|
+|`af2320beaa217729634458ea4a3d90d4`|ftrl, User rep1, final, holdout3|[1, 2]|
+
+The current native saved-response publication path supports the reviewed v5 identical-block replay, not this v8 delimiter variant. **Do not repeat unchanged bulk recovery or increase attempts.** The next shared-runtime step is a focused tested native replay extension for these exact complete representation cases, followed by missing-only zero-provider publication and native coverage validation. Existing897 valid Opus judgments must remain reusable and keep their provenance; if ambiguity prevents lossless replay, leave the affected judgment missing. This repair must preserve active execution pins and stay separate from CPU/trace work.
+
+[Compact terminal evidence](static-opus-v8-recovery-tail.json) records all nine attempt errors, explicit counts, actual schema sizes, native canonical validation results and exact saved-response paths. The read-only initial manifest comparison was discarded because the intentionally preserved historical manifest uses old wire identities; missingness above uses the **current terminal native summary and its plan**. Private diagnosis is under `runs/paperbench-nontrace-full-user-20260912/`; no raw provider response is staged.
 
 ## Queue 6 priorities
 
 1. Inspect existing owners before any action: static recovery 10414690; Full/User dev3 producer10414499 and validator10414506; shared Results20 starting-rubric producer10414739; Results20 owners10414738/39/40/10414874 and their existing audit dependencies. Do not create another dispatcher for any namespace.
 2. Allow corrected Full/User dev3 to finish and validate. Its successful validator automatically releases10414874 once the shared Results20 producer also completes. If a concrete failure occurs, classify it and resume only missing assignments natively; keep valid cells and starting rubrics. Update dependent job IDs only if a failed owner has genuinely been replaced by authorized native resume.
-3. Continue independent revision production while audits use the shared global lease. Report Slurm queue time, audit admission wait and provider execution separately. Do not cancel healthy work to change resource allocation.
+3. Continue independent revision production while audits use the shared global lease;10414738 is already running. Repair/replay the three static delimiter cases through tested native publication before another unchanged recovery invocation. Report Slurm queue time, audit admission wait and provider execution separately. Do not cancel healthy work to change resource allocation.
 4. After static Sol and Opus both reach 900/900 and detector/holistic coverage remains valid, compute the previously withheld final static metrics, task-cluster intervals and paired comparisons. Preserve the distinction between historical uniform-rigorous baseline, fixed-artifact screen and corrected full-revision result.
 5. Collect every condition's native completed-revision and full audit coverage before reporting its final science. Retain the temporary cardinality source while10414690 depends on it; its validated general repair is already integrated without merging unrelated stale history.
 

@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench v8 residual delimiter diagnosis
+
+- 11:45 EDT: V8 strict newline decoding leaves3 exhausted120-criterion judgments; all3 have unambiguous complete pipe-delimited saved candidates, while4 incomplete attempts must remain rejected. Add focused native lossless-replay tests/publication support before retrying or publishing; preserve897 valid Opus records and frozen active sources.
+
 ## 2026-09-12 — PaperBench Queue 3 v8 recovery
 
 - 10:51 EDT: Resolved the staged Anthropic cardinality blocker using a182-byte two-string schema with strict local coverage/level/reason validation; both real306/872 smokes and792 tests pass on the execution pin and current core integration. Historical v5/v6/v7 canonical provenance remains reusable; scientific identity changes from unrelated upstream prompts stay outside the pinned recovery.

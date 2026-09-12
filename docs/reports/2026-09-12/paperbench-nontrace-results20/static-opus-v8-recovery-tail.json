@@ -1,0 +1,219 @@
+{
+  "judgments": 136,
+  "provider_attempts": 158,
+  "retry_attempts": 22,
+  "attempt_errors": {
+    "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines": 18,
+    "FullRubricJudgeError: rubric criteria_text must contain exactly 178 criterion lines": 2,
+    "FullRubricJudgeError: rubric criteria_text must contain exactly 145 criterion lines": 1,
+    "FullRubricJudgeError: rubric criteria_text must contain exactly 70 criterion lines": 2,
+    "IncompleteProviderResponse: Anthropic response stopped before a complete answer: max_tokens": 1,
+    "FullRubricJudgeError: rubric criteria_text must contain exactly 126 criterion lines": 1
+  },
+  "results20_fixed_live": {
+    "semi-static": {
+      "running": 17,
+      "completed": 1,
+      "pending": 42
+    },
+    "score-only-static": {
+      "running": 15,
+      "pending": 45
+    }
+  },
+  "status": "diagnosed_not_published",
+  "provider_calls": 0,
+  "scientific_writes": 0,
+  "remaining_judgments": 3,
+  "criterion_count": 120,
+  "judgments_with_complete_explicit_delimiter_candidates": 3,
+  "attempts": [
+    {
+      "judgment_key": "0164cfe5c2eb1d5ff576b6b14fda387d",
+      "task": "ftrl",
+      "replicate": 3,
+      "condition": "user-simulator-static",
+      "artifact": "final",
+      "rubric_roles": [
+        {
+          "name": "selected",
+          "variant_index": 0
+        }
+      ],
+      "criterion_count": 120,
+      "attempts": [
+        {
+          "attempt": 1,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 119,
+          "explicit_row_marker_count": 119,
+          "ordered_complete_indices": false,
+          "missing_indices": [
+            119
+          ],
+          "output_tokens": 4375,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": false,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-001.response.json"
+        },
+        {
+          "attempt": 2,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 120,
+          "ordered_complete_indices": true,
+          "missing_indices": [],
+          "output_tokens": 4497,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": true,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-002.response.json"
+        },
+        {
+          "attempt": 3,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 120,
+          "ordered_complete_indices": true,
+          "missing_indices": [],
+          "output_tokens": 4175,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": true,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-003.response.json"
+        }
+      ]
+    },
+    {
+      "judgment_key": "5123ea33722de6bd82e6535b02c7117a",
+      "task": "ftrl",
+      "replicate": 1,
+      "condition": "user-simulator-static",
+      "artifact": "final",
+      "rubric_roles": [
+        {
+          "name": "original",
+          "variant_index": null
+        }
+      ],
+      "criterion_count": 120,
+      "attempts": [
+        {
+          "attempt": 1,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 119,
+          "ordered_complete_indices": false,
+          "missing_indices": [
+            119
+          ],
+          "output_tokens": 4253,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": false,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-001.response.json"
+        },
+        {
+          "attempt": 2,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 120,
+          "ordered_complete_indices": true,
+          "missing_indices": [],
+          "output_tokens": 5223,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": true,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-002.response.json"
+        },
+        {
+          "attempt": 3,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 119,
+          "explicit_row_marker_count": 119,
+          "ordered_complete_indices": false,
+          "missing_indices": [
+            119
+          ],
+          "output_tokens": 4556,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": false,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-003.response.json"
+        }
+      ]
+    },
+    {
+      "judgment_key": "af2320beaa217729634458ea4a3d90d4",
+      "task": "ftrl",
+      "replicate": 1,
+      "condition": "user-simulator-static",
+      "artifact": "final",
+      "rubric_roles": [
+        {
+          "name": "holdout",
+          "variant_index": 3
+        }
+      ],
+      "criterion_count": 120,
+      "attempts": [
+        {
+          "attempt": 1,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 120,
+          "ordered_complete_indices": true,
+          "missing_indices": [],
+          "output_tokens": 4639,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": true,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-001.response.json"
+        },
+        {
+          "attempt": 2,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 120,
+          "ordered_complete_indices": true,
+          "missing_indices": [],
+          "output_tokens": 5042,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": true,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-002.response.json"
+        },
+        {
+          "attempt": 3,
+          "error": "FullRubricJudgeError: rubric criteria_text must contain exactly 120 criterion lines",
+          "line_count": 1,
+          "explicit_row_marker_count": 119,
+          "ordered_complete_indices": false,
+          "missing_indices": [
+            119
+          ],
+          "output_tokens": 4439,
+          "output_budget": 15360,
+          "actual_schema_bytes": 182,
+          "native_canonical_decode_after_delimiter_conversion": false,
+          "saved_response": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-003.response.json"
+        }
+      ]
+    }
+  ],
+  "publication_limitation": "Current native saved-response recovery supports reviewed v5 redundant-block replay only. These v8 delimiter candidates need a focused tested native representation replay extension; no records were published or raw responses mutated.",
+  "recorded_at": "2026-09-12 11:45 EDT",
+  "recovery_job": 10414690,
+  "recovery_exit_code": 1,
+  "sol_valid": 900,
+  "opus_valid": 897,
+  "required_per_model": 900,
+  "newly_valid_opus": 133,
+  "preparation_seconds": 180.44800933706574,
+  "audit_admission_wait_seconds": 380.77253014198504,
+  "audit_execution_seconds": 285.74178259796463,
+  "slurm_wall_seconds": 851,
+  "detector_and_holistic_complete": true,
+  "imputation": false
+}
