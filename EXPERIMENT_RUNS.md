@@ -1,3 +1,11 @@
+## 2026-09-12 — Completed PaperBench recovery ownership retired
+
+- 12:33 EDT: Static replay10415061 and report10415098 both completed0:0; the tested repair and full baseline report are integrated/published. Retired only the temporary cardinality branch locally/remotely; exact8226495 remains in the preserved detached checkout and remote tag `paperbench-static-opus-recovery-20260912`, with all other scientific job owners unchanged.
+
+## 2026-09-12 — PaperBench Queue6 static audit closure
+
+- 12:23 EDT: Native static replay10415061 completed on pin8226495 with900/900 Sol and900/900 Opus, zero providers; the exact existing study/audit overlay is unchanged. Dependent provider-free finalizer10415098 writes the final compact static reports; receipts and scripts are at `runs/paperbench-nontrace-audit-closure-20260912/`, with remaining cohort ownership in [Queue6 status](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
+
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
 - 11:34 EDT: Pinned411ea949 owns Full/User Results20 namespace`results20/full-user-learned/*/paperbench-code-dev-factorial-r10-484a1576b8b6`; revision10414874 waits for10414506+10414739, audit10414875 waits for revision, and dev3 audit10414876 waits for10414506. Exact paths and commands are in the [Queue5 receipt](docs/reports/2026-09-12/paperbench-nontrace-results20/queue5-status.json); static recovery10414690 remains its sole owner.

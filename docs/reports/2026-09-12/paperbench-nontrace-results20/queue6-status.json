@@ -1,0 +1,651 @@
+{
+  "queue": 6,
+  "recorded_at": "2026-09-12 12:29 EDT",
+  "all_16_conditions_complete": false,
+  "static_complete": true,
+  "static_final_report_produced": true,
+  "repair_execution_commit": "8226495fe88937cc613c02dd70b5253e58873e7f",
+  "repair_core_commit": "f6f02128c3fcfb23488b38c8a59fd8afe13157b2",
+  "conditions": [
+    {
+      "condition": "full-static",
+      "feedback_policy": "full",
+      "rubric_policy": "fixed",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "complete",
+      "dev3_audit_owner": null,
+      "results20_revision_valid": 60,
+      "results20_reusable": 60,
+      "results20_missing": 0,
+      "results20_queued": 0,
+      "results20_revision_owner": null,
+      "results20_audit_owner": 10415061,
+      "results20_audit_status": "complete",
+      "results20_source_commit": "7178f1968594027c7c27960940029363f58f07b3",
+      "blocking_issue": null,
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "full-offline-rubric",
+      "feedback_policy": "full",
+      "rubric_policy": "offline_elicitation",
+      "dev3_revision_completed": 0,
+      "dev3_revision_native_valid": 0,
+      "dev3_revision_owner": 10414499,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414876,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414874,
+      "results20_audit_owner": 10414875,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "blocking_issue": "Full/User dev3 native validation + existing Results20 starting-rubric producer",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "full-online-rubric",
+      "feedback_policy": "full",
+      "rubric_policy": "online_elicitation",
+      "dev3_revision_completed": 0,
+      "dev3_revision_native_valid": 0,
+      "dev3_revision_owner": 10414499,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414876,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414874,
+      "results20_audit_owner": 10414875,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "blocking_issue": "Full/User dev3 native validation + existing Results20 starting-rubric producer",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "full-red-team-artifact",
+      "feedback_policy": "full",
+      "rubric_policy": "red_team_artifact",
+      "dev3_revision_completed": 0,
+      "dev3_revision_native_valid": 0,
+      "dev3_revision_owner": 10414499,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414876,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414874,
+      "results20_audit_owner": 10414875,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "blocking_issue": "Full/User dev3 native validation + existing Results20 starting-rubric producer",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "semi-static",
+      "feedback_policy": "semi",
+      "rubric_policy": "fixed",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414751,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 25,
+      "results20_queued": 9,
+      "results20_revision_owner": 10414738,
+      "results20_audit_owner": 10414746,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "Native Results20 revision owner running",
+      "terminal_assignment_failure": null,
+      "results20_live_statuses": {
+        "completed": 35,
+        "running": 16,
+        "pending": 9
+      },
+      "results20_reusable_completed_pending_scope_validation": 35
+    },
+    {
+      "condition": "semi-offline-rubric",
+      "feedback_policy": "semi",
+      "rubric_policy": "offline_elicitation",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414752,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414740,
+      "results20_audit_owner": 10414748,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "CPU quota or dependency",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "semi-online-rubric",
+      "feedback_policy": "semi",
+      "rubric_policy": "online_elicitation",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414752,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414740,
+      "results20_audit_owner": 10414748,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "CPU quota or dependency",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "semi-red-team-artifact",
+      "feedback_policy": "semi",
+      "rubric_policy": "red_team_artifact",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414752,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414740,
+      "results20_audit_owner": 10414748,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "CPU quota or dependency",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "score-only-static",
+      "feedback_policy": "score_only",
+      "rubric_policy": "fixed",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414751,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 30,
+      "results20_queued": 14,
+      "results20_revision_owner": 10414738,
+      "results20_audit_owner": 10414746,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "Native Results20 revision owner running",
+      "terminal_assignment_failure": null,
+      "results20_live_statuses": {
+        "completed": 30,
+        "running": 16,
+        "pending": 14
+      },
+      "results20_reusable_completed_pending_scope_validation": 30
+    },
+    {
+      "condition": "score-only-offline-rubric",
+      "feedback_policy": "score_only",
+      "rubric_policy": "offline_elicitation",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414752,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414739,
+      "results20_audit_owner": 10414747,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "CPU quota or dependency",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "score-only-online-rubric",
+      "feedback_policy": "score_only",
+      "rubric_policy": "online_elicitation",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414752,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414740,
+      "results20_audit_owner": 10414748,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "CPU quota or dependency",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "score-only-red-team-artifact",
+      "feedback_policy": "score_only",
+      "rubric_policy": "red_team_artifact",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414752,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414740,
+      "results20_audit_owner": 10414748,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "blocking_issue": "CPU quota or dependency",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "user-simulator-static",
+      "feedback_policy": "user_simulator",
+      "rubric_policy": "fixed",
+      "dev3_revision_completed": 9,
+      "dev3_revision_native_valid": 9,
+      "dev3_revision_owner": null,
+      "dev3_audit_status": "complete",
+      "dev3_audit_owner": null,
+      "results20_revision_valid": 60,
+      "results20_reusable": 60,
+      "results20_missing": 0,
+      "results20_queued": 0,
+      "results20_revision_owner": null,
+      "results20_audit_owner": 10415061,
+      "results20_audit_status": "complete",
+      "results20_source_commit": "7178f1968594027c7c27960940029363f58f07b3",
+      "blocking_issue": null,
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "user-simulator-offline-rubric",
+      "feedback_policy": "user_simulator",
+      "rubric_policy": "offline_elicitation",
+      "dev3_revision_completed": 0,
+      "dev3_revision_native_valid": 0,
+      "dev3_revision_owner": 10414499,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414876,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414874,
+      "results20_audit_owner": 10414875,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "blocking_issue": "Full/User dev3 native validation + existing Results20 starting-rubric producer",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "user-simulator-online-rubric",
+      "feedback_policy": "user_simulator",
+      "rubric_policy": "online_elicitation",
+      "dev3_revision_completed": 0,
+      "dev3_revision_native_valid": 0,
+      "dev3_revision_owner": 10414499,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414876,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414874,
+      "results20_audit_owner": 10414875,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "blocking_issue": "Full/User dev3 native validation + existing Results20 starting-rubric producer",
+      "terminal_assignment_failure": null
+    },
+    {
+      "condition": "user-simulator-red-team-artifact",
+      "feedback_policy": "user_simulator",
+      "rubric_policy": "red_team_artifact",
+      "dev3_revision_completed": 0,
+      "dev3_revision_native_valid": 0,
+      "dev3_revision_owner": 10414499,
+      "dev3_audit_status": "queued",
+      "dev3_audit_owner": 10414876,
+      "results20_revision_valid": 0,
+      "results20_reusable": 0,
+      "results20_missing": 60,
+      "results20_queued": 60,
+      "results20_revision_owner": 10414874,
+      "results20_audit_owner": 10414875,
+      "results20_audit_status": "queued_after_revision",
+      "results20_source_commit": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "blocking_issue": "Full/User dev3 native validation + existing Results20 starting-rubric producer",
+      "terminal_assignment_failure": null
+    }
+  ],
+  "cohort_census": {
+    "recorded_at": "2026-09-12T16:29:21.145014+00:00",
+    "studies": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-fixed/study/paperbench-code-dev-factorial-r10-3d723e04c313/study.json",
+        "execution_conditions": [
+          "score-only-static",
+          "semi-static"
+        ],
+        "counts": {
+          "semi-static": {
+            "completed": 35,
+            "running": 16,
+            "pending": 9
+          },
+          "score-only-static": {
+            "completed": 30,
+            "running": 16,
+            "pending": 14
+          }
+        }
+      }
+    ],
+    "audits": []
+  },
+  "jobs": {
+    "static_local_replay": 10415061,
+    "final_report": 10415098,
+    "final_report_dependency": "afterok:10415061",
+    "final_report_checker_commit": "20cc262",
+    "static_execution_pin": "8226495fe88937cc613c02dd70b5253e58873e7f",
+    "static_replay_state": "COMPLETED",
+    "final_report_state": "COMPLETED"
+  },
+  "static_replay": {
+    "job_id": "10415061",
+    "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912",
+    "commit": "8226495fe88937cc613c02dd70b5253e58873e7f",
+    "initial_valid": {
+      "gpt-5.6-sol": 900,
+      "claude-opus-5": 897
+    },
+    "provider_calls": 0,
+    "phase": "completed",
+    "expected_local_publications": 3,
+    "protected_files": 12360,
+    "started_at": 1789229473.0473425,
+    "command": [
+      "bash",
+      "scripts/babel/experiment.sbatch",
+      "--profile",
+      "inspection",
+      "detect",
+      "--experiment",
+      "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-results20-seed-reuse-fixed-20260912-clone/experiments/babel/paperbench-static-selected-neutral-heldout-rigorous-results20-seed-reuse-fixed.yaml",
+      "--resume"
+    ],
+    "final_valid": {
+      "claude-opus-5": 900,
+      "gpt-5.6-sol": 900
+    },
+    "local_publications": [
+      {
+        "judgment_key": "6cf6ec7c3c652bba31e79a0e733f4cb8",
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/6cf6ec7c3c652bba31e79a0e733f4cb8/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/aae4e09654adc47b4e0ff20fdb941554/evaluation.json",
+        "replay": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-002.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "1c3c9e1dcd5ea46736a91b244be1fb48f3f40ba0aa07386dca4dc0c4dbde2aeb",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "54a0c021598b222b32308d8b7063f5a710e6cb6170e4212d2f798392bf117a63",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-002.response.json"
+        }
+      },
+      {
+        "judgment_key": "c946fcbb399f8eff4cb03a22aea330f8",
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/c946fcbb399f8eff4cb03a22aea330f8/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/dbe32db55df9361cccdab9d013b4998d/evaluation.json",
+        "replay": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-001.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "1c3c9e1dcd5ea46736a91b244be1fb48f3f40ba0aa07386dca4dc0c4dbde2aeb",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "54a0c021598b222b32308d8b7063f5a710e6cb6170e4212d2f798392bf117a63",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-001.response.json"
+        }
+      },
+      {
+        "judgment_key": "864468d400e3aa795e13667f6aee53ea",
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/864468d400e3aa795e13667f6aee53ea/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/03e88dbeab750cf5f86bfb805005cf20/evaluation.json",
+        "replay": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-002.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "6a3d8888cdd9caae157211809ad5d2f062d89e9d09dc03a855415536e34cfa35",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "54a0c021598b222b32308d8b7063f5a710e6cb6170e4212d2f798392bf117a63",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-002.response.json"
+        }
+      }
+    ],
+    "changed_protected_files": [],
+    "elapsed_seconds": 650.7030947208405
+  },
+  "static_live_native_status": {
+    "audit_phase": {
+      "event": "audit_phase",
+      "execution_seconds": 121.659748459002,
+      "failed_stages": [],
+      "host": "babel-l5-16",
+      "invocation_id": "10415061-1727396",
+      "job_id": "10415061",
+      "phase": "complete",
+      "pid": 1727403,
+      "preparation_seconds": 216.20601281197742,
+      "stage_exit_codes": {
+        "direct_final_artifact": 0,
+        "direct_final_revision": 0,
+        "direct_full_trajectory": 0,
+        "direct_post_update": 0,
+        "rubric_free_score": 0,
+        "rubric_score": 0
+      },
+      "time": 1789230119.748615
+    },
+    "waiting_elapsed_seconds": {},
+    "job_active_provider_reservations": 0,
+    "current_failure": null,
+    "elapsed_seconds": 628.3402429269627
+  },
+  "native_provider_free_validation": {
+    "status": "passed",
+    "provider_calls": 0,
+    "scientific_writes": 0,
+    "base_commit": "7178f1968594027c7c27960940029363f58f07b3",
+    "experiment_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-results20-seed-reuse-fixed-20260912-clone/experiments/babel/paperbench-static-selected-neutral-heldout-rigorous-results20-seed-reuse-fixed.yaml",
+    "experiment_id": "paperbench-code-dev-factorial-r10-08ba4d2c0d00",
+    "revisions_valid": 120,
+    "valid_opus_records_byte_identical": 897,
+    "opus_record_and_artifact_files_compared": 5382,
+    "reused_rubric_by_model": {
+      "claude-opus-5": 897,
+      "gpt-5.6-sol": 900
+    },
+    "pending_publication_by_model": {
+      "claude-opus-5": 3
+    },
+    "local_replay_by_model": {
+      "claude-opus-5": 3
+    },
+    "provider_scheduled_by_stage": {
+      "rubric_score": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_full_trajectory": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_post_update": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_final_artifact": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "direct_final_revision": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "absolute_score": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      },
+      "pairwise_preference": {
+        "gpt-5.6-sol": 0,
+        "claude-opus-5": 0
+      }
+    },
+    "direct_reused_by_model": {
+      "direct_full_trajectory": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      },
+      "direct_post_update": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      },
+      "direct_final_artifact": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      },
+      "direct_final_revision": {
+        "gpt-5.6-sol": 120,
+        "claude-opus-5": 120
+      }
+    },
+    "rubric_free_reused": {
+      "absolute_score": 360,
+      "pairwise_preference": 240
+    },
+    "local_replay_keys": [
+      "6cf6ec7c3c652bba31e79a0e733f4cb8",
+      "864468d400e3aa795e13667f6aee53ea",
+      "c946fcbb399f8eff4cb03a22aea330f8"
+    ],
+    "saved_replay_sources": {
+      "864468d400e3aa795e13667f6aee53ea": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-002.response.json",
+      "6cf6ec7c3c652bba31e79a0e733f4cb8": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-002.response.json",
+      "c946fcbb399f8eff4cb03a22aea330f8": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-001.response.json"
+    },
+    "provider_needed_keys": [],
+    "native_missing_publication_keys": [
+      "6cf6ec7c3c652bba31e79a0e733f4cb8",
+      "864468d400e3aa795e13667f6aee53ea",
+      "c946fcbb399f8eff4cb03a22aea330f8"
+    ],
+    "native_stages_exercised": [
+      "source resolution",
+      "completed target validation",
+      "rubric/free preflight",
+      "saved judgment canonical replay",
+      "unchanged prior manifest/scientific plan validation",
+      "known valid rubric _run_job no-call returns",
+      "all four native direct prepare_resume"
+    ],
+    "boundary": "Preparation stopped before run_prepared: no lease, publication, token-count or generation calls.",
+    "elapsed_seconds": 187.7427888030652
+  },
+  "tests": {
+    "pinned_passed": 686,
+    "integration_passed": 686
+  },
+  "cpu_profile_code_changed": false,
+  "provider_cap": 60,
+  "audit_study_owners": 1,
+  "new_scientific_conditions_started_by_queue6": 0,
+  "results20_revision_accounting": {
+    "native_valid_static": 120,
+    "new_completed_pending_terminal_validation": 65,
+    "running": 32,
+    "not_yet_completed": 775
+  },
+  "queue7_priorities": [
+    "Static replay10415061 and finalizer10415098 completed; preserve final valid science and continue remaining cohort owners.",
+    "Collect native complete coverage and final metrics when replay/finalization succeed; if failed inspect exact failure and resume only missing native work.",
+    "Leave existing revision owners healthy; collect completed cohorts and existing audit dependencies in static/Semi/Score/Full/User priority order.",
+    "Use the integrated saved-response replay implementation only from an execution source preserving the existing experiment identity; do not switch existing namespaces to moving prompt code.",
+    "Temporary cardinality branch retired after integration and successful jobs; exact execution source remains durably tagged and detached."
+  ],
+  "finalization": {
+    "job_id": "10415098",
+    "started_at": 1789230184.3127851,
+    "provider_calls": 0,
+    "status": "completed",
+    "stage": "write_final_report.py",
+    "elapsed_seconds": 140.90578055381775
+  },
+  "recovery_source_tag": "paperbench-static-opus-recovery-20260912",
+  "reporting_core_commit": "8963c90ffef562985914ef44e7c2a07b0527368c",
+  "branch_cleanup": {
+    "temporary_branch": "paperbench-opus-cardinality-v7-20260912",
+    "local_removed": true,
+    "remote_removed": true,
+    "execution_checkout_preserved_detached": true,
+    "durable_tag": "paperbench-static-opus-recovery-20260912"
+  }
+}

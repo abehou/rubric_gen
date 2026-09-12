@@ -328,3 +328,41 @@ def replay_saved_v5_output(text, criterion_count):
         container['full_blocks'] = list(indexed.values())
     return decode_output(json.dumps(value, allow_nan=False), criterion_count,
                          contract=V5_STRUCTURED_OUTPUT)
+
+
+def replay_saved_v8_output(text, criterion_count):
+    """Replay a saved single-line v8 response with explicit pipe-delimited rows.
+
+    Consider every integer-pair marker, including overlapping markers. Never
+    select a convenient subset, infer an index, or fill an absent judgment.
+    Ordinary provider-response decoding remains strict about newline rows.
+    """
+    output_schema(criterion_count)
+    try:
+        value = json.loads(text, object_pairs_hook=_unique_object)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise FullRubricJudgeError('saved v8 output is not exact JSON') from exc
+    if type(value) is not dict or set(value) != {'criteria_text', 'overall_reasoning'}:
+        raise FullRubricJudgeError('saved v8 output has invalid top-level keys')
+    content = value['criteria_text']
+    if type(content) is not str or len(content.splitlines()) != 1:
+        raise FullRubricJudgeError('saved v8 pipe replay requires exactly one line')
+    # A single terminal line ending has the same semantics as normal v8 rows.
+    line = content.splitlines()[0]
+    markers = list(re.finditer(
+        r'(?=(?:^|\|)(?P<index>[0-9]+)\|(?P<level>[0-9]+)\|)', line))
+    if (not markers or markers[0].start() != 0
+            or [m.group('index') for m in markers] != [str(i) for i in range(criterion_count)]):
+        raise FullRubricJudgeError('saved v8 pipe markers are incomplete, reordered, duplicated or ambiguous')
+    rows = []
+    for i, marker in enumerate(markers):
+        start = marker.end('level') + 1
+        end = markers[i + 1].start() if i + 1 < len(markers) else len(line)
+        if start > end:
+            raise FullRubricJudgeError('saved v8 pipe markers overlap ambiguously')
+        reason = line[start:end]
+        rows.append(f"{marker.group('index')}|{marker.group('level')}|{reason}")
+    # Preserve every reason substring, including non-marker pipes. The normal
+    # decoder and canonical parser still enforce reasons and actual level bounds.
+    value['criteria_text'] = '\n'.join(rows)
+    return decode_output(json.dumps(value, allow_nan=False), criterion_count)

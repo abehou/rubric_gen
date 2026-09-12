@@ -1,5 +1,5 @@
 {
-  "status": "smokes_passed_native_recovery_submitted",
+  "status": "static_audit_complete",
   "contract": "single-string-global-index-level-reason-v8",
   "tests": {
     "passed": 792,
@@ -573,9 +573,16 @@
     "request_workers": 32,
     "provider_capacity": 60,
     "global_audit_owners": 1,
-    "state_at_handoff": "PENDING",
+    "state_at_handoff": "FAILED_WITH_THREE_LOCAL_REPLAY_CANDIDATES",
     "reason_at_handoff": "QOSMaxCpuPerUserLimit",
-    "provider_execution_started": false
+    "provider_execution_started": true,
+    "valid_opus_after_bulk": 897,
+    "provider_attempts": 158,
+    "retry_attempts": 22,
+    "remaining_after_bulk": 3,
+    "preparation_seconds": 180.44800933706574,
+    "admission_seconds": 380.77253014198504,
+    "execution_seconds": 285.74178259796463
   },
   "integration_validation": {
     "base_commit": "96e4ad0",
@@ -583,5 +590,123 @@
     "elapsed_seconds": 70.33,
     "slurm_step": "10414497.8",
     "method": "Cumulative path-scoped v7/v8 code and tests only; no stale branch merge."
-  }
+  },
+  "final_native_local_replay": {
+    "job_id": "10415061",
+    "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912",
+    "commit": "8226495fe88937cc613c02dd70b5253e58873e7f",
+    "initial_valid": {
+      "gpt-5.6-sol": 900,
+      "claude-opus-5": 897
+    },
+    "provider_calls": 0,
+    "phase": "completed",
+    "expected_local_publications": 3,
+    "protected_files": 12360,
+    "started_at": 1789229473.0473425,
+    "command": [
+      "bash",
+      "scripts/babel/experiment.sbatch",
+      "--profile",
+      "inspection",
+      "detect",
+      "--experiment",
+      "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-results20-seed-reuse-fixed-20260912-clone/experiments/babel/paperbench-static-selected-neutral-heldout-rigorous-results20-seed-reuse-fixed.yaml",
+      "--resume"
+    ],
+    "final_valid": {
+      "claude-opus-5": 900,
+      "gpt-5.6-sol": 900
+    },
+    "local_publications": [
+      {
+        "judgment_key": "6cf6ec7c3c652bba31e79a0e733f4cb8",
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/6cf6ec7c3c652bba31e79a0e733f4cb8/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/aae4e09654adc47b4e0ff20fdb941554/evaluation.json",
+        "replay": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-002.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "1c3c9e1dcd5ea46736a91b244be1fb48f3f40ba0aa07386dca4dc0c4dbde2aeb",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "54a0c021598b222b32308d8b7063f5a710e6cb6170e4212d2f798392bf117a63",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/5123ea33722de6bd82e6535b02c7117a/evaluations/s010/1f2f4e94c97e86d8cb6707fdb53233deef92280dcbda98204ee1fc26cdbb01eb/79671d67ae09cb843e5de9f718ca9709.attempts/attempt-002.response.json"
+        }
+      },
+      {
+        "judgment_key": "c946fcbb399f8eff4cb03a22aea330f8",
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/c946fcbb399f8eff4cb03a22aea330f8/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/dbe32db55df9361cccdab9d013b4998d/evaluation.json",
+        "replay": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-001.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "1c3c9e1dcd5ea46736a91b244be1fb48f3f40ba0aa07386dca4dc0c4dbde2aeb",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "54a0c021598b222b32308d8b7063f5a710e6cb6170e4212d2f798392bf117a63",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/af2320beaa217729634458ea4a3d90d4/evaluations/s010/1fbaada8523c340b3104a38b78f3fe1dd4aacadacae52a825dc9721b41508eef/96979bbcee8a17c0b008e68d611a3db9.attempts/attempt-001.response.json"
+        }
+      },
+      {
+        "judgment_key": "864468d400e3aa795e13667f6aee53ea",
+        "evaluation_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/864468d400e3aa795e13667f6aee53ea/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/03e88dbeab750cf5f86bfb805005cf20/evaluation.json",
+        "replay": {
+          "attempt_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-002.json",
+          "producer_identity": {
+            "answer_input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "review_input_sha256": "6a3d8888cdd9caae157211809ad5d2f062d89e9d09dc03a855415536e34cfa35",
+            "scoring_identity": {
+              "benchmark": "paperbench-code-dev",
+              "effective_judge_model": "claude-opus-5",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7",
+              "review_mode": "workspace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "54a0c021598b222b32308d8b7063f5a710e6cb6170e4212d2f798392bf117a63",
+              "structured_rubric_sha256": null
+            }
+          },
+          "response_path": "/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-seed-reuse-fixed/audit/paperbench-code-dev-factorial-r10-08ba4d2c0d00/rubric_score/artifacts/0164cfe5c2eb1d5ff576b6b14fda387d/evaluations/s010/5fc2e5bec8aec3e3689d7a0f63fe58c514ba6e2d10111c67c3b171810adaccd7/d470f9a54cf09478d1ae3b9abdbce728.attempts/attempt-002.response.json"
+        }
+      }
+    ],
+    "changed_protected_files": [],
+    "elapsed_seconds": 650.7030947208405
+  },
+  "final_valid": {
+    "gpt-5.6-sol": 900,
+    "claude-opus-5": 900
+  },
+  "final_missing_provider_judgments": 0,
+  "v8_total_provider_attempts_including_smokes": 160,
+  "v8_unique_missing_provider_judgments": 138,
+  "zero_call_replays_total": 5
 }

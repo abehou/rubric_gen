@@ -1,3 +1,11 @@
+## 2026-09-12 12:23 EDT — Static audit closure succeeded
+
+**Sol900/900 and Opus900/900.** Native job10415061 published the final3 complete saved-v8 responses with **zero provider calls**, from pinned repair **8226495fe88937cc613c02dd70b5253e58873e7f**. All12,360 protected prior files, including all897 already-valid Opus judgments, remained byte-identical. The reviewed replay support is selectively integrated in core;686 tests passed on the execution pin and686 on integration.
+
+The existing v8 scientific protocol is unchanged. This closes the remaining serialization issue through saved-response replay only; there is no new provider protocol, score imputation or retry-budget change. Five zero-call recoveries in total (2v5 +3v8) combine with160 v8 provider attempts for138 distinct missing judgments, including2successful staged smokes and22bounded retries. No max-token case remains. Global audit admission286.021s is separate from216.206s preparation and650.703s total local recovery wall.
+
+Final native coverage/metric job10415098 completed successfully; all3360 required scientific judgments are valid. Full keys, provenance and tests: [saved-response replay](opus-saved-response-replay.md). Final complete results are in [the Results20 report](selected-neutral-heldout-rigorous-results20-final.md): Full mean S−H+0.9389, User+0.4466, with both task-cluster intervals spanning zero. The historical incomplete snapshots below remain evidence, not current coverage.
+
 ## 2026-09-12 11:45 EDT — V8 bulk recovery terminal update
 
 Job10414690 reached **Sol900/900 and Opus897/900**, with detector/holistic stages complete. It added133 valid Opus judgments using158 attempts/22 retries; three120-criterion ftrl judgments exhausted all attempts on newline validation. Each has a saved complete pipe-delimited response candidate that passes the existing canonical validator after lossless diagnostic delimiter conversion; none has been published because native v8 saved-response replay is not yet supported.

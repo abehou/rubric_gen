@@ -1,3 +1,61 @@
+# PaperBench non-trace Results20 — Queue 6 handoff
+
+As of **2026-09-12 12:29 EDT**. **Static audit closure succeeded: Sol 900/900 and Opus 900/900, with all 120 revisions and all detector/holistic work valid.** The final three complete saved responses were published with zero provider calls.
+
+The [final corrected static report](../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md) and [JSON](../paperbench-static/selected-neutral-heldout-rigorous-results20-final.json) are complete.
+
+| Final static condition | W | S | H | A | Mean S−H | 95% task-cluster CI for S−H |
+|---|---|---|---|---|---|---|
+| full-static | 97.8003 | 63.2648 | 62.3260 | 33.9417 | 0.9389 | [-1.5423, 3.5317] |
+| user-simulator-static | 87.1752 | 63.4416 | 62.9950 | 39.2583 | 0.4466 | [-0.7481, 1.6489] |
+
+These are complete equal-weight Sol+Opus results. Both S−H intervals include zero. Full-trajectory RH identification bounds are Full50–58.33%, User10–15%; final-artifact RH is Full0–1.67%, User0%. No abstention is imputed. Prior uniform-rigorous-v2 S−H was Full−0.859/User−0.512; the separate corrected fixed-artifact screen was Full+1.108/User+1.101 observed/incomplete.
+
+No new scientific condition was started by Queue6. Full/User static revisions remain120/120; the existing Semi/Score fixed producer10414738 has **65 new completed assignments, 32 running**, with terminal native scope validation still pending. The remaining scientific waves retain their original owners/dependencies. No other completed Results20 revision cohort was found in the current bounded study census, so no additional audit executor was created.
+
+## Current condition matrix
+
+| Condition | Corrected dev3 revision | Dev3 audit | Results20 revisions | Results20 audit | Revision owner |
+|---|---|---|---|---|---|
+| full-static | 9/9 valid | complete | 60/60 valid | Complete Sol + Opus | preserved |
+| full-offline-rubric | 0/9 valid | queued | 0/60; queued | Queued 10414875 | 10414874 |
+| full-online-rubric | 0/9 valid | queued | 0/60; queued | Queued 10414875 | 10414874 |
+| full-red-team-artifact | 0/9 valid | queued | 0/60; queued | Queued 10414875 | 10414874 |
+| semi-static | 9/9 valid | queued | 35/60 completed; 16 running | Queued 10414746 | 10414738 |
+| semi-offline-rubric | 9/9 valid | queued | 0/60; queued | Queued 10414748 | 10414740 |
+| semi-online-rubric | 9/9 valid | queued | 0/60; queued | Queued 10414748 | 10414740 |
+| semi-red-team-artifact | 9/9 valid | queued | 0/60; queued | Queued 10414748 | 10414740 |
+| score-only-static | 9/9 valid | queued | 30/60 completed; 16 running | Queued 10414746 | 10414738 |
+| score-only-offline-rubric | 9/9 valid | queued | 0/60; queued | Queued 10414747 | 10414739 |
+| score-only-online-rubric | 9/9 valid | queued | 0/60; queued | Queued 10414748 | 10414740 |
+| score-only-red-team-artifact | 9/9 valid | queued | 0/60; queued | Queued 10414748 | 10414740 |
+| user-simulator-static | 9/9 valid | complete | 60/60 valid | Complete Sol + Opus | preserved |
+| user-simulator-offline-rubric | 0/9 valid | queued | 0/60; queued | Queued 10414875 | 10414874 |
+| user-simulator-online-rubric | 0/9 valid | queued | 0/60; queued | Queued 10414875 | 10414874 |
+| user-simulator-red-team-artifact | 0/9 valid | queued | 0/60; queued | Queued 10414875 | 10414874 |
+
+Each Results20 condition requires20 tasks×3replicates. Telemetry completions for an active scope are distinguished from native terminal validation. Historical scientifically incompatible uniform-rigorous runs do not count. Exact source pins, roles, output paths and original job dependencies remain in the preceding inventories and [Queue6 machine receipt](queue6-status.json).
+
+## Static repair, reuse and ownership
+
+Pinned repair **8226495fe88937cc613c02dd70b5253e58873e7f** is durable on the existing temporary cardinality branch. Its minimal implementation/tests were selectively ported to current core at **f6f02128c3fcfb23488b38c8a59fd8afe13157b2**, preserving unrelated history. **686 provider-free tests passed on the pin and686 after integration**, including all9 real failed responses. Five complete saved responses passed strict lossless replay; four incomplete responses still fail. The native dry path validated120 revisions, reused900 Sol/897 Opus, and scheduled exactly3 local publications with **Sol0, Opus0, all detector0, absolute0 and pairwise0 provider work**. All897 valid Opus judgments and their5,382 persisted files were byte-identical.
+
+The final three keys select the earliest complete saved attempts2/2/1; no criterion/index is inferred. Normal native `detect --resume` owns publication and retains exact saved-response/producer provenance. This repair changes saved-response parsing/discovery only: the live v8 schema, prompt, models, budgets, effort, scoring and streaming remain unchanged. Full details: [saved response repair](../paperbench-static/opus-saved-response-replay.md).
+
+Completed native owner **10415061** used the reviewed existing `inspection` profile:1CPU,4request workers, zero provider calls. This is local replay/validation work; no CPU-profile code was changed. Scientific producer/audit jobs retain32CPUs/32workers and the aggregate provider cap60. The global audit lease is respected, including healthy other-session owners. Dependent finalization uses1CPU and no providers. No valid judgment or revision is rerun; no imputation; bounded attempts unchanged.
+
+## Queue7 priorities
+
+1. Static native replay10415061 and finalizer10415098 are both COMPLETED0:0. Their full coverage and final metrics are published; do not rerun either or any static scientific judgment. Continue the remaining existing cohort owners.
+2. Continue existing revision owners10414738,10414739,10414740 and10414874 plus Full/User dev3 owner10414499 and validator10414506. Do not create another dispatcher. New dev3 auditors10414751/52/10414876 retain their original scopes.
+3. Close existing Results20 audit owners10414746 (Semi/Score static),10414747 (Score offline),10414748 (remaining Semi/Score learned),10414875 (Full/User learned) as their revision dependencies succeed. All use validated v8 and the single global audit-study lease. Handle any residual saved-response formatting via the tested repair, preserving the pinned producer identity.
+4. Report complete two-auditor means only after required coverage; retain missingness and abstention bounds. Prioritize existing Full/User static, Semi/Score static, remaining Semi/Score, then Full/User learned. No red_team_trace or Gemini work belongs to this mission.
+5. Temporary cardinality branch cleanup is complete: local and remote branch removed after integration and terminal job success. The exact execution source8226495 remains detached in its existing checkout and durably tagged `paperbench-static-opus-recovery-20260912`; historical dirty report files remain preserved. The separate CPU-profile patch remains outside this work.
+
+Private operational receipts/scripts: `/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-audit-closure-20260912`. Earlier incomplete evidence follows as historical handoff snapshots.
+
+---
+
 # PaperBench non-trace Results20 — Queue 5 handoff
 
 **All360 missing Full/User non-static Results20 assignments have a queued native owner, conditional on corrected dev3 validation.** At **2026-09-12 11:45 EDT**, these six conditions still have **0 reusable,0 running and360 missing** assignments. The existing Full/User static120 revisions remain valid and untouched. Across the16-condition mission,120 revisions are native-valid; the active Semi/Score fixed Results20 wave now reports **1 newly completed,32 running and87 pending**, with the other720 new assignments queued. The new completion awaits terminal scope validation.
