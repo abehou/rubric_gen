@@ -55,7 +55,7 @@
     "2026-09-12T19:27:31-04:00"
   ],
   "next_action": "Complete missing dev3 audits using reviewed native runtime; generate only new-task heldouts under authorized committed prompt and continue supported Full expansion.",
-  "updated_at": "2026-09-12T14:17:08.114192-04:00",
+  "updated_at": "2026-09-12T14:27:04.041496-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -2082,7 +2082,7 @@
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T14:17:08.114192-04:00",
+    "observed_at": "2026-09-12T14:27:04.041496-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2106,7 +2106,8 @@
       "da-5-1": "10415704",
       "da-26-2": "10415705",
       "da-1-3_resume": "10415716",
-      "da-4-6_resume": "10415717"
+      "da-4-6_resume": "10415717",
+      "da-5-1_resume_preempted": "10415894"
     },
     "results45_seed_jobs": [
       "10415531",
