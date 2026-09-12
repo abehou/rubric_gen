@@ -180,11 +180,16 @@ def validate_saved_rubric(runner, job, record, path):
                   'reasoning_effort', 'max_output_tokens_per_call'):
         if execution.get(field) != current.get(field):
             raise RuntimeError(f'saved rubric request setting differs: {field}')
-    from rubric_gen.submission_revision.evaluation.rubric_judge import RUBRIC_SCORE_SYSTEM_PROMPT
+    from rubric_gen.submission_revision.evaluation.rubric_judge import RUBRIC_SCORE_SYSTEM_PROMPT, _system_prompt
+    from rubric_gen.submission_revision.evaluation import indexed_rubric
     from rubric_gen.artifacts.hashing import sha256_text
-    if execution.get('system_prompt_sha256') not in {
-        current['system_prompt_sha256'], sha256_text(RUBRIC_SCORE_SYSTEM_PROMPT),
-    }:
+    prompt_hashes = {current['system_prompt_sha256'], sha256_text(RUBRIC_SCORE_SYSTEM_PROMPT)}
+    if spec.provider == 'anthropic' and execution.get('structured_output_contract') in {
+            indexed_rubric.V5_STRUCTURED_OUTPUT, indexed_rubric.STRUCTURED_OUTPUT}:
+        # Reconstruct only the recorded format paragraph with the unchanged
+        # scientific instructions; no arbitrary producer-source whitelist.
+        prompt_hashes = {sha256_text(_system_prompt('anthropic', execution['structured_output_contract']))}
+    if execution.get('system_prompt_sha256') not in prompt_hashes:
         raise RuntimeError('saved rubric scientific instructions differ')
     replay = records_from_report(rubric_text=judge.rubric.text,
                                  raw_report=evaluation['full_rubric_structured']['raw_report'], spec=spec,
@@ -220,10 +225,57 @@ def adopt_saved_rubric_jobs(runner, planned):
         validate_saved_rubric(runner, expected[semantic], record, path)
         reused[semantic] = identity
         runner._reused_records[path.stem] = record
-    return tuple(replace(job, grading_identity=reused[semantic]['grading_identity'],
+    adopted = tuple(replace(job, grading_identity=reused[semantic]['grading_identity'],
                          evaluation_implementation_sha256=reused[semantic]['evaluation_implementation_sha256'])
                  if (semantic := scientific_identity(jobs._rubric_score_judgment_identity(job))) in reused else job
                  for job in planned)
+    _prepare_saved_v5_replays(runner, adopted)
+    return adopted
+
+
+def _prepare_saved_v5_replays(runner, planned):
+    """Identify complete saved responses without publication or provider work."""
+    from dataclasses import replace
+    from .rubric_judge import SavedV5Response, FullRubricJudgeError
+    from .rubric_score import _rubric_score_attempt_id
+
+    runner._saved_v5_replays = {}
+    prior = read_json_object(runner.output.path('manifest.json'), 'saved rubric manifest')
+    fields = ('model', 'task_instruction_sha256', 'submission_content_sha256',
+              'rubric_sha256', 'review_input_sha256', 'answer_input_sha256')
+    binding = lambda entry: tuple(entry[field] for field in fields)
+    entries = {binding(entry): entry for entry in prior['predispatch_plan']['jobs']}
+    unique = {job.key: job for job in planned if job.key not in runner._reused_records
+              and job.model.startswith('claude')}
+    for job in unique.values():
+        identity = jobs._rubric_score_judgment_identity(job)
+        entry = entries.get(binding(identity))
+        if entry is None:
+            continue  # The ordinary stage-plan comparison diagnoses scope changes.
+        original = replace(job, grading_identity=entry['grading_identity'],
+                           evaluation_implementation_sha256=prior['implementation_identity']['evaluation_sha256'])
+        if (original.key != entry['semantic_key'] or scientific_identity(identity) !=
+                scientific_identity(jobs._rubric_score_judgment_identity(original))):
+            raise RuntimeError('saved rubric response plan provenance differs')
+        judge = runner._judge_for_job(original)
+        attempt_id = _rubric_score_attempt_id(original)
+        root = judge._evaluation_root(original.submission, attempt_id)
+        attempts = root.parent / f'{attempt_id}.attempts'
+        expected = {'scoring_identity': original.grading_identity,
+                    'review_input_sha256': original.review_input_sha256,
+                    'answer_input_sha256': original.answer_input_sha256}
+        for attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
+            raw = attempts / f'attempt-{attempt:03d}.response.json'
+            if not raw.exists():
+                continue
+            state = runner.output.contained_regular_file(attempts / f'attempt-{attempt:03d}.json')
+            candidate = SavedV5Response(state, runner.output.contained_regular_file(raw), expected)
+            try:
+                candidate.replay(judge, original.submission)
+            except FullRubricJudgeError:
+                continue  # Incomplete/conflicting content still needs a new judgment.
+            runner._saved_v5_replays[job.key] = candidate
+            break
 
 
 def adopt_saved_free_jobs(runner, planned, output, identity_for, request_for, validator):

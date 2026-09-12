@@ -173,26 +173,30 @@ def _wire(items):
     return dict(criteria=criteria, overall_reasoning='fixture reasoning')
 
 
-@pytest.mark.parametrize('count', [1, 2, 63, 64, 65, 128, 145, 872, 1000])
-def test_indexed_round_trip_order_levels_and_scores(count):
+@pytest.mark.parametrize('count', [1, 2, 63, 64, 65, 67, 70, 77, 86, 87, 92, 120, 126, 128, 145, 178, 255, 306, 403, 872, 1000])
+@pytest.mark.parametrize('contract', [indexed_rubric.V5_STRUCTURED_OUTPUT, indexed_rubric.STRUCTURED_OUTPUT])
+def test_indexed_round_trip_order_levels_and_scores(count, contract):
     rubric = _many_criterion_rubric(count).replace('A=1 B=0', 'A=2 B=-1')
     levels = rubric_judge.parse_rubric_levels_strict(rubric)
     # Unique evidence and alternating levels expose any swapped/duplicated leaf.
     items = [dict(level_index=i % 2, reason=f'evidence {i}|kept') for i in range(count)]
     wire = _wire([f"{v['level_index']}|{v['reason']}" for v in items])
-    schema = indexed_rubric.output_schema(count)
+    if count >= 64 and contract == indexed_rubric.STRUCTURED_OUTPUT:
+        wire['criteria']['full_blocks'] = {f"block_{b['block_index']}": b['values']
+                                           for b in wire['criteria']['full_blocks']}
+    schema = indexed_rubric.output_schema(count, contract=contract)
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(wire)
     assert rubric_judge._anthropic_rubric_score_schema(schema) == schema
-    if count >= 64:
+    if count >= 64 and contract == indexed_rubric.V5_STRUCTURED_OUTPUT:
         wire['criteria']['full_blocks'].reverse()
-    decoded = indexed_rubric.decode_output(json.dumps(wire), count)
+    decoded = indexed_rubric.decode_output(json.dumps(wire), count, contract=contract)
     actual = rubric_judge.parse_rubric_score_output(decoded, levels)
     expected = rubric_judge.parse_rubric_score_output(json.dumps(dict(criteria=items,
         overall_reasoning='fixture reasoning')), levels)
     assert actual == expected and list(actual['criteria']) == list(levels)
     spec = rubric_judge.build_rubric_score_run_spec(rubric_text=rubric, review_text='evidence',
-        answer_text='', requested_model='claude-opus-5', seed=31)
+        answer_text='', requested_model='claude-opus-5', seed=31, indexed_contract=contract)
     usage = full_rubric_protocol.FullRubricGeneration(text='', provider=spec.provider,
         requested_model=spec.requested_model, effective_model=spec.requested_model,
         response_id='fixture', request_parameters=rubric_judge._request_parameters(spec), usage={}).usage_record()
@@ -202,7 +206,7 @@ def test_indexed_round_trip_order_levels_and_scores(count):
     assert spec.schema_bytes == rubric_judge._canonical_json_bytes(schema)
     payload = rubric_judge.rubric_score_payload(rubric, 'evidence', '')
     assert spec.request_content_bytes_per_call == (len(payload.encode()) + spec.schema_bytes +
-        len(rubric_judge._system_prompt('anthropic').encode()))
+        len(rubric_judge._system_prompt('anthropic', contract).encode()))
     if count == 872:
         print('872 indexed criteria round-trip in canonical order; signed/normalized scores identical')
 
@@ -223,7 +227,8 @@ def test_invalid_indexed_response_rejected(damage):
         items[0] = '01|evidence' if damage == 'bad-index' else '0| '
         wire = _wire(items)
     with pytest.raises(FullRubricJudgeError):
-        rubric_judge.parse_rubric_score_output(indexed_rubric.decode_output(json.dumps(wire), 145),
+        rubric_judge.parse_rubric_score_output(indexed_rubric.decode_output(json.dumps(wire), 145,
+            contract=indexed_rubric.V5_STRUCTURED_OUTPUT),
             {f'criterion_{i}': {'A': 1, 'B': 0} for i in range(145)})
 
 

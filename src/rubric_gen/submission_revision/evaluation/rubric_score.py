@@ -476,7 +476,8 @@ class RubricScoreStage:
         )
         rubric = resolve_optimizer_rubric(judge_config)
         return RubricScoreJudge(judge_config, rubric, review_cache=self._review_cache,
-                                review_lock=self._review_lock)
+                                review_lock=self._review_lock,
+                                saved_v5_response=getattr(self, '_saved_v5_replays', {}).get(artifact_key))
 def _rubric_score_job_identity(job: RubricScoreJob) -> dict[str, object]:
     return {
         "assignment_id": job.target.assignment_id,
