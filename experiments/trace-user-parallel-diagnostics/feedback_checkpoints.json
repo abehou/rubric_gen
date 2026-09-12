@@ -1,0 +1,14 @@
+[
+ {"variant":"v3.2","task":"da-13-6","replicate":2,"submission_id":"s000","case":"private_target_counts"},
+ {"variant":"v3.2","task":"da-13-6","replicate":3,"submission_id":"s002","case":"different_populations"},
+ {"variant":"v3.1","task":"da-15-1","replicate":2,"submission_id":"s001","case":"coefficient_coding_sign"},
+ {"variant":"v3.1","task":"da-15-1","replicate":3,"submission_id":"s003","case":"unavailable_remedy"},
+ {"variant":"v3.2","task":"da-13-6","replicate":3,"submission_id":"s003","case":"repeated_count_concern"},
+ {"variant":"v3.2","task":"da-13-6","replicate":3,"submission_id":"s001","case":"corrective_learned_check"},
+ {"variant":"v3.2","task":"da-13-6","replicate":1,"submission_id":"s004","case":"proactive_label_substantive_check"},
+ {"variant":"v3","task":"da-18-5","replicate":1,"submission_id":"s001","case":"proactive_only_request"},
+ {"variant":"v3.2","task":"da-15-1","replicate":1,"submission_id":"s000","case":"unmet_base_requirement"},
+ {"variant":"v3.2","task":"da-18-5","replicate":1,"submission_id":"s000","case":"cohort_scope_ambiguity"},
+ {"variant":"v3.2","task":"da-15-1","replicate":2,"submission_id":"s007","case":"sensitivity_verification"},
+ {"variant":"v3.2","task":"da-15-1","replicate":3,"submission_id":"s001","case":"partial_analysis_method"}
+]

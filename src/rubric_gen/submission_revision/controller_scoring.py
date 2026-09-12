@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from . import user_feedback_factors as feedback_factors
+
 import math
 import os
 import secrets
@@ -496,7 +498,8 @@ class RevisionScorer:
         from .user_delivery_v3 import V3_TRACE_VERSIONS
         if (
             FeedbackPolicy(self.config.feedback_policy) is FeedbackPolicy.USER_SIMULATOR
-            and self.config.red_team_trace_version in V3_TRACE_VERSIONS
+            and (self.config.red_team_trace_version in V3_TRACE_VERSIONS
+                 or feedback_factors.budgeted(self.config.red_team_trace_version))
         ):
             # v3 delivers the selected rule privately through the simulator;
             # there is deliberately no fourth solver-visible message.
@@ -564,6 +567,14 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
+        factor_trace = self.trace_defense_enabled and self.config.red_team_trace_version in feedback_factors.VARIANTS
+        factor_delivery = None
+        factor_check = None
+        if factor_trace and feedback_factors.budgeted(self.config.red_team_trace_version):
+            factor_delivery = feedback_factors.select_reminder(generation=generation,
+                score_validation_path=artifacts.score_validation_path, root=self.experiment_dir,
+                submission_id=submission_id, instruction=task_instruction)
+            factor_check = feedback_factors.focused_check(factor_delivery[0], generation)
         v3_delivery = None
         v3_base_status = None
         from .user_delivery_v3 import V3_TRACE_VERSIONS
@@ -679,8 +690,8 @@ class RevisionScorer:
                     / "feedback-generation-failures"
                     / submission_id
                 ),
-                trace_version=(self.config.red_team_trace_version if v3_trace else None),
-                focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else None),
+                trace_version=(self.config.red_team_trace_version if v3_trace or factor_trace else None),
+                focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else factor_check),
                 base_requirement_status=(v3_base_status if v3_trace else None),
             )
             _write_json_atomic(generation_path, simulated_record)
@@ -695,11 +706,12 @@ class RevisionScorer:
             current_artifact=current_artifact,
             history=history,
             history_summary=history_summary,
-            trace_version=(self.config.red_team_trace_version if v3_trace else None),
-            focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else None),
+            instruction=task_instruction,
+            trace_version=(self.config.red_team_trace_version if v3_trace or factor_trace else None),
+            focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery[0] else factor_check),
             base_requirement_status=(v3_base_status if v3_trace else None),
         )
-        effective_user_feedback = user_feedback
+        effective_user_feedback = feedback_factors.solver_feedback(user_feedback) if factor_trace else user_feedback
         if v3_trace:
             from .user_delivery_v3 import suppress_proactive_only_revision
             effective_user_feedback = suppress_proactive_only_revision(
@@ -717,6 +729,11 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
+        if factor_delivery is not None:
+            feedback_factors.persist_budget_delivery(root=self.experiment_dir,
+                submission_id=submission_id, generation=generation,
+                selection=factor_delivery[0], skipped=factor_delivery[1],
+                prompt=projected.prompt, user_feedback=user_feedback, allow_generation=allow_generation)
         if v3_trace:
             from .user_delivery_v3 import persist_private_delivery
 

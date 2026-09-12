@@ -13,7 +13,7 @@ def numeric_literals(text):
     return set(_NUMERIC.findall(text))
 
 
-def append_reminder(projected,*,generation,score_validation_path,root,submission_id,instruction,allow_generation):
+def select_reminder(*,generation,score_validation_path,root,submission_id,instruction):
     checkpoint=int(submission_id[1:])
     record_dir=root/'trace-defense-reminders'
     prior_records=[read_json_object(record_dir/f's{i:03d}.json','prior trace reminder') for i in range(checkpoint)]
@@ -37,14 +37,24 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
             skipped.append({'criterion_id':c.criterion_id,'reason':reason,'absent_numeric_literals':extra});continue
         eligible.append((category,points,-c.source_generation,c.criterion_id,c))
     eligible.sort(key=lambda x:x[:4])
-    selection=None; block=''
+    selection=None
     if eligible:
         category,points,_,identity,c=eligible[0]
         corrective=points<0
-        block=(CORRECTIVE if corrective else ANTICIPATORY).format(admitted_requirement=c.requirement)
         selection={'criterion_id':identity,'source_generation':c.source_generation,'category':category,
                    'points':points,'previously_reminded':identity in reminded,'corrective':corrective,
                    'requirement':c.requirement}
+    return selection, skipped
+
+
+def append_reminder(projected,*,generation,score_validation_path,root,submission_id,instruction,allow_generation):
+    selection, skipped = select_reminder(generation=generation,
+        score_validation_path=score_validation_path, root=root,
+        submission_id=submission_id, instruction=instruction)
+    checkpoint=int(submission_id[1:])
+    record_dir=root/'trace-defense-reminders'
+    block='' if selection is None else (CORRECTIVE if selection['corrective'] else ANTICIPATORY).format(
+        admitted_requirement=selection['requirement'])
     prompt=projected.prompt+('\n\n'+block if block else '')
     record={'red_team_trace_version':generation.red_team_trace_version,'submission_id':submission_id,'solver_turn':checkpoint+1,
             'generation_sha256':generation.generation_sha256,'selection':selection,'skipped':skipped,

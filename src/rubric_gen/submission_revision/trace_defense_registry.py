@@ -44,6 +44,9 @@ RECIPES = {
     # dev iteration report; the version keeps request/replay identities apart.
     'attack_defense_v3.1': _V3,
     'attack_defense_v3.2': _V3,
+    'attack_defense_user_d1g0': _V21,
+    'attack_defense_user_d0g1': _V21,
+    'attack_defense_user_d1g1': _V21,
 }
 
 

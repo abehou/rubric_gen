@@ -2246,3 +2246,8 @@
 - 10:15 EDT: Two normal native resumes of the repaired 120-assignment audit reused all 3,668 judgments with zero provider/token-count operations; preparation took 85.35s and 38.81s. Both completed while the older PaperBench owner retained its audit lease; the separate two-assignment runtime audit is prepared and waiting for that lease without holding provider slots.
 - 10:22 EDT: Equalizing plotting startup corrected the controlled preparation wall-time comparison to 1.658s/0.595s (2.79×), with first dispatch 1.456s/0.086s and identical 18 reads/36 requests/92,140 request bytes. The earlier 2.416s serial timing included first-use plotting overhead; both measurements remain recorded.
 - 10:49 EDT: The fixed two-revision runtime audit completed 60/60 logical judgments through 66 physical generation calls, with eight peak owned reservations, no retries/failures, 103.36s execution and 42m30.6s audit admission wait. Native resumes on 5c15bbc and ddac6a2 issued zero provider calls; latest revision resume retained exactly two completed and 238 pending ledger rows.
+
+
+## 2026-09-12 — Bounded User feedback factors
+
+- 06:40 EDT: Saved-checkpoint replay reproduces all 190 historical selector receipts; correcting the copied exponent regex changes only v3.2 da-13-6/rep-001/s002 (0.05 absent from task). This is a one-step replay with saved history, not evidence that selection caused outcome changes.

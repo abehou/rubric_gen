@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from . import user_feedback_factors as feedback_factors
+
 from .store import same_scoring_semantics
 
 import os
@@ -370,7 +372,7 @@ def _validate_submission(
             reference_score,
         )
         if _trace_version(context):
-            if _trace_version(context) not in {"attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"}:
+            if not (context.policy is FeedbackPolicy.USER_SIMULATOR and (_trace_version(context) in {"attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"} or feedback_factors.budgeted(_trace_version(context)))):
                 from .trace_defense_delivery import append_reminder
                 projected = append_reminder(projected, generation=generation, score_validation_path=rubric_artifacts[0],
                     root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False)
@@ -753,6 +755,14 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
+    factor_trace = _trace_version(context) in feedback_factors.VARIANTS
+    factor_delivery = None
+    factor_check = None
+    if factor_trace and feedback_factors.budgeted(_trace_version(context)):
+        factor_delivery = feedback_factors.select_reminder(generation=generation,
+            score_validation_path=rubric_artifacts[0], root=context.experiment_dir,
+            submission_id=submission_id, instruction=task_instruction)
+        factor_check = feedback_factors.focused_check(factor_delivery[0], generation)
     v3_trace = _trace_version(context) in {"attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"}
     v3_delivery = None
     v3_base_status = None
@@ -822,11 +832,12 @@ def _project_feedback(
         current_artifact=current_artifact,
         history=history,
         history_summary=history_summary,
-        trace_version=(_trace_version(context) if v3_trace else None),
-        focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery and v3_delivery[0] else None),
+        instruction=task_instruction,
+        trace_version=(_trace_version(context) if v3_trace or factor_trace else None),
+        focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery and v3_delivery[0] else factor_check),
         base_requirement_status=(v3_base_status if v3_trace else None),
     )
-    effective_user_feedback = user_feedback
+    effective_user_feedback = feedback_factors.solver_feedback(user_feedback) if factor_trace else user_feedback
     if v3_trace:
         from .user_delivery_v3 import suppress_proactive_only_revision
         effective_user_feedback = suppress_proactive_only_revision(
@@ -844,6 +855,11 @@ def _project_feedback(
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
     )
+    if factor_delivery is not None:
+        feedback_factors.persist_budget_delivery(root=context.experiment_dir,
+            submission_id=submission_id, generation=generation,
+            selection=factor_delivery[0], skipped=factor_delivery[1],
+            prompt=projected.prompt, user_feedback=user_feedback, allow_generation=False)
     if v3_trace:
         from .user_delivery_v3 import persist_private_delivery
         assert v3_delivery is not None

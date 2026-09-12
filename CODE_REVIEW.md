@@ -627,3 +627,8 @@
 - 10:15 EDT: Fixed ordinary revision resume retaining an explicitly selected assignment subset, and completed audit replay avoiding global generation admission and token recounting. Final status now samples terminal completion and reports owned reservations, waiting phase, failure category/action and worker-limit provenance; the isolated live source remains frozen at 5c15bbc.
 - 10:28 EDT: Fixed assignment-only scope acceptance when no condition filter exists, matching StudyRunner's completed_scope status. Future consumer assembly now captures the existing recovery-ledger digest before replacing the ledger; historical repair scripts and receipts remain unchanged.
 - 10:41 EDT: A queued-work shutdown reproduction completed only two of 18 accepted tasks before callbacks hit a closed executor; the owner now drains accepted work before shutdown. Direct preparation/admission share the existing exact token-count cache, and concurrent windows serialize only pyplot publication; 72 runtime/detection checks and four focused concurrency checks pass.
+
+
+## 2026-09-12 — Bounded User feedback factors
+
+- 06:40 EDT: New User-factor paths share the legacy selector and leave historical v3 code intact; private metadata cannot rewrite accept/revise or suppress substantive concerns. Host-inferred emission/omission is replaced with explicit unknown status pending semantic inspection, with the original saved receipts retained.

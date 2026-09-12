@@ -1381,3 +1381,8 @@ While package-context10353356 remains the primary baseline experiment,run six da
 
 - 09:43 EDT: The runtime-cleanup request authorizes one fixed small validation cohort per benchmark after active output owners finish, with unchanged scientific settings. The BioMNIBench runtime-only audit reuses `da-10-1`, replicate 1, `full-red-team-trace` and `user-simulator-red-team-trace` (two completed imported revisions), selected before generation, plus both configured auditors and all four windows/rubric/free-score instruments; no new Results20 or solver/input regeneration.
 - 09:43 EDT: Also run the patched normal missing-only audit resume on the completed 120-source repaired consumer and require zero generation calls for known completed judgments; retain the global 60-provider/one-audit policy and wait for the active PaperBench owner. Runtime-validation outcomes are excluded from scientific go/no-go reports.
+
+
+## 2026-09-12 — Bounded User feedback factors
+
+- 06:40 EDT: User authorizes one common canonical v2.1 control and three fixed User challengers (separate/budgeted delivery × original/grounded simulator), at most 36 feedback-only logical checks then 27 canonical dev3 challenger assignments. Stop after comparison/report; no Result20, semi/score-only, extra tasks, or additional variants.

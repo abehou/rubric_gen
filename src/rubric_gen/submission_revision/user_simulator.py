@@ -23,6 +23,8 @@ SIMULATED_USER_GENERATION_KIND = "submission-simulated-user-feedback"
 SIMULATED_USER_FAILURE_KIND = "submission-simulated-user-feedback-failure"
 SIMULATED_USER_HISTORY_SUMMARY_KIND = "submission-simulated-user-history-summary"
 MAX_SIMULATED_USER_SUMMARY_CHARS = 12_000
+from . import user_feedback_factors as factors
+
 V3_TRACE_VERSIONS = frozenset(("attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"))
 
 CONCERN_CATEGORIES = (
@@ -290,7 +292,17 @@ class SimulatedUserFeedback:
             history=history,
             history_summary=history_summary,
         )
-        if trace_version in V3_TRACE_VERSIONS:
+        if trace_version in factors.VARIANTS:
+            if base_requirement_status is not None:
+                raise ValueError("factor comparison does not use base-requirement ranking")
+            request = factors.feedback_request(
+                trace_version=trace_version, focused_dynamic_check=focused_dynamic_check,
+                instruction=instruction, full_feedback_text=full_feedback_text,
+                current_artifact=current_artifact, history_context=history_context,
+                max_concerns=self.config.max_concerns,
+                max_output_tokens=self.config.max_output_tokens,
+            )
+        elif trace_version in V3_TRACE_VERSIONS:
             request = _feedback_request_v3(
                 instruction=instruction,
                 full_feedback_text=full_feedback_text,
@@ -332,11 +344,16 @@ class SimulatedUserFeedback:
                     )
                 _validate_request_size(attempt_request, self.config.max_request_bytes)
                 generated = self._generator(self.config, attempt_request)
-                output = _parse_feedback(
-                    generated.text,
-                    max_concerns=self.config.max_concerns,
-                    allow_origin=trace_version in V3_TRACE_VERSIONS,
-                )
+                if trace_version in factors.VARIANTS:
+                    output = factors.validate_output(load_json_strict(generated.text),
+                        trace_version=trace_version, instruction=instruction,
+                        current_artifact=current_artifact, max_concerns=self.config.max_concerns)
+                else:
+                    output = _parse_feedback(
+                        generated.text,
+                        max_concerns=self.config.max_concerns,
+                        allow_origin=trace_version in V3_TRACE_VERSIONS,
+                    )
                 record: dict[str, object] = {
                     "kind": SIMULATED_USER_GENERATION_KIND,
                     "experiment_id": experiment_id,
@@ -362,6 +379,12 @@ class SimulatedUserFeedback:
                         "focused_dynamic_check": focused_dynamic_check,
                         "base_requirement_status": base_requirement_status or [],
                     }
+                if trace_version in factors.VARIANTS:
+                    record["trace_factor_context"] = {
+                        "version": trace_version, "focused_dynamic_check": focused_dynamic_check,
+                        "source_bindings": (factors.source_bindings(output, instruction=instruction,
+                            current_artifact=current_artifact) if factors.VARIANTS[trace_version][1] else None),
+                    }
                 self.validate(
                     record,
                     experiment_id=experiment_id,
@@ -373,6 +396,7 @@ class SimulatedUserFeedback:
                     current_artifact=current_artifact,
                     history=history,
                     history_summary=history_summary,
+                    instruction=instruction,
                     trace_version=trace_version,
                     focused_dynamic_check=focused_dynamic_check,
                     base_requirement_status=base_requirement_status,
@@ -434,6 +458,7 @@ class SimulatedUserFeedback:
         current_artifact: str,
         history: InteractionHistory,
         history_summary: dict[str, object] | None,
+        instruction: str | None = None,
         trace_version: str | None = None,
         focused_dynamic_check: dict[str, object] | None = None,
         base_requirement_status: list[dict[str, object]] | None = None,
@@ -476,6 +501,8 @@ class SimulatedUserFeedback:
         expected_keys = set(expected_keys)
         if trace_version in V3_TRACE_VERSIONS:
             expected_keys.add("trace_v3_context")
+        elif trace_version in factors.VARIANTS:
+            expected_keys.add("trace_factor_context")
         elif trace_version is not None:
             raise ValueError("unsupported simulated-user trace context")
         if (
@@ -503,6 +530,18 @@ class SimulatedUserFeedback:
         output = record.get("output")
         if type(output) is not dict:
             raise ValueError("simulated-user generation has invalid output")
+        if trace_version in factors.VARIANTS:
+            if base_requirement_status is not None:
+                raise ValueError("factor comparison does not use base-requirement ranking")
+            validated = factors.validate_output(output, trace_version=trace_version,
+                instruction=instruction, current_artifact=current_artifact,
+                max_concerns=self.config.max_concerns)
+            expected_context = {"version": trace_version, "focused_dynamic_check": focused_dynamic_check,
+                "source_bindings": (factors.source_bindings(validated, instruction=instruction,
+                    current_artifact=current_artifact) if factors.VARIANTS[trace_version][1] else None)}
+            if record.get("trace_factor_context") != expected_context:
+                raise ValueError("factor feedback context/source bindings changed")
+            return validated
         return _validate_feedback_output(
             output,
             max_concerns=self.config.max_concerns,

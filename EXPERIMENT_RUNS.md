@@ -1267,3 +1267,8 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 09:43 EDT: Eight real local Codex app-server startups (zero model turns) are recorded at `/data/user_data/aydanh/rubric_gen/runs/runtime-throughput-validation-20260911/startup/result.json`; normal launch/resume receipts and compact status live in isolated source `runs/runtime-10398213-*`. Final measured results belong in `docs/reports/2026-09-11/runtime-reliability/runtime-throughput-cleanup.md`.
 - 10:49 EDT: Runtime audit complete: `biomnibench/runtime-validation-coverage.json` under that NFS root verifies 60/60 logical judgments and the preserved two-member scope; live launch/resume receipts are W `runs/runtime-10398213-6vzxjm2m` / `3c7hst7a` (5c15bbc). Final source `/home/aydanh/repos/rubric_gen/runs/babel-code/runtime-throughput-final` at ddac6a2 passed normal revision/audit resumes in `runs/runtime-10398213-oy2nnt00` / `hpugg1o6`, with zero generation and no work remaining.
 - 10:52 EDT: Released diagnostic allocation 10398213 after the final live launch/resume sequence and latest-source native checks exited zero; its Slurm cancellation represents resource release, not a failed audit. Implementation and measured results were published without force to origin/aydan-red-team, preserving the concurrent branch history.
+
+
+## 2026-09-12 — Bounded User feedback factors
+
+- 06:40 EDT: New bounded comparison root: /data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/; existing canonical control remains under trace-attack-defense-v3-20260911/control-v21-compatible. Feedback checks, C10/C01/C11 workspaces and audits have disjoint ownership and share the existing global provider budget.

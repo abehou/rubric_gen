@@ -1,0 +1,191 @@
+{
+  "logical_checkpoints": 12,
+  "provider_calls": 0,
+  "root": "/data/user_data/aydanh/rubric_gen/runs/trace-user-parallel-diagnostics-20260912/feedback-checks",
+  "rows": [
+    {
+      "case": "private_target_counts",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/feedback-generations/s000.json",
+      "original_source_binding_verified": true,
+      "replicate": 2,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s000",
+      "task": "da-13-6",
+      "variant": "v3.2"
+    },
+    {
+      "case": "different_populations",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback-generations/s002.json",
+      "original_source_binding_verified": true,
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s002",
+      "task": "da-13-6",
+      "variant": "v3.2"
+    },
+    {
+      "case": "coefficient_coding_sign",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback-generations/s001.json",
+      "original_source_binding_verified": true,
+      "replicate": 2,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace",
+      "selection": {
+        "category": 1,
+        "corrective": true,
+        "criterion_id": "elicited_4c5caba66d3e130e",
+        "points": -10.0,
+        "previously_reminded": false,
+        "requirement": "For any claimed ALS-versus-control effect directions, verify that the categorical reference level, selected disease coefficient, any sign transformation, and the stated contrast agree mathematically; repair the scoped computation and regenerate affected log2FC values, direction classifications, and interpretations, while retaining unrelated supported results.",
+        "source_generation": 3
+      },
+      "skipped": [],
+      "submission_id": "s001",
+      "task": "da-15-1",
+      "variant": "v3.1"
+    },
+    {
+      "case": "unavailable_remedy",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback-generations/s003.json",
+      "original_source_binding_verified": true,
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter2/v31-candidate/da-15-1/study/biomnibench-da-factorial-r10-7c8044b7d736/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s003",
+      "task": "da-15-1",
+      "variant": "v3.1"
+    },
+    {
+      "case": "repeated_count_concern",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback-generations/s003.json",
+      "original_source_binding_verified": true,
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s003",
+      "task": "da-13-6",
+      "variant": "v3.2"
+    },
+    {
+      "case": "corrective_learned_check",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/feedback-generations/s001.json",
+      "original_source_binding_verified": true,
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+      "selection": {
+        "category": 1,
+        "corrective": true,
+        "criterion_id": "elicited_76e3cd4da93edb2e",
+        "points": -5.0,
+        "previously_reminded": false,
+        "requirement": "When multiple age-stratified MHT estimates are available, check whether the primary concordance claim selects the estimate with the smallest p-value separately for each protein. Any such selected composite must be labeled exploratory and not used as the headline result without appropriate multiplicity adjustment or independent validation; retain and report age-stratified comparisons as the primary analysis, while preserving valid unrelated analyses and accurately stating scope and limitations.",
+        "source_generation": 3
+      },
+      "skipped": [],
+      "submission_id": "s001",
+      "task": "da-13-6",
+      "variant": "v3.2"
+    },
+    {
+      "case": "proactive_label_substantive_check",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/feedback-generations/s004.json",
+      "original_source_binding_verified": true,
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace",
+      "selection": {
+        "category": 3,
+        "corrective": false,
+        "criterion_id": "elicited_814942fafd092d3a",
+        "points": 0.0,
+        "previously_reminded": false,
+        "requirement": "When interpreting equal GAHT and MHT coefficient signs as the same biological protein direction, explicitly verify or document that predictor coding is comparable across models; otherwise report only coefficient-sign concordance and state that biological-direction interpretation depends on coding, while retaining valid sign-based results and other limitations.",
+        "source_generation": 6
+      },
+      "skipped": [],
+      "submission_id": "s004",
+      "task": "da-13-6",
+      "variant": "v3.2"
+    },
+    {
+      "case": "proactive_only_request",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-18-5/study/biomnibench-da-factorial-r10-e26d8b302f18/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback-generations/s001.json",
+      "original_source_binding_verified": true,
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-18-5/study/biomnibench-da-factorial-r10-e26d8b302f18/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace",
+      "selection": {
+        "category": 3,
+        "corrective": false,
+        "criterion_id": "elicited_35194901f05dc95c",
+        "points": 0.0,
+        "previously_reminded": false,
+        "requirement": "When interpreting MAPK frequency, enrichment, or ESR1 mutual exclusivity as endocrine resistance or therapeutic actionability, distinguish observed cross-sectional association from causation and clinical benefit: state the relevant scope and limitations, and do not present the data alone as proving functional activation, therapy-acquired resistance, drug sensitivity, benefit, or a treatment recommendation.",
+        "source_generation": 3
+      },
+      "skipped": [],
+      "submission_id": "s001",
+      "task": "da-18-5",
+      "variant": "v3"
+    },
+    {
+      "case": "unmet_base_requirement",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/feedback-generations/s000.json",
+      "original_source_binding_verified": true,
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s000",
+      "task": "da-15-1",
+      "variant": "v3.2"
+    },
+    {
+      "case": "cohort_scope_ambiguity",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/feedback-generations/s000.json",
+      "original_source_binding_verified": true,
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace",
+      "selection": {
+        "category": 2,
+        "corrective": true,
+        "criterion_id": "elicited_eef85b5068df26e9",
+        "points": -5.0,
+        "previously_reminded": false,
+        "requirement": "When claiming a post-hormonal-therapy cohort, the analysis must distinguish samples with explicit post-treatment annotation from samples whose site or non-naive status does not itself establish prior hormonal therapy, and must disclose the operational inclusion rule.",
+        "source_generation": 1
+      },
+      "skipped": [],
+      "submission_id": "s000",
+      "task": "da-18-5",
+      "variant": "v3.2"
+    },
+    {
+      "case": "sensitivity_verification",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/feedback-generations/s007.json",
+      "original_source_binding_verified": true,
+      "replicate": 2,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s007",
+      "task": "da-15-1",
+      "variant": "v3.2"
+    },
+    {
+      "case": "partial_analysis_method",
+      "feedback_generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/feedback-generations/s001.json",
+      "original_source_binding_verified": true,
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace",
+      "selection": null,
+      "skipped": [],
+      "submission_id": "s001",
+      "task": "da-15-1",
+      "variant": "v3.2"
+    }
+  ]
+}
