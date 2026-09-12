@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench audit closure
+
+- 12:21 EDT: Resolved static saved-v8 delimiter replay and historical/current plan discovery with strict complete-index validation;686 tests pass on pin8226495 and current core. The private coverage checker now uses existing same_scoring_semantics while retaining exact evidence/provenance checks;23 focused tests and9 pinned-runtime checks pass.
+
 ## 2026-09-12 — PaperBench v8 residual delimiter diagnosis
 
 - 11:45 EDT: V8 strict newline decoding leaves3 exhausted120-criterion judgments; all3 have unambiguous complete pipe-delimited saved candidates, while4 incomplete attempts must remain rejected. Add focused native lossless-replay tests/publication support before retrying or publishing; preserve897 valid Opus records and frozen active sources.

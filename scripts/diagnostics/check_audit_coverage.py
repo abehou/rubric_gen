@@ -43,7 +43,11 @@ def check_semantic_records(root: Path, name: str, summary: dict) -> None:
         raw = json.loads(raw_bytes)
         assert raw["model"] == job["model"] in MODELS, (name, key)
         if name == "rubric_score":
-            for field in ("grading_identity", "answer_input_sha256", "review_input_sha256",
+            from rubric_gen.submission_revision.store import same_scoring_semantics
+            # Native reuse retains producer code provenance; the current plan
+            # may report another implementation. Artifact checks below stay exact.
+            assert same_scoring_semantics(raw['grading_identity'], job['grading_identity']), (name, key, 'grading_identity')
+            for field in ("answer_input_sha256", "review_input_sha256",
                           "rubric_sha256", "submission_content_sha256", "task_instruction_sha256"):
                 assert raw[field] == job[field], (name, key, field)
             evaluation_path = root / Path(raw["evaluation_path"]).relative_to(original_root)

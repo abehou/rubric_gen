@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench audit closure
+
+- 12:21 EDT: Queue6 native static closure10415061 reuses900 Sol/897 Opus and publishes only3 complete saved responses with zero provider work; preparation216.206s and global lease admission286.021s are measured separately. Existing non-trace revision/audit owners remain intact; [repair evidence](docs/reports/2026-09-12/paperbench-static/opus-saved-response-replay.md).
+
 ## 2026-09-12 — PaperBench v8 residual delimiter diagnosis
 
 - 11:45 EDT: Static v8 recovery10414690 ended900 Sol/897 Opus after133 successes,158 attempts and22 retries; all3 residual ftrl judgments have complete single-line saved-response candidates passing canonical diagnostic parsing, but remain unpublished pending native replay support. Semi/Score Results20 owner10414738 has started; [terminal handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
