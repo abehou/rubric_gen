@@ -374,9 +374,10 @@ def _validate_submission(
         )
         if _trace_version(context):
             if not (context.policy is FeedbackPolicy.USER_SIMULATOR and (_trace_version(context) in {"attack_defense_v3", "attack_defense_v3.1", "attack_defense_v3.2"} or feedback_factors.budgeted(_trace_version(context)))):
-                from .trace_defense_delivery import append_reminder
+                from .trace_defense_delivery import append_reminder, appendix_mode
                 projected = append_reminder(projected, generation=generation, score_validation_path=rubric_artifacts[0],
-                    root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False)
+                    root=context.experiment_dir, submission_id=submission_id, instruction=instruction, allow_generation=False,
+                    delivery_mode=appendix_mode(_trace_version(context), context.policy))
         if (
             read_json_object(feedback_path, "revision feedback")
             != projected.payload

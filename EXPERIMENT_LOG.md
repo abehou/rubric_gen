@@ -2263,3 +2263,7 @@
 ## 2026-09-12 — Mission scope and scale-input inventory
 
 - 09:38 EDT: Restarted planning from v2.1, preserving closed D×G/P1/P2 failures and the shared runtime; confirmed the historical45-task membership is preparation rather than45executed tasks, and no30-task membership was located. Published [reuse/missing-input inventory](docs/reports/2026-09-12/biomnibench-v21-to45/README.md); further packages come from the new queue, not the superseded simulator redesign.
+
+## 2026-09-12 — Canonical v2.1 selected-criterion residual
+
+- 09:59 EDT: Provider-free comparison of126same-input selected-criterion/auditor rows found20positive,106zero and0negative W−S contributions; da-11-1 supplies68.89% of the7.50mean gap, and a major numeric withdrawal follows ordinary feedback with no appendix. [Nine-case diagnosis](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) retains judge disagreements and mixed mechanisms; tested R1/R2 ablations are not presumed improvements.

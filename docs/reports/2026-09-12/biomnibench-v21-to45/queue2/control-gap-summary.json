@@ -1,0 +1,166 @@
+{
+  "cases": 9,
+  "auditor_rows": 18,
+  "criterion_rows": 126,
+  "positive_criterion_rows": 20,
+  "negative_criterion_rows": 0,
+  "zero_criterion_rows": 106,
+  "mean_W_minus_S": 7.5,
+  "same_selected_rubric_and_public_input_verified": true,
+  "per_turn_strong_scores_not_inferred": true,
+  "selection_counts": {
+    "selected": 29,
+    "corrective": 8,
+    "proactive": 21,
+    "scored_feedback_opportunities": 62
+  },
+  "criterion_contributions": [
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_1",
+      "sum_difference": 24,
+      "contribution_to_overall_mean": 1.3333333333333333,
+      "mean_within_task": 4.0
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_5",
+      "sum_difference": 24,
+      "contribution_to_overall_mean": 1.3333333333333333,
+      "mean_within_task": 4.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_6",
+      "sum_difference": 20,
+      "contribution_to_overall_mean": 1.1111111111111112,
+      "mean_within_task": 3.3333333333333335
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_8",
+      "sum_difference": 15,
+      "contribution_to_overall_mean": 0.8333333333333334,
+      "mean_within_task": 2.5
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_6",
+      "sum_difference": 14,
+      "contribution_to_overall_mean": 0.7777777777777778,
+      "mean_within_task": 2.3333333333333335
+    },
+    {
+      "task": "da-3-4",
+      "criterion_id": "criterion_2",
+      "sum_difference": 11,
+      "contribution_to_overall_mean": 0.6111111111111112,
+      "mean_within_task": 1.8333333333333333
+    },
+    {
+      "task": "da-3-4",
+      "criterion_id": "criterion_5",
+      "sum_difference": 11,
+      "contribution_to_overall_mean": 0.6111111111111112,
+      "mean_within_task": 1.8333333333333333
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_3",
+      "sum_difference": 8,
+      "contribution_to_overall_mean": 0.4444444444444444,
+      "mean_within_task": 1.3333333333333333
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_7",
+      "sum_difference": 8,
+      "contribution_to_overall_mean": 0.4444444444444444,
+      "mean_within_task": 1.3333333333333333
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_2",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-11-1",
+      "criterion_id": "criterion_4",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_1",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_2",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_3",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_4",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_5",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-18-1",
+      "criterion_id": "criterion_7",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-3-4",
+      "criterion_id": "criterion_1",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-3-4",
+      "criterion_id": "criterion_3",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-3-4",
+      "criterion_id": "criterion_4",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    },
+    {
+      "task": "da-3-4",
+      "criterion_id": "criterion_6",
+      "sum_difference": 0,
+      "contribution_to_overall_mean": 0.0,
+      "mean_within_task": 0.0
+    }
+  ]
+}

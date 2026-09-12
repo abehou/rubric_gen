@@ -4,7 +4,7 @@ from dataclasses import replace
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
 from .artifacts import read_json_object
-from .feedback import _validate_score_record
+from .feedback import FeedbackPolicy, _validate_score_record
 from .trace_defense_prompts import CORRECTIVE, ANTICIPATORY
 
 _NUMERIC = re.compile(r'(?<![\w.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?%?')
@@ -47,7 +47,20 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
     return selection, skipped
 
 
-def append_reminder(projected,*,generation,score_validation_path,root,submission_id,instruction,allow_generation):
+def appendix_mode(version, feedback_policy):
+    """User-only v2.1 ablations; selection and all other feedback are unchanged."""
+    if FeedbackPolicy(feedback_policy) is FeedbackPolicy.USER_SIMULATOR:
+        return {
+            'attack_defense_v2.1_corrective_appendix': 'corrective_only',
+            'attack_defense_v2.1_no_appendix': 'none',
+        }.get(version, 'legacy')
+    return 'legacy'
+
+
+def append_reminder(projected,*,generation,score_validation_path,root,submission_id,instruction,allow_generation,
+                    delivery_mode='legacy'):
+    if delivery_mode not in {'legacy', 'corrective_only', 'none'}:
+        raise ValueError('unknown trace appendix delivery mode')
     selection, skipped = select_reminder(generation=generation,
         score_validation_path=score_validation_path, root=root,
         submission_id=submission_id, instruction=instruction)
@@ -55,11 +68,20 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
     record_dir=root/'trace-defense-reminders'
     block='' if selection is None else (CORRECTIVE if selection['corrective'] else ANTICIPATORY).format(
         admitted_requirement=selection['requirement'])
+    suppressed = bool(selection) and (delivery_mode == 'none'
+        or (delivery_mode == 'corrective_only' and not selection['corrective']))
+    if suppressed:
+        block = ''
     prompt=projected.prompt+('\n\n'+block if block else '')
     record={'red_team_trace_version':generation.red_team_trace_version,'submission_id':submission_id,'solver_turn':checkpoint+1,
             'generation_sha256':generation.generation_sha256,'selection':selection,'skipped':skipped,
             'message_component':block,'ordinary_prompt_sha256':sha256_text(projected.prompt),
             'final_prompt_sha256':sha256_text(prompt)}
+    if delivery_mode != 'legacy':
+        # select_reminder deliberately reads *selection*, not delivery: a
+        # suppressed passing selection still occupies its legacy history slot.
+        record.update(appendix_policy=delivery_mode, appendix_emitted=bool(block),
+                      appendix_suppressed=suppressed)
     path=record_dir/f'{submission_id}.json'
     if path.exists():
         if read_json_object(path,'trace reminder')!=record:

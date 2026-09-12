@@ -1284,3 +1284,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12 — v2.1 to Results45 inventory
 
 - 09:38 EDT: Read-only job10414358 completed 0:0 in5s,1CPU,0provider calls; [inventory](docs/reports/2026-09-12/biomnibench-v21-to45/inventory.json) found45data tasks/646size-matching files, existing120/3668 Result20 and9/336 canonical-control records, only20canonicalV2 tasks, and no planned45seed directory. One [mission status](experiments/biomnibench-v21-to45/status.json) records the09:27EDT start and18:27–19:27EDT checkpoint window; no scientific jobs launched.
+
+## 2026-09-12 — Queue 2 prepared execution
+
+- 09:59 EDT: Read-only control exports10414381/10414389, tests10414430(86passed), and completed native seed/g1/paraphrase validation10414436 support R1/R2 configs under experiments/biomnibench-v21-to45/queue2; no scientific calls yet. New outputs use /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue2/{R1,R2}, with the existing9/336control reused; source/job dispatch will be recorded in the shared mission status.

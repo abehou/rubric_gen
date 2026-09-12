@@ -1396,3 +1396,7 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12 — v2.1 to Results45 mission, queue 1
 
 - 09:38 EDT: The new eight-message queue supersedes unstarted prior plans: start from v2.1 scientific behavior plus reviewed runtime, develop narrowly on dev3, then progressively evaluate Results20/30/45 with completed baselines and negative results preserved. W−S modestly lower is acceptable, S/H/A and low S−H matter jointly, all RH windows remain distinct; [inventory and prioritized plan](docs/reports/2026-09-12/biomnibench-v21-to45/README.md) hands off to item 2 without inventing a treatment.
+
+## 2026-09-12 — Queue 2: v2.1 appendix-only comparison
+
+- 09:59 EDT: Authorized R0 saved User v2.1 control versus R1 corrective-only appended reminders and R2 no appendix on canonical3tasks×3replicates; preserve legacy selector/history, all learned scoring, simulator and Full behavior. [Focused diagnosis and plan](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) supports keeping both ablations, with R1 potentially inert in one saved case; at most18fresh assignments and native Sol+Opus/four-window evaluation.

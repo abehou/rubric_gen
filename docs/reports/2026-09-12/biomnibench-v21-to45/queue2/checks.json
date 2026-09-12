@@ -1,0 +1,27 @@
+{
+  "tests": {
+    "job": "10414430",
+    "passed": 86,
+    "seconds": 6.69,
+    "initial_failure_job": "10414423",
+    "initial_failures": [
+      "new version absent from two existing stage allowlists",
+      "historical comparison test mock reset by exec import"
+    ],
+    "job_state": "FAILED after successful pytest: subsequent input helper passed str instead of Path"
+  },
+  "input_checks": {
+    "job": "10414436",
+    "native_consumers": 6,
+    "source_tasks": 3,
+    "replicates_each": 3,
+    "g1_records_each": 1,
+    "provider_calls": 0,
+    "job_state": "COMPLETED 0:0"
+  },
+  "diagnostic_jobs": [
+    "10414381",
+    "10414389"
+  ],
+  "scope": "no provider work before commit and push"
+}

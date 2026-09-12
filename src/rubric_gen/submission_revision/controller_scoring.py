@@ -505,11 +505,12 @@ class RevisionScorer:
             # v3 delivers the selected rule privately through the simulator;
             # there is deliberately no fourth solver-visible message.
             return projected
-        from .trace_defense_delivery import append_reminder
+        from .trace_defense_delivery import append_reminder, appendix_mode
         return append_reminder(projected, generation=kwargs["generation"],
             score_validation_path=kwargs["artifacts"].score_validation_path, root=self.experiment_dir,
             submission_id=kwargs["submission_id"], instruction=(self.task_dir / "instruction.md").read_text(),
-            allow_generation=kwargs["allow_generation"])
+            allow_generation=kwargs["allow_generation"],
+            delivery_mode=appendix_mode(self.config.red_team_trace_version, self.config.feedback_policy))
 
     def _ordinary_checkpoint_feedback(
         self,

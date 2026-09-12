@@ -640,3 +640,7 @@
 - 08:23 EDT: Closed locator output and explicit public request allowlists prevent evaluator prose/rubric/private IDs from crossing into P1/P2 public review. Exact-request stage receipts preserve completed calls across interruption; provider-free tests cover replay and source bounds, while public reasoning accuracy remains an empirical question.
 
 - 08:40 EDT: Real P1/P2 records satisfy the structural boundary and exact native replay, with zero source/schema failures; this does not validate public interpretations. The verifier falsely accepted prose claiming variable repair and suppressed displayed executable defects, so neither candidate is advanced or silently repaired.
+
+## 2026-09-12 — User appendix ablation invariants
+
+- 09:59 EDT: Suppressing selection itself would alter later reminder ordering; R1/R2 instead retain the exact legacy selection record and separately persist actual appendix emission/suppression, with matching native replay. Fixed omitted version-allowlist entries before providers;86focused tests pass including native User stop/resume and Full isolation, with6native input-reuse checks.

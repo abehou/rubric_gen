@@ -200,3 +200,7 @@ do not restart a healthy job because a completion count is temporarily unchanged
 
 Only relevant paths are committed and pushed to `origin/aydan-red-team`, without
 force. No extra hash, recovery framework, or general preflight gate was added.
+
+## Queue 2 milestone
+
+The [appendix-only comparison](queue2/README.md) has a completed nine-case selected-criterion diagnosis, 86 passing tests and native input checks. R1 retains only corrective appendices; R2 removes appendices while preserving selection history and ordinary learned-rule influence. Both use the saved canonical User v2.1 control. Dispatch and exact job state are recorded in the shared mission status.
