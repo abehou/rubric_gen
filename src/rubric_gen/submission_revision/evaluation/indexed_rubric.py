@@ -10,7 +10,8 @@ from rubric_gen.submission_revision.judging.full_rubric_protocol import (
 
 V5_STRUCTURED_OUTPUT = "indexed-64-leaf-blocks-fixed-tail-index-pipe-reason-v5"
 V6_STRUCTURED_OUTPUT = "keyed-64-leaf-blocks-fixed-tail-index-pipe-reason-v6"
-STRUCTURED_OUTPUT = "required-block-strings-global-index-level-reason-v7"
+V7_STRUCTURED_OUTPUT = "required-block-strings-global-index-level-reason-v7"
+STRUCTURED_OUTPUT = "single-string-global-index-level-reason-v8"
 
 ARRAY_FORMAT = '''Evaluate the complete artifact against every rubric criterion. Return one item in
 the criteria array for each criterion_contracts item, in the same order. Array
@@ -42,7 +43,7 @@ V6_INDEXED_FORMAT = V5_INDEXED_FORMAT.replace(
     'tree.',
 )
 
-INDEXED_FORMAT = '''Evaluate the complete artifact against every rubric criterion. Return one line
+V7_INDEXED_FORMAT = '''Evaluate the complete artifact against every rubric criterion. Return one line
 for each criterion_contracts item. The criteria object must contain every required
 block_i key exactly once. Each block_i string covers exactly 64 criterion_contracts
 positions, from 64*i through 64*i+63 (zero-based). The tail string, when required,
@@ -57,10 +58,24 @@ entire remainder after the second | is the reason. Do not put line breaks within
 a reason. Do not output criterion identifiers or level names. Do not omit, add,
 duplicate, or reorder criterion lines or blocks. overall_reasoning must be nonempty.'''
 
+INDEXED_FORMAT = '''Evaluate the complete artifact against every rubric criterion. Return
+criteria_text as a single string containing one line for every criterion_contracts
+item, in the exact criterion_contracts order, using "global_index|level_index|reason".
+global_index is the zero-based position in the complete criterion_contracts list:
+start at 0 and include every position through the final item. level_index is the
+matching level_options index. Both indices must be nonnegative decimal integers.
+For example, "64|0|The artifact contains the required implementation."
+The evidence-based reason must be nonempty and may contain | characters: the
+entire remainder after the second | is the reason. Do not put line breaks within
+a reason. Do not output criterion identifiers or level names. Do not omit, add,
+duplicate, or reorder criterion lines. overall_reasoning must be nonempty.'''
+
 
 def format_instructions(contract=STRUCTURED_OUTPUT):
     if contract == STRUCTURED_OUTPUT:
         return INDEXED_FORMAT
+    if contract == V7_STRUCTURED_OUTPUT:
+        return V7_INDEXED_FORMAT
     if contract == V6_STRUCTURED_OUTPUT:
         return V6_INDEXED_FORMAT
     if contract == V5_STRUCTURED_OUTPUT:
@@ -69,16 +84,26 @@ def format_instructions(contract=STRUCTURED_OUTPUT):
 
 
 def output_schema(criterion_count, *, contract=STRUCTURED_OUTPUT):
-    """Require coarse blocks on the provider; validate their exact rows locally.
+    """Keep the provider schema small; validate every criterion row locally.
 
-    V5/v6 are reconstructed only for validation/replay of their saved requests.
+    V5/v6/v7 are reconstructed only for validation/replay of their saved requests.
     Local schema validity does not establish provider compilation acceptance.
     """
     format_instructions(contract)
     if type(criterion_count) is not int or not 1 <= criterion_count <= FULL_RUBRIC_MAX_CRITERIA:
         raise FullRubricJudgeError("rubric-score criterion count is out of range")
-    full_count, tail_count = divmod(criterion_count, 64)
     if contract == STRUCTURED_OUTPUT:
+        return {
+            'type': 'object',
+            'properties': {
+                'criteria_text': {'type': 'string'},
+                'overall_reasoning': {'type': 'string'},
+            },
+            'required': ['criteria_text', 'overall_reasoning'],
+            'additionalProperties': False,
+        }
+    full_count, tail_count = divmod(criterion_count, 64)
+    if contract == V7_STRUCTURED_OUTPUT:
         properties = {f'block_{i}': {'type': 'string'} for i in range(full_count)}
         if tail_count:
             properties['tail'] = {'type': 'string'}
@@ -180,6 +205,35 @@ def _decode_block_strings(container, criterion_count, overall_reasoning):
     return json.dumps(dict(criteria=items, overall_reasoning=overall_reasoning), allow_nan=False)
 
 
+def _decode_criteria_text(text, criterion_count, overall_reasoning):
+    if type(text) is not str:
+        raise FullRubricJudgeError('rubric criteria_text must be a string')
+    if type(overall_reasoning) is not str or not overall_reasoning.strip():
+        raise FullRubricJudgeError('rubric-score overall reasoning must be nonempty')
+    lines = text.splitlines()
+    if len(lines) != criterion_count:
+        raise FullRubricJudgeError(
+            f'rubric criteria_text must contain exactly {criterion_count} criterion lines')
+    items = []
+    for expected_index, line in enumerate(lines):
+        fields = line.split('|', 2)
+        if len(fields) != 3:
+            raise FullRubricJudgeError(
+                'rubric criterion must be a global_index|level_index|reason line')
+        global_index, level_index, reason = fields
+        if global_index != str(expected_index):
+            raise FullRubricJudgeError(
+                f'rubric criterion global index must be exactly {expected_index}')
+        if re.fullmatch(r'0|[1-9][0-9]*', level_index) is None:
+            raise FullRubricJudgeError('rubric criterion has an invalid decimal level index')
+        if not reason.strip():
+            raise FullRubricJudgeError('rubric criterion reason must be nonempty')
+        items.append(dict(level_index=int(level_index), reason=reason))
+    # This only changes serialization. The canonical parser still validates
+    # each criterion's allowed levels before producing any score records.
+    return json.dumps(dict(criteria=items, overall_reasoning=overall_reasoning), allow_nan=False)
+
+
 def decode_output(text, criterion_count, *, contract=STRUCTURED_OUTPUT):
     """Decode indexed blocks to the ordered records used by the canonical validator."""
     if type(text) is not str or not text.strip():
@@ -188,9 +242,13 @@ def decode_output(text, criterion_count, *, contract=STRUCTURED_OUTPUT):
         value = json.loads(text, object_pairs_hook=_unique_object)
     except json.JSONDecodeError as exc:
         raise FullRubricJudgeError('keyed rubric output is not exact JSON') from exc
-    if type(value) is not dict or set(value) != {'criteria', 'overall_reasoning'}:
+    expected_keys = {'criteria_text', 'overall_reasoning'} if contract == STRUCTURED_OUTPUT else {
+        'criteria', 'overall_reasoning'}
+    if type(value) is not dict or set(value) != expected_keys:
         raise FullRubricJudgeError('keyed rubric output has invalid top-level keys')
     schema = output_schema(criterion_count, contract=contract)
+    if contract == STRUCTURED_OUTPUT:
+        return _decode_criteria_text(value['criteria_text'], criterion_count, value['overall_reasoning'])
     leaves = []
     def collect(node, branch):
         if '$ref' in branch:
@@ -207,7 +265,7 @@ def decode_output(text, criterion_count, *, contract=STRUCTURED_OUTPUT):
     properties = schema['properties']['criteria']['properties']
     if type(container) is not dict or set(container) != set(properties):
         raise FullRubricJudgeError('count-safe block container does not exactly match the rubric')
-    if contract == STRUCTURED_OUTPUT:
+    if contract == V7_STRUCTURED_OUTPUT:
         return _decode_block_strings(container, criterion_count, value['overall_reasoning'])
     full_count, tail_count = divmod(criterion_count, 64)
     if full_count and contract == V6_STRUCTURED_OUTPUT:

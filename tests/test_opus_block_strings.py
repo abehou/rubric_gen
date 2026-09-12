@@ -12,7 +12,7 @@ from test_opus_cardinality import _keyed
 COUNTS = [1, 63, 64, 67, 86, 92, 120, 145, 178, 255, 306, 403, 872]
 
 
-def _records(value, count, contract=wire.STRUCTURED_OUTPUT):
+def _records(value, count, contract=wire.V7_STRUCTURED_OUTPUT):
     rubric = _many_criterion_rubric(count).replace('A=1 B=0', 'A=2 B=-1')
     spec = judge.build_rubric_score_run_spec(rubric_text=rubric, review_text='unchanged evidence',
         answer_text='', requested_model='claude-opus-5', seed=17, indexed_contract=contract)
@@ -26,7 +26,7 @@ def _records(value, count, contract=wire.STRUCTURED_OUTPUT):
 def test_v7_tiny_schema_exact_complete_output_and_canonical_equivalence(count):
     items = [f'{i%2}|evidence for criterion {i} | entire remainder preserved' for i in range(count)]
     value = _strings(items)
-    schema = wire.output_schema(count)
+    schema = wire.output_schema(count, contract=wire.V7_STRUCTURED_OUTPUT)
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(value)
     assert judge._anthropic_rubric_score_schema(schema) == schema
@@ -38,11 +38,11 @@ def test_v7_tiny_schema_exact_complete_output_and_canonical_equivalence(count):
     assert criteria['required'] == list(value['criteria'])
     assert criteria['properties'] == {key:{'type':'string'} for key in value['criteria']}
     assert schema['properties']['overall_reasoning']=={'type':'string'}
-    decoded = wire.decode_output(json.dumps(value), count)
+    decoded = wire.decode_output(json.dumps(value), count, contract=wire.V7_STRUCTURED_OUTPUT)
     old = wire.decode_output(json.dumps(_wire(items)), count, contract=wire.V5_STRUCTURED_OUTPUT)
     v6 = wire.decode_output(json.dumps(_keyed(items)), count, contract=wire.V6_STRUCTURED_OUTPUT)
     assert decoded == old == v6
-    records = [_records(v,count,c) for v,c in [(value,wire.STRUCTURED_OUTPUT),
+    records = [_records(v,count,c) for v,c in [(value,wire.V7_STRUCTURED_OUTPUT),
         (_wire(items),wire.V5_STRUCTURED_OUTPUT),(_keyed(items),wire.V6_STRUCTURED_OUTPUT)]]
     assert records[0].score == records[1].score == records[2].score
     assert records[0].evaluation['criteria'] == records[1].evaluation['criteria'] == records[2].evaluation['criteria']
@@ -87,19 +87,19 @@ def test_v7_indices_and_lines_must_be_explicit(bad):
 
 def test_v7_duplicate_json_key_fails_before_object_collapse():
     with pytest.raises(FullRubricJudgeError, match='duplicate JSON key'):
-        wire.decode_output('{"criteria":{"tail":"0|0|a","tail":"0|0|a"},"overall_reasoning":"x"}',1)
+        wire.decode_output('{"criteria":{"tail":"0|0|a","tail":"0|0|a"},"overall_reasoning":"x"}',1,contract=wire.V7_STRUCTURED_OUTPUT)
 
 
 def test_sol_schema_payload_and_system_instructions_are_wire_version_independent():
     rubric=_many_criterion_rubric(67)
     specs=[]
-    for contract in [wire.V5_STRUCTURED_OUTPUT,wire.V6_STRUCTURED_OUTPUT,wire.STRUCTURED_OUTPUT]:
+    for contract in [wire.V5_STRUCTURED_OUTPUT,wire.V6_STRUCTURED_OUTPUT,wire.V7_STRUCTURED_OUTPUT,wire.STRUCTURED_OUTPUT]:
         spec=judge.build_rubric_score_run_spec(rubric_text=rubric,review_text='evidence',answer_text='',
             requested_model='gpt-5.6-sol',seed=4,indexed_contract=contract)
         specs.append(spec.as_json())
         assert judge._system_prompt('openai',contract)==judge.RUBRIC_SCORE_SYSTEM_PROMPT
         assert judge.rubric_score_output_schema(67,2,provider='openai',indexed_contract=contract)==judge.rubric_score_output_schema(67,2,provider='openai')
-    assert specs[0]==specs[1]==specs[2]
+    assert specs[0]==specs[1]==specs[2]==specs[3]
 
 
 def test_single_terminal_line_ending_does_not_change_canonical_judgment():
@@ -107,4 +107,4 @@ def test_single_terminal_line_ending_does_not_change_canonical_judgment():
     with_terminators=deepcopy(value)
     for key in with_terminators['criteria']:
         with_terminators['criteria'][key]+='\n'
-    assert wire.decode_output(json.dumps(with_terminators),67)==wire.decode_output(json.dumps(value),67)
+    assert wire.decode_output(json.dumps(with_terminators),67,contract=wire.V7_STRUCTURED_OUTPUT)==wire.decode_output(json.dumps(value),67,contract=wire.V7_STRUCTURED_OUTPUT)

@@ -17,7 +17,7 @@ from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner
 from rubric_gen.submission_revision.judging.full_rubric_protocol import FullRubricGeneration, FullRubricJudgeError
 from test_evaluation_rubric_judge import _many_criterion_rubric
 from test_revision_evaluation import _target
-from test_runtime_reliability import _wire, _strings
+from test_runtime_reliability import _wire, _strings, _text
 
 
 def _keyed(items):
@@ -141,7 +141,7 @@ def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, 
             shape=judge_module.full_rubric_cost_shape(judge.rubric.text, review_text=review, answer_text='answer').as_json())
         entry['grading_identity'] = old.grading_identity
         entries.append(entry)
-        generation = FullRubricGeneration(text=json.dumps((_wire if old_contract == wire.V5_STRUCTURED_OUTPUT else _keyed if old_contract == wire.V6_STRUCTURED_OUTPUT else _strings)(['0|evidence'] * spec.criterion_count)
+        generation = FullRubricGeneration(text=json.dumps((_wire if old_contract == wire.V5_STRUCTURED_OUTPUT else _keyed if old_contract == wire.V6_STRUCTURED_OUTPUT else _strings if old_contract == wire.V7_STRUCTURED_OUTPUT else _text)(['0|evidence'] * spec.criterion_count)
             if model.startswith('claude') else {'criteria': [{'level_index': 0, 'reason': 'evidence'}],
                                               'overall_reasoning': 'fixture reasoning'}),
             provider=spec.provider, requested_model=model, effective_model=model, response_id=f'original-{i}',
@@ -193,7 +193,7 @@ def test_native_resume_760_valid_140_exhausted_preserves_records_and_attempts(tm
         assert spec.provider == 'anthropic'
         calls.append(json.loads(payload)['artifact_evidence']['workspace_review'])
         assert spec.as_json()['structured_output_contract'] == wire.STRUCTURED_OUTPUT
-        return FullRubricGeneration(text=json.dumps(_strings(['0|evidence'] * spec.criterion_count)),
+        return FullRubricGeneration(text=json.dumps(_text(['0|evidence'] * spec.criterion_count)),
             provider=spec.provider, requested_model=spec.requested_model, effective_model=spec.requested_model,
             response_id='new-fixture', request_parameters=judge_module._request_parameters(spec), usage={})
 
@@ -277,7 +277,7 @@ def test_repaired_attempt_budget_remains_bounded_across_resumes(tmp_path, monkey
     assert len(list((runner.root / 'artifacts' / old[0].key).rglob('failed-attempt-*.json'))) == 3
 
 
-@pytest.mark.parametrize('contract', [wire.V5_STRUCTURED_OUTPUT, wire.V6_STRUCTURED_OUTPUT, wire.STRUCTURED_OUTPUT])
+@pytest.mark.parametrize('contract', [wire.V5_STRUCTURED_OUTPUT, wire.V6_STRUCTURED_OUTPUT, wire.V7_STRUCTURED_OUTPUT, wire.STRUCTURED_OUTPUT])
 def test_native_resume_preserves_each_recorded_wire_provenance(tmp_path, monkeypatch, contract):
     runner, _, old = _fixture_panel(tmp_path, monkeypatch, valid=1, missing=0, salvage=0, old_contract=contract)
     before={p:(p.read_bytes(),p.stat().st_mtime_ns) for p in runner.root.rglob('*') if p.is_file()}

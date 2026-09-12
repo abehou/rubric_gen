@@ -1,4 +1,50 @@
-# Opus rubric response validation — v7 block strings
+# Opus rubric response validation — Queue 3 single-string hypothesis
+
+**Current scientific coverage: 120/120 valid revisions, Sol 900/900, Opus 762/900.** The two proven v5 saved responses have now been published with zero provider calls. Exactly 138 Opus rubric judgments still need new responses; detector and holistic stages remain complete. Final metrics remain withheld. Queue 2 dev3 revision jobs continue independently.
+
+V5 permitted omitted/conflicting duplicate blocks; v6 failed Anthropic schema compilation; v7 compiled but returned 242 missing judgments in the 306-criterion smoke. The next single-call hypothesis removes all coarse-block fields and requires only `criteria_text` and `overall_reasoning` strings. The model must emit every explicit global index in order as `global_index|level_index|reason`. Local validation rejects incomplete, duplicate, reordered, invalid-level and empty-reason outputs without repair. This changes serialization only, retaining the full scientific request, model, effort, output budget, streaming transport and bounded retries.
+
+## Two zero-provider saved-response publications
+
+Native replay ran from `8bff72545f78f58cd93101043842a134fa04ad38` in Slurm step **10414497.2**, as one auxiliary worker within the existing PaperBench allocation; its revision dispatcher remained running. The reviewed replay path revalidated the persisted request and exact criterion coverage, accepted only fully identical redundant blocks, and published canonical records with original v5 producer provenance. Network/provider calls were forbidden and counted: **zero**. No criterion or score was inferred.
+
+| Task / replicate / condition / final rubric | Criteria | Original judgment key / attempt | Canonical published key |
+|---|---:|---|---|
+| bam / 3 / user-simulator-static / holdout 4 | 255 | `b60365181808e6d81da0d4cc23bc4e61` / `attempt-002.json` | `5383cbb4b60ef4a2a9a32979f2376db0` |
+| all-in-one / 2 / full-static / holdout 2 | 92 | `6daba9ad156ed63490ba3ad8651800ea` / `attempt-003.json` | `2dd7b7d2af6bc08df161808a0b1558ac` |
+
+Each record's `usage.local_response_replay` retains the exact original attempt/response paths and producer identity. The original raw files were not changed or relabeled. Fresh native preparation recognizes both publications, all 900 Sol and 762 Opus records, and exactly 138 missing Opus jobs. Direct comparison found **5,460 pre-existing files unchanged**, including all 4,560 files of the original 760 valid Opus judgments. Elapsed replay/validation time was **603.586s**; audit admission wait was **0.001893s**. Private operational receipt: `runs/opus-two-v5-replays-queue3.json` in the pinned repair checkout.
+
+## Current staged validation
+
+**792 focused tests passed in 94.38s**, Slurm step `10414497.3`. Tests cover cardinalities 1, 63, 64, 67, 86, 92, 120, 145, 178, 255, 306, 403 and 872, historical/current canonical score equivalence, malformed and absent rows, the observed v7 omission, 760-valid/140-missing resume fixtures, no imputation, Sol behavior, and streaming/inactivity/capacity regression. One existing Python multiprocessing fork deprecation warning was emitted; no failure.
+
+**Real native read-only validation passed**, Slurm step `10414497.4`, 234.615s. It revalidated all 120 completed revision targets, reused 900 Sol and 762 Opus judgments, and schedules exactly **138 missing Opus / zero Sol / zero valid Opus / zero detector / zero holistic** provider jobs. All 4572 files belonging to the 762 valid Opus records compare byte-identical. Scientific writes and network access were prohibited. Four detector windows retain 240 records each, absolute retains 360 and pairwise 240.
+
+The tested source will be pinned before the live attempt. A single 306-criterion production smoke will be attempted first; only successful terminal exact coverage/publication permits one 872-criterion smoke. Structural failure stops bulk recovery. No multi-call evaluator or token-budget change is authorized. Live outcomes and the exact execution pin will be recorded below.
+
+## V8 representation and measured complexity
+
+Contract: `single-string-global-index-level-reason-v8`. The production Anthropic schema is exactly one object with required `criteria_text` and `overall_reasoning` properties, each `type: string`, with no additional properties. Its size is independent of rubric cardinality. The original v5/v6 schemas and format instructions compare exactly to their durable implementation; v7 is retained explicitly for historical replay/compatibility.
+
+| Criteria | Version | JSON bytes | Object schemas | String schemas | Definitions | References | Patterns | Arrays |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 306 | v5 | 2801 | 16 | 2 | 14 | 28 | 0 | 1 |
+| 306 | v6 | 2915 | 16 | 2 | 14 | 31 | 1 | 0 |
+| 306 | v7 | 413 | 2 | 6 | 0 | 0 | 0 | 0 |
+| 306 | v8 | 182 | 1 | 2 | 0 | 0 | 0 | 0 |
+| 872 | v5 | 2477 | 14 | 2 | 12 | 24 | 0 | 1 |
+| 872 | v6 | 3017 | 14 | 2 | 12 | 36 | 1 | 0 |
+| 872 | v7 | 761 | 2 | 15 | 0 | 0 | 0 | 0 |
+| 872 | v8 | 182 | 1 | 2 | 0 | 0 | 0 | 0 |
+
+The parser requires exactly N rows, the literal expected global index on each row, a nonnegative decimal level index, and a nonempty reason. Everything after the second pipe is retained as the reason; one terminal line ending is permitted but blank criterion rows are not discarded. The unchanged canonical validator checks each criterion's actual level choices and computes the same criterion records and normalized scores. Overall reasoning must be nonempty. No row, index, level or reason is synthesized.
+
+V5/v6/v7/v8 valid outputs remain compatible only under the existing precise scientific bindings and canonical replay. Historical system-format instructions are reconstructed exactly; no old producer provenance is rewritten. OpenAI/Sol request behavior is unchanged. The provider-free suite covers canonical equivalence, the actual v7 omission shape, all requested criterion counts, exact resume preservation and existing streaming/inactivity behavior.
+
+## Historical v7 report (unchanged evidence)
+
+### Opus rubric response validation — v7 block strings
 
 **V7 compiles on Anthropic, but the 306-criterion smoke did not produce a complete scientific judgment. Recovery remains blocked.** The stream ended normally with only indices 0–63 present, three empty full blocks, and a literal `x` tail. All 242 remaining criterion judgments are absent; local validation correctly rejected the response. No score was published or imputed, and the 872 smoke, two local salvage publications, and bulk recovery were not launched.
 
