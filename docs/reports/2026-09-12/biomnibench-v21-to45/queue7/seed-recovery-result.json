@@ -1,0 +1,493 @@
+{
+  "observed_at": "2026-09-12T16:12:25.894628+00:00",
+  "operations": [
+    {
+      "commit": "f017a3f2933e658a09285511bb79fd41e13994a1",
+      "cpus": 4,
+      "finished_at": "2026-09-12T16:10:11.328772+00:00",
+      "inputs": [
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": true,
+          "experiment_id": "biomnibench-da-factorial-r10-d56d430de53a",
+          "instruction_bytes": 5749,
+          "selected_development_sources": [
+            {
+              "master_sha256": "3368ddd9b390cbc075b34590ba506251aa995b04c746c967fc8e2982006e0645",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-1/variant-000.json",
+              "rubric_sha256": "c1e29a300860ede333e3fe34fa16ed42d1ab0c67eadc7aaf33570111130ff529",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "3368ddd9b390cbc075b34590ba506251aa995b04c746c967fc8e2982006e0645",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-8-1/variant-001.json",
+              "rubric_sha256": "08c8278d9699cd73a88dbd455a833b7a85d87755049e814b11f3ed63f029ebd2",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-8-1"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": true,
+          "experiment_id": "biomnibench-da-factorial-r10-8bfe4828ce05",
+          "instruction_bytes": 5555,
+          "selected_development_sources": [
+            {
+              "master_sha256": "4d759e8c5cf738918029faedc4d217bc5f6aa196c886b1894a58d5ad43802a3d",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-20-4/variant-000.json",
+              "rubric_sha256": "e2bbbb6e5ba15cc262e9ec4e2a0c0558386feec807ac3bff2ce29464489cba71",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "4d759e8c5cf738918029faedc4d217bc5f6aa196c886b1894a58d5ad43802a3d",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-20-4/variant-001.json",
+              "rubric_sha256": "6206a62b1c7efacae995fb6798b338c0179aa919964aa5633310e26492017b4a",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-20-4"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": true,
+          "experiment_id": "biomnibench-da-factorial-r10-4e2b003a3209",
+          "instruction_bytes": 4672,
+          "selected_development_sources": [
+            {
+              "master_sha256": "1109767ef1aab10a36f1f54f05b0f0d9cff0fdefa22185e24a31fd611217f6b5",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-1/variant-000.json",
+              "rubric_sha256": "de3275e7d45f2ba460bd76ec13f588aeb9577aea61a98fb59c0c2a02b50b5684",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "1109767ef1aab10a36f1f54f05b0f0d9cff0fdefa22185e24a31fd611217f6b5",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-1/variant-001.json",
+              "rubric_sha256": "ae37b494932ca740e4a3c241cbffbf1581d52dbb5d44069ec96831f2e3bb6eac",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-4-1"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": true,
+          "experiment_id": "biomnibench-da-factorial-r10-e91de7eaf32d",
+          "instruction_bytes": 6336,
+          "selected_development_sources": [
+            {
+              "master_sha256": "44362cc5d3040aea092e149d776d8d5e0ea5825334614520a1270512e08e13c1",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-3-5/variant-000.json",
+              "rubric_sha256": "636d0874a3e40d78e768b79fb61d46badf30f1faa18cce0d7301c436bc0de603",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "44362cc5d3040aea092e149d776d8d5e0ea5825334614520a1270512e08e13c1",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-3-5/variant-001.json",
+              "rubric_sha256": "a6d78990ca0a7b74cf459980e8f033dc1613f90290151766d310248eb49d67bc",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-3-5"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": true,
+          "experiment_id": "biomnibench-da-factorial-r10-1735c400364d",
+          "instruction_bytes": 6159,
+          "selected_development_sources": [
+            {
+              "master_sha256": "ec7856235815b2bd5ae44bad847e1024f73ca51b24f061b4b6b0dfc95798e9ef",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-5-1/variant-000.json",
+              "rubric_sha256": "6c9d52a56d4879d472312815554c1e4d84895bc54e840e3ed24b9b4468a6010b",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "ec7856235815b2bd5ae44bad847e1024f73ca51b24f061b4b6b0dfc95798e9ef",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-5-1/variant-001.json",
+              "rubric_sha256": "a64817aa548f1bf7f3d99ffc86a764a9ced429a18414631f048c167325575923",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-5-1"
+        }
+      ],
+      "job_id": "10415010",
+      "lane": 0,
+      "results": [
+        {
+          "exit_code": 1,
+          "finished_at": "2026-09-12T16:05:38.086620+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10415010/da-8-1.log",
+          "task": "da-8-1"
+        },
+        {
+          "exit_code": 0,
+          "finished_at": "2026-09-12T16:05:56.096840+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10415010/da-20-4.log",
+          "task": "da-20-4"
+        },
+        {
+          "exit_code": 0,
+          "finished_at": "2026-09-12T16:06:04.771794+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10415010/da-4-1.log",
+          "task": "da-4-1"
+        },
+        {
+          "exit_code": 0,
+          "finished_at": "2026-09-12T16:10:09.408840+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10415010/da-3-5.log",
+          "task": "da-3-5"
+        },
+        {
+          "exit_code": 0,
+          "finished_at": "2026-09-12T16:10:11.327703+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10415010/da-5-1.log",
+          "task": "da-5-1"
+        }
+      ],
+      "shared_capacity": {
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+        "version": 1
+      },
+      "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-results30-20260912",
+      "stage": "seed",
+      "started_at": "2026-09-12T16:00:36.105256+00:00",
+      "tasks": [
+        "da-8-1",
+        "da-20-4",
+        "da-4-1",
+        "da-3-5",
+        "da-5-1"
+      ],
+      "workers": 4
+    },
+    {
+      "commit": "f017a3f2933e658a09285511bb79fd41e13994a1",
+      "cpus": 4,
+      "inputs": [
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": false,
+          "experiment_id": "biomnibench-da-factorial-r10-b5bc0babeafb",
+          "instruction_bytes": 5588,
+          "selected_development_sources": [
+            {
+              "master_sha256": "065255aace91ac7640f11837f8b8a3b269c900fffecf6988f22ba6ce3cdf409e",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-4/variant-000.json",
+              "rubric_sha256": "c06a92f283cb587e459d67ec3939157c3f39413f5aefab50abe479fa4d237015",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "065255aace91ac7640f11837f8b8a3b269c900fffecf6988f22ba6ce3cdf409e",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-4/variant-001.json",
+              "rubric_sha256": "5f992aa98a15df09dce510a2a391bc010309274c4ab6085e227c2399c3a4d804",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-26-4"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": false,
+          "experiment_id": "biomnibench-da-factorial-r10-791d8b9f341e",
+          "instruction_bytes": 6170,
+          "selected_development_sources": [
+            {
+              "master_sha256": "66266b1226268e80b0685e7313ae3ab146950d651b4694501279e1c4a87b9e6e",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-19-3/variant-000.json",
+              "rubric_sha256": "a8a1947e2eb33410e312d21c15930685ee9296460567efbaf0abbe6cbcc61b66",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "66266b1226268e80b0685e7313ae3ab146950d651b4694501279e1c4a87b9e6e",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-19-3/variant-001.json",
+              "rubric_sha256": "8b6ea5d2b4326f192706308d7095ecab390d63da248a089049cc3ccf90d8e761",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-19-3"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": false,
+          "experiment_id": "biomnibench-da-factorial-r10-81712ed5ed7c",
+          "instruction_bytes": 5329,
+          "selected_development_sources": [
+            {
+              "master_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-1-3/variant-000.json",
+              "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-1-3/variant-001.json",
+              "rubric_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-1-3"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": false,
+          "experiment_id": "biomnibench-da-factorial-r10-15c76fde59ca",
+          "instruction_bytes": 5158,
+          "selected_development_sources": [
+            {
+              "master_sha256": "b94936604653bbeeb499730e815714f7a777d3bfc4abdc8dea94649f613bdb2c",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-6/variant-000.json",
+              "rubric_sha256": "299725c0bd8c3a7a45b9554a2f85a1064c4a047d45872c43ec9b86fd4f2394e0",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "b94936604653bbeeb499730e815714f7a777d3bfc4abdc8dea94649f613bdb2c",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-4-6/variant-001.json",
+              "rubric_sha256": "6028ba3ef93e2e58661ec669688164ff892cfe9bd20471acee5060208d2382ce",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-4-6"
+        },
+        {
+          "assignments": 6,
+          "existing_new_seed_manifest": false,
+          "experiment_id": "biomnibench-da-factorial-r10-028189c5ad90",
+          "instruction_bytes": 5316,
+          "selected_development_sources": [
+            {
+              "master_sha256": "eae5f2872d9bf33d10e1d7aba39ceb4d1373b5d514c2842ea99ee510ae91d5eb",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-2/variant-000.json",
+              "rubric_sha256": "2922bbb6359014e6520b8e3297dbeb63be09ac9810c2720a12e7c29d990d2597",
+              "variant_index": 0
+            },
+            {
+              "master_sha256": "eae5f2872d9bf33d10e1d7aba39ceb4d1373b5d514c2842ea99ee510ae91d5eb",
+              "path": "/data/user_data/aydanh/rubric_gen/pools/paraphrases/biomnibench/confirmation-20260909/additional25/tasks/da-26-2/variant-001.json",
+              "rubric_sha256": "54e478810d370a9453c0f17729b645ef32c74fa51e88958853208f7ab27f46c4",
+              "variant_index": 1
+            }
+          ],
+          "task": "da-26-2"
+        }
+      ],
+      "job_id": "10414854",
+      "lane": 1,
+      "results": [
+        {
+          "exit_code": 1,
+          "finished_at": "2026-09-12T15:47:33.324829+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414854/da-26-4.log",
+          "task": "da-26-4"
+        },
+        {
+          "exit_code": 1,
+          "finished_at": "2026-09-12T15:56:53.870943+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414854/da-19-3.log",
+          "task": "da-19-3"
+        },
+        {
+          "exit_code": 1,
+          "finished_at": "2026-09-12T16:10:01.214415+00:00",
+          "log": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/operations/seeds-10414854/da-1-3.log",
+          "task": "da-1-3"
+        }
+      ],
+      "shared_capacity": {
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+        "version": 1
+      },
+      "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-results30-20260912",
+      "stage": "seed",
+      "started_at": "2026-09-12T15:41:31.395014+00:00",
+      "tasks": [
+        "da-26-4",
+        "da-19-3",
+        "da-1-3",
+        "da-4-6",
+        "da-26-2"
+      ],
+      "workers": 4
+    }
+  ],
+  "sealed_blocks_by_task": {
+    "da-19-3": 2,
+    "da-3-5": 3,
+    "da-20-4": 3,
+    "da-8-1": 2,
+    "da-1-3": 2,
+    "da-5-1": 3,
+    "da-26-4": 2,
+    "da-4-1": 3
+  },
+  "sealed_blocks": 20,
+  "observed_incomplete_statuses": [
+    {
+      "task": "da-8-1",
+      "replicate": 2,
+      "status_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/seeds/tasks/da-8-1/rep-002/failed_solver/status.json",
+      "status": {
+        "provider": "codex",
+        "requested_model": "gpt-5.6-luna",
+        "task": "da-8-1",
+        "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-8-1",
+        "workspace_dir": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10415010/submission-seed-5zlgecmb/workspace",
+        "attempt_count": 1,
+        "max_retries": 1,
+        "timeout_seconds": 7200,
+        "service_tier": null,
+        "stderr": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10415010/submission-seed-5zlgecmb/run/stderr.log",
+        "attempts": [
+          {
+            "attempt": 1,
+            "process_exit_code": 0,
+            "exit_code": 1,
+            "validation_ok": false,
+            "validation_errors": [
+              "missing_or_invalid: trace.md",
+              "missing_or_invalid: answer.txt"
+            ],
+            "suspicious_files": []
+          }
+        ],
+        "process_exit_code": 0,
+        "exit_code": 1,
+        "validation_ok": false,
+        "validation_errors": [
+          "missing_or_invalid: trace.md",
+          "missing_or_invalid: answer.txt"
+        ],
+        "suspicious_files": [],
+        "cost_usd": null,
+        "estimated_cost_usd": 0.008022,
+        "cost_source": "estimated_openai_api_lower_bound"
+      }
+    },
+    {
+      "task": "da-26-4",
+      "replicate": 2,
+      "status_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/seeds/tasks/da-26-4/rep-002/failed_solver/status.json",
+      "status": {
+        "provider": "codex",
+        "requested_model": "gpt-5.6-luna",
+        "task": "da-26-4",
+        "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-26-4",
+        "workspace_dir": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414854/submission-seed-p_rhhyl_/workspace",
+        "attempt_count": 1,
+        "max_retries": 1,
+        "timeout_seconds": 7200,
+        "service_tier": null,
+        "stderr": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414854/submission-seed-p_rhhyl_/run/stderr.log",
+        "attempts": [
+          {
+            "attempt": 1,
+            "process_exit_code": 0,
+            "exit_code": 1,
+            "validation_ok": false,
+            "validation_errors": [
+              "missing_or_invalid: trace.md",
+              "missing_or_invalid: answer.txt"
+            ],
+            "suspicious_files": []
+          }
+        ],
+        "process_exit_code": 0,
+        "exit_code": 1,
+        "validation_ok": false,
+        "validation_errors": [
+          "missing_or_invalid: trace.md",
+          "missing_or_invalid: answer.txt"
+        ],
+        "suspicious_files": [],
+        "cost_usd": null,
+        "estimated_cost_usd": 0.004687,
+        "cost_source": "estimated_openai_api_lower_bound"
+      }
+    },
+    {
+      "task": "da-19-3",
+      "replicate": 1,
+      "status_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/seeds/tasks/da-19-3/rep-001/failed_solver/status.json",
+      "status": {
+        "provider": "codex",
+        "requested_model": "gpt-5.6-luna",
+        "task": "da-19-3",
+        "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-19-3",
+        "workspace_dir": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414854/submission-seed-u3vpyqig/workspace",
+        "attempt_count": 1,
+        "max_retries": 1,
+        "timeout_seconds": 7200,
+        "service_tier": null,
+        "stderr": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414854/submission-seed-u3vpyqig/run/stderr.log",
+        "attempts": [
+          {
+            "attempt": 1,
+            "process_exit_code": 0,
+            "exit_code": 1,
+            "validation_ok": false,
+            "validation_errors": [
+              "missing_or_invalid: trace.md"
+            ],
+            "suspicious_files": []
+          }
+        ],
+        "process_exit_code": 0,
+        "exit_code": 1,
+        "validation_ok": false,
+        "validation_errors": [
+          "missing_or_invalid: trace.md"
+        ],
+        "suspicious_files": [],
+        "cost_usd": null,
+        "estimated_cost_usd": 0.014499,
+        "cost_source": "estimated_openai_api_lower_bound"
+      }
+    },
+    {
+      "task": "da-1-3",
+      "replicate": 1,
+      "status_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds/tasks/da-1-3/rep-001/failed_solver/status.json",
+      "status": {
+        "provider": "codex",
+        "requested_model": "gpt-5.6-luna",
+        "task": "da-1-3",
+        "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-1-3",
+        "workspace_dir": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414854/submission-seed-vcx_x311/workspace",
+        "attempt_count": 1,
+        "max_retries": 1,
+        "timeout_seconds": 7200,
+        "service_tier": null,
+        "stderr": "/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-10414854/submission-seed-vcx_x311/run/stderr.log",
+        "attempts": [
+          {
+            "attempt": 1,
+            "process_exit_code": 0,
+            "exit_code": 1,
+            "validation_ok": false,
+            "validation_errors": [
+              "missing_or_invalid: trace.md",
+              "missing_or_invalid: answer.txt"
+            ],
+            "suspicious_files": []
+          }
+        ],
+        "process_exit_code": 0,
+        "exit_code": 1,
+        "validation_ok": false,
+        "validation_errors": [
+          "missing_or_invalid: trace.md",
+          "missing_or_invalid: answer.txt"
+        ],
+        "suspicious_files": [],
+        "cost_usd": null,
+        "estimated_cost_usd": 0.005249,
+        "cost_source": "estimated_openai_api_lower_bound"
+      }
+    }
+  ]
+}

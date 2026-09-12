@@ -392,6 +392,72 @@
         "exit_code": "1:0",
         "provider_calls": 0,
         "failure": "Original config path/source identity not retained by cross-checkout operational driver; native predispatch rejected."
+      },
+      "R1-original-source-remaining-audits": {
+        "job_id": "10415063",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--partition=preempt",
+          "--qos=preempt_cpu_qos",
+          "--cpus-per-task=4",
+          "--mem=256G",
+          "--time=2-00:00:00",
+          "--no-requeue",
+          "--job-name=trace-q2-R1-original-source-audit",
+          "--output=experiments/biomnibench-v21-to45/queue2/audit-%j.log",
+          "--error=experiments/biomnibench-v21-to45/queue2/audit-%j.err",
+          "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912\nexport PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1\nexport TMPDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-${SLURM_JOB_ID}\nmkdir -p \"$TMPDIR\"\nexec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python /home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py R1 da-11-1 da-18-1"
+        ],
+        "stage": "audit_remaining_tasks",
+        "tasks": [
+          "da-11-1",
+          "da-18-1"
+        ],
+        "scientific_source_commit": "534e797",
+        "scientific_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
+        "dispatch_commit": "8c6dfd8",
+        "dispatch_script": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py",
+        "cpus": 4,
+        "request_workers": 32,
+        "submitted_at": "2026-09-12T16:11:51.457703+00:00",
+        "source_validation": "all twelve terminal assignment sources accepted under original config paths, provider-free",
+        "slurm_state": "RUNNING",
+        "startup_verified": "native_detect da-11-1, no source-validation or runtime error at12:15 EDT"
+      },
+      "R2-original-source-remaining-audits": {
+        "job_id": "10415064",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--partition=preempt",
+          "--qos=preempt_cpu_qos",
+          "--cpus-per-task=4",
+          "--mem=256G",
+          "--time=2-00:00:00",
+          "--no-requeue",
+          "--job-name=trace-q2-R2-original-source-audit",
+          "--output=experiments/biomnibench-v21-to45/queue2/audit-%j.log",
+          "--error=experiments/biomnibench-v21-to45/queue2/audit-%j.err",
+          "--dependency=afterany:10415063",
+          "--wrap=set -eu\ncd /home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912\nexport PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/src RUBRIC_GEN_PROJECT_ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1\nexport TMPDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-${SLURM_JOB_ID}\nmkdir -p \"$TMPDIR\"\nexec /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python /home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py R2 da-11-1 da-18-1"
+        ],
+        "stage": "audit_remaining_tasks",
+        "tasks": [
+          "da-11-1",
+          "da-18-1"
+        ],
+        "scientific_source_commit": "534e797",
+        "scientific_source": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
+        "dispatch_commit": "8c6dfd8",
+        "dispatch_script": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-audit-task-scope-8c6dfd8.py",
+        "cpus": 4,
+        "request_workers": 32,
+        "submitted_at": "2026-09-12T16:11:51.483999+00:00",
+        "source_validation": "all twelve terminal assignment sources accepted under original config paths, provider-free",
+        "slurm_state": "PENDING"
       }
     },
     "tests_passed": 86,
@@ -1163,7 +1229,7 @@
         "observed_at": "2026-09-12T10:59:09.275939-04:00",
         "recovery_dependency": "10414859",
         "recovery_dependencies": [
-          "10415056",
+          "10415064",
           "10414859"
         ]
       },
@@ -1729,16 +1795,21 @@
         "native_workers": 4,
         "completed_blocks_reused": 12,
         "missing_blocks": 3,
-        "recovery": "One native missing-only seed invocation; failed partial blocks archived in queue7 seed-recovery-preparation.json"
+        "recovery": "One native missing-only seed invocation; failed partial blocks archived in queue7 seed-recovery-preparation.json",
+        "slurm_state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:09:47",
+        "recovered_blocks": 2,
+        "remaining_missing_blocks": 1
       }
     },
     "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
     "revision_jobs": [],
     "audit_jobs": [],
     "progress": {
-      "observed_at": "2026-09-12T15:36:07.059541+00:00",
+      "observed_at": "2026-09-12T12:12:25-04:00",
       "seed_blocks_expected": 30,
-      "sealed_seed_blocks": 7,
+      "sealed_seed_blocks": 20,
       "seed_jobs": [
         {
           "job": "10414853",
@@ -1775,7 +1846,7 @@
         2
       ],
       "cause": "Solver process exited0, but both answer.txt and trace.md were absent/invalid; one attempt also logged malformed apply_patch operations. Not a network timeout.",
-      "recovery": "Native missing-only recovery 10415010; all three invalid partial blocks archived; twelve completed blocks retained."
+      "recovery": "10415010 sealed two of three missing starts; da-8-1/rep-002 still invalid, no additional identical invocation queued"
     }
   },
   "queue7": {
@@ -1805,7 +1876,8 @@
         "dependency": "10415010",
         "cpus": 4,
         "native_workers": 4,
-        "expected_seed_blocks": 24
+        "expected_seed_blocks": 24,
+        "slurm_state": "RUNNING"
       },
       "1": {
         "job_id": "10415018",
@@ -1821,11 +1893,23 @@
         "dependency": "10414854",
         "cpus": 4,
         "native_workers": 4,
-        "expected_seed_blocks": 21
+        "expected_seed_blocks": 21,
+        "slurm_state": "PENDING"
       }
     },
     "revision_jobs": [],
     "audit_jobs": [],
-    "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text"
+    "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
+    "handoff": {
+      "at": "2026-09-12T16:14:39.014108+00:00",
+      "completed_scale_records": 120,
+      "new_scale_revision_records_completed": 0,
+      "new_scale_revision_records_expected": 150,
+      "user_scale_selected": false,
+      "new_recipe_tuning": false,
+      "optional_policy20_or_dropout_launched": false,
+      "remaining_input_decision": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text",
+      "audit_issue": "Permanent HTTP400 schema complexity in R1/R2 da-3-4; Semi/Score fixed six/eight Opus requests remain at native attempt limit; preserve all complete judgments"
+    }
   }
 }

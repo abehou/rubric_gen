@@ -40,9 +40,18 @@ A small private-driver change permits canonical-order task subsets, leaving defa
 Future audit dispatch/recovery uses4CPUs with the same32 model-request workers, justified by [observed accounting](../queue6/resource-profile.md). Producers retain4CPUs and serial collectors1CPU. Healthy active jobs and PaperBench ownership remain untouched.
 
 
-Remaining-task audit jobs **10415055/10415056** now own da-11-1 and da-18-1 for R1/R2, using the tested private dispatch snapshot **b69a6a3** and the unchanged core scientific code. Existing Semi trace audit10414577 waits for these and its remaining producer10414859. No full-cell estimate is emitted with da-3-4 missing.
+Initial remaining-task dispatch10415055/10415056 used b69a6a3 and failed before provider work, as detailed below. Corrected owners **10415063/10415064** use the original534e797 scientific library and original config paths with the tested8c6dfd8 private driver. All twelve source assignments passed native validation before dispatch. Existing Semi trace audit10414577 waits for these and producer10414859; no full-cell estimate is emitted with da-3-4 missing.
 
 The12:04 EDT [checkpoint](checkpoint.json) records16/30 Results30 seed blocks and zero final15 blocks before their dependency release. Semi-fixed/Score-only-fixed recoveries10414883/10414965 returned incomplete without extending their three-attempt histories:6/8 Opus rubric requests remain missing. Their complete absolute/pairwise/direct-RH records are preserved; no further identical retry or model substitution is scheduled.
 
 
 12:10 EDT correction: remaining-task audit dispatch10415055/10415056 exited in2s/1s **before provider dispatch**, because the new script used its own checkout's config path and native source validation rejected it. The checkout also includes later shared schema changes, so it is not a substitute for the original scientific runtime. These failed operational attempts are retained. The corrected launch uses the original534e797 library and original config paths; the small task-scoped driver reads the existing `RUBRIC_GEN_PROJECT_ROOT` setting. No completed record is rewritten and no new-schema judgment is mixed into this comparison.
+
+
+## Item8 handoff — 12:14 EDT
+
+The bounded first-lane seed recovery10415010 sealed two of its three missing blocks, leaving **da-8-1/rep-002** incomplete again. Native process exit was0, but required-public-output validation failed; this is not a network-timeout claim. No second recovery invocation is queued. The12:12 EDT [saved recovery result](seed-recovery-result.json) records20/30 Results30 starts sealed overall while lane1 remains active. Its currently failed starts are da-26-4/rep-002,da-19-3/rep-001 andda-1-3/rep-001; independent subsequent tasks continue. All original and retry failures remain available. Task membership is unchanged.
+
+Final15 lane10415017 has started;10415018 still depends on the active Results30 lane10414854. No new Full/User30/45 outcome estimate exists:150 added-task Full fixed/trace records remain unexecuted, and User scale-up is unresolved. The original20 Full120 records remain the only completed scale block. The canonical policy matrix continues independently; incomplete Opus coverage prevents winner/efficacy claims, not continued execution of other approved cells.
+
+The mission began09:27:31 EDT. This is an interim handoff, not the18:27–19:27 EDT morning checkpoint. Keep healthy jobs running; next steps are finish inputs/audits, resolve the documented heldout instruction authority and shared schema/attempt-exhaustion issues, then execute the unchanged supported scale recipe. No task replacements, favorable-p-value continuation rule, new scientific challenger, optional dropout or Semi/Score-only20-task expansion has been introduced.

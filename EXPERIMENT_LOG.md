@@ -2329,3 +2329,5 @@
 ## 2026-09-12
 
 - 12:04 EDT: R1/R2 da-3-4 outcome audits expose HTTP400 Schema is too complex, separately from R1 scheduler preemption; no unchanged retry of permanent requests. Final15 seed jobs10415017/10415018 wait behind Results30 owners, preserving12 completed first-lane starts and three archived failures; see docs/reports/2026-09-12/biomnibench-v21-to45/queue7/README.md.
+
+- 12:15 EDT: Results30 bounded seed recovery sealed two of three missing starts; da-8-1/rep-002 again lacks answer.txt/trace.md, with20/30 starts sealed while the other lane continues. Corrected R1 remaining-task audit10415063 is running on original534e797 scientific code, R2 10415064 follows, and final15 seed lane10415017 is active; no new30/45 outcome or User winner is claimed.
