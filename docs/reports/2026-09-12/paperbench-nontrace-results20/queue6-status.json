@@ -370,7 +370,9 @@
     "final_report": 10415098,
     "final_report_dependency": "afterok:10415061",
     "final_report_checker_commit": "20cc262",
-    "static_execution_pin": "8226495fe88937cc613c02dd70b5253e58873e7f"
+    "static_execution_pin": "8226495fe88937cc613c02dd70b5253e58873e7f",
+    "static_replay_state": "COMPLETED",
+    "final_report_state": "COMPLETED"
   },
   "static_replay": {
     "job_id": "10415061",
@@ -623,11 +625,11 @@
     "not_yet_completed": 775
   },
   "queue7_priorities": [
-    "Inspect existing static replay10415061 and final report dependency; do not duplicate either.",
+    "Static replay10415061 and finalizer10415098 completed; preserve final valid science and continue remaining cohort owners.",
     "Collect native complete coverage and final metrics when replay/finalization succeed; if failed inspect exact failure and resume only missing native work.",
     "Leave existing revision owners healthy; collect completed cohorts and existing audit dependencies in static/Semi/Score/Full/User priority order.",
     "Use the integrated saved-response replay implementation only from an execution source preserving the existing experiment identity; do not switch existing namespaces to moving prompt code.",
-    "Retain temporary cardinality branch while replay/report job depends on it; remove only after useful commits/reports are integrated and all dependencies end."
+    "Temporary cardinality branch retired after integration and successful jobs; exact execution source remains durably tagged and detached."
   ],
   "finalization": {
     "job_id": "10415098",
@@ -638,5 +640,12 @@
     "elapsed_seconds": 140.90578055381775
   },
   "recovery_source_tag": "paperbench-static-opus-recovery-20260912",
-  "reporting_core_commit": "8963c90ffef562985914ef44e7c2a07b0527368c"
+  "reporting_core_commit": "8963c90ffef562985914ef44e7c2a07b0527368c",
+  "branch_cleanup": {
+    "temporary_branch": "paperbench-opus-cardinality-v7-20260912",
+    "local_removed": true,
+    "remote_removed": true,
+    "execution_checkout_preserved_detached": true,
+    "durable_tag": "paperbench-static-opus-recovery-20260912"
+  }
 }

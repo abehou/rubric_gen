@@ -42,15 +42,15 @@ Pinned repair **8226495fe88937cc613c02dd70b5253e58873e7f** is durable on the exi
 
 The final three keys select the earliest complete saved attempts2/2/1; no criterion/index is inferred. Normal native `detect --resume` owns publication and retains exact saved-response/producer provenance. This repair changes saved-response parsing/discovery only: the live v8 schema, prompt, models, budgets, effort, scoring and streaming remain unchanged. Full details: [saved response repair](../paperbench-static/opus-saved-response-replay.md).
 
-Native owner **10415061** uses the reviewed existing `inspection` profile:1CPU,4request workers, zero provider calls. This is local replay/validation work; no CPU-profile code was changed. Scientific producer/audit jobs retain32CPUs/32workers and the aggregate provider cap60. The global audit lease is respected, including healthy other-session owners. Dependent finalization uses1CPU and no providers. No valid judgment or revision is rerun; no imputation; bounded attempts unchanged.
+Completed native owner **10415061** used the reviewed existing `inspection` profile:1CPU,4request workers, zero provider calls. This is local replay/validation work; no CPU-profile code was changed. Scientific producer/audit jobs retain32CPUs/32workers and the aggregate provider cap60. The global audit lease is respected, including healthy other-session owners. Dependent finalization uses1CPU and no providers. No valid judgment or revision is rerun; no imputation; bounded attempts unchanged.
 
 ## Queue7 priorities
 
-1. Inspect static native replay10415061 and dependent report job10415098 before action. If healthy, retain both. If completed, collect the final report/coverage; if failed, classify the exact failure before native missing-only recovery.
+1. Static native replay10415061 and finalizer10415098 are both COMPLETED0:0. Their full coverage and final metrics are published; do not rerun either or any static scientific judgment. Continue the remaining existing cohort owners.
 2. Continue existing revision owners10414738,10414739,10414740 and10414874 plus Full/User dev3 owner10414499 and validator10414506. Do not create another dispatcher. New dev3 auditors10414751/52/10414876 retain their original scopes.
 3. Close existing Results20 audit owners10414746 (Semi/Score static),10414747 (Score offline),10414748 (remaining Semi/Score learned),10414875 (Full/User learned) as their revision dependencies succeed. All use validated v8 and the single global audit-study lease. Handle any residual saved-response formatting via the tested repair, preserving the pinned producer identity.
 4. Report complete two-auditor means only after required coverage; retain missingness and abstention bounds. Prioritize existing Full/User static, Semi/Score static, remaining Semi/Score, then Full/User learned. No red_team_trace or Gemini work belongs to this mission.
-5. Preserve pinned recovery source while replay/report dependencies live. After all dependencies end and useful changes/reports are integrated, clean up the temporary branch without merging stale history. The separate CPU-profile patch remains outside this work.
+5. Temporary cardinality branch cleanup is complete: local and remote branch removed after integration and terminal job success. The exact execution source8226495 remains detached in its existing checkout and durably tagged `paperbench-static-opus-recovery-20260912`; historical dirty report files remain preserved. The separate CPU-profile patch remains outside this work.
 
 Private operational receipts/scripts: `/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-audit-closure-20260912`. Earlier incomplete evidence follows as historical handoff snapshots.
 
