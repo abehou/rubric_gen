@@ -2264,6 +2264,10 @@
 
 - 09:38 EDT: Restarted planning from v2.1, preserving closed D×G/P1/P2 failures and the shared runtime; confirmed the historical45-task membership is preparation rather than45executed tasks, and no30-task membership was located. Published [reuse/missing-input inventory](docs/reports/2026-09-12/biomnibench-v21-to45/README.md); further packages come from the new queue, not the superseded simulator redesign.
 
+## 2026-09-12 — PaperBench non-trace mission inventory
+
+- 09:53 EDT: Read-only Slurm inventory 10414403 confirms 120 reusable corrected-role Results20 revisions, 840 missing across the other 14 conditions, and corrected dev3 validation only for Full/User-fixed; no scientific job remains active. The [16-condition handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md) preserves the 140-missing Opus audit and records that v7 compiled but omitted 242 of 306 criterion judgments; no provider recovery, new experiment, or CPU-profile change launched in Queue 1.
+
 ## 2026-09-12 — Canonical v2.1 selected-criterion residual
 
 - 09:59 EDT: Provider-free comparison of126same-input selected-criterion/auditor rows found20positive,106zero and0negative W−S contributions; da-11-1 supplies68.89% of the7.50mean gap, and a major numeric withdrawal follows ordinary feedback with no appendix. [Nine-case diagnosis](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) retains judge disagreements and mixed mechanisms; tested R1/R2 ablations are not presumed improvements.
