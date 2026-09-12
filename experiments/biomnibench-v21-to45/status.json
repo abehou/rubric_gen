@@ -2042,5 +2042,16 @@
       }
     ],
     "provider_budget": "existing shared60/audit1; no new capacity root"
+  },
+  "resume_reconciliation": {
+    "observed_at": "2026-09-12T13:34:00-04:00",
+    "completed_without_resubmission": ["10415268", "10415269", "10415406"],
+    "active_or_dependency_controlled": ["10415407", "10415408"],
+    "missing_only_recovery_submitted": ["10415501", "10415502"],
+    "missing_only_recovery_scope": "Results30 seed lanes 0 and 1; native seed --resume preserves complete blocks and attempts only incomplete task-local blocks",
+    "historical_failed_jobs_preserved": ["10414487", "10414488", "10414489", "10415017", "10415018", "10415266", "10415267"],
+    "heldout_prompt_source": "47463ca",
+    "old_twenty_heldouts_changed": false,
+    "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are not yet dispatched."
   }
 }
