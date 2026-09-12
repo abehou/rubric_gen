@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 5 Full/User Results20
+
+- 11:34 EDT: Pinned411ea949 owns Full/User Results20 namespace`results20/full-user-learned/*/paperbench-code-dev-factorial-r10-484a1576b8b6`; revision10414874 waits for10414506+10414739, audit10414875 waits for revision, and dev3 audit10414876 waits for10414506. Exact paths and commands are in the [Queue5 receipt](docs/reports/2026-09-12/paperbench-nontrace-results20/queue5-status.json); static recovery10414690 remains its sole owner.
+
 ## 2026-09-12 — PaperBench Queue 4 Results20 promotion
 
 - 11:15 EDT: Pinned executionfdd5403 owns Results20 scopes semi-score-fixed(10414738;120),score-only-offline(10414739;60),semi-score-learned-rest(10414740;300,afterok10414739:10414505), with audit owners10414746/47/48; new dev3 audits10414751/52 use the same repaired source and original configs. Absolute outputs and exact commands are in the [Queue4 receipt](docs/reports/2026-09-12/paperbench-nontrace-results20/queue4-status.json); existing static recovery10414690 and other-session jobs remain untouched.

@@ -1,3 +1,80 @@
+# PaperBench non-trace Results20 — Queue 5 handoff
+
+**All 360 missing Full/User non-static Results20 assignments now have a queued native owner, conditional on corrected dev3 validation.** At **2026-09-12 11:34 EDT**, the six conditions have **0 reusable, 0 running and 360 missing** assignments. Full-static and User-simulator-static remain **60/60 native-valid each** in their original namespace and were not resubmitted. Across the full 16-condition mission: **120/960 valid Results20 revisions, 840 missing assignments queued, 0 currently running Results20 assignments**. Submission is not scientific completion.
+
+Full/User dev3 producer **10414499** is pending CPU quota, with **0/54 assignments started**. Its shared dev3 producer **10414497** completed successfully in **1h16m14s**. Semi/Score dev3 now has **72/72 native-valid across all eight Semi/Score-only conditions**. The completed54-assignment learned scope passed the existing native collector in step10414690.1 in315.805s, with zero failures or provider calls. Full/User Results20 job **10414874** cannot execute until **10414506**, the existing provider-free native Full/User dev3 validator, succeeds and Results20 starting-rubric producer **10414739** completes. These dependencies were verified in Slurm; no completed condition or healthy owner was restarted.
+
+## Current 16-condition matrix
+
+Every Results20 row requires 20 canonical tasks × 3 replicates. All non-static Full/User rows currently share queued dev3 revision owner 10414499 and dev3 audit owner 10414876. Their dev3 success remains a prerequisite; no promotion-readiness claim is made yet. Other audit owners are retained from Queue 4. All Results20 revision/audit owners below are queued except static recovery 10414690, which has acquired the global audit lease and is executing missing-only Opus recovery.
+
+| Condition | Corrected dev3 revisions | Results20 valid revisions | Results20 revision owner | Results20 audit owner |
+|---|---|---|---|---|
+| full-static | 9/9 valid | 60/60 | Preserved static | 10414690 |
+| full-offline-rubric | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
+| full-online-rubric | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
+| full-red-team-artifact | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
+| semi-static | 9/9 valid | 0/60 | 10414738 | 10414746 |
+| semi-offline-rubric | 9/9 valid | 0/60 | 10414740 | 10414748 |
+| semi-online-rubric | 9/9 valid | 0/60 | 10414740 | 10414748 |
+| semi-red-team-artifact | 9/9 valid | 0/60 | 10414740 | 10414748 |
+| score-only-static | 9/9 valid | 0/60 | 10414738 | 10414746 |
+| score-only-offline-rubric | 9/9 valid | 0/60 | 10414739 | 10414747 |
+| score-only-online-rubric | 9/9 valid | 0/60 | 10414740 | 10414748 |
+| score-only-red-team-artifact | 9/9 valid | 0/60 | 10414740 | 10414748 |
+| user-simulator-static | 9/9 valid | 60/60 | Preserved static | 10414690 |
+| user-simulator-offline-rubric | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
+| user-simulator-online-rubric | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
+| user-simulator-red-team-artifact | 0/9; queued 10414499 | 0/60 | 10414874 | 10414875 |
+
+Both static dev3 controls remain fully audited. New dev3 audits are queued: Semi/Score fixed 10414751, Semi/Score non-static 10414752, Full/User non-static 10414876. Results20 audit coverage for new conditions is pending; no partial-provider scientific means are reported. Historical uniform-rigorous and blocked static namespaces remain preserved and are not counted as corrected reusable conditions.
+
+## Full/User source, inputs and ownership
+
+- Frozen execution checkout: `/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-full-user-20260912`.
+- Exact pin: **`411ea949ae9818085151484ce17a9de3c5b8ba41`**, adding only [one scoped config](../../../../experiments/babel/paperbench-nontrace-results20-full-user-learned.yaml) to frozen source fdd5403. No runtime, scoring, prompt or CPU-profile changes.
+- Native experiment ID: **`paperbench-code-dev-factorial-r10-484a1576b8b6`**. The absolute `pretreatment_source` config binding is part of this ID; moving integration code/config paths are not interchangeable execution sources.
+- Study: `/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6`.
+- Audit: `/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/audit/paperbench-code-dev-factorial-r10-484a1576b8b6`.
+- Exact existing seeds: `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-v2-20260910/results20/seeds`.
+- Exact corrected pool: `/data/user_data/aydanh/rubric_gen/runs/paperbench-static-selected-neutral-heldout-rigorous-20260912/results20-final-pool/paraphrases`.
+
+Native preparation in **10414690.0** took **33.936s**, with **zero provider calls/scientific writes**. It confirmed the absence of prior selected Full/User non-static Results20 assignments across the bounded PaperBench study census, empty new output namespaces,960 canonical ledger assignments with exactly 360 selected, unchanged common scientific fields, and a valid 100-variant corrected pool. The exact 60-seed native validation from Queue 4 is reused because source semantics and input paths are unchanged; seeds and paraphrases were not regenerated. Role policy remains **0 selected neutral, 1 development neutral, 2/3/4 rigorous-V2 heldouts**.
+
+The new six-condition scope is **180 Full + 180 User** with no overlap with Queue 4's 480 assignments. Its native `pretreatment_source` references the **existing pinned Score-only-offline producer config**, study and ID `3d723e04c313`. That producer generates the 20 task-specific starting rubrics once. Native reuse validates its completed execution scope and original generation/blinding provenance before installing the exact shared starting rubric; no source file is rewritten. Full/User dev3 similarly retains its existing shared starting-rubric binding to dev3 producer10414497.
+
+| Newly submitted stage | Job | Required successful dependency | CPU / workers |
+|---|---|---|---|
+| Full/User Results20 revisions, six conditions/360 assignments | **10414874** | `afterok:10414506:10414739` |32/32|
+| Full/User Results20 native Sol+Opus audit | **10414875** | `afterok:10414874` |32/32|
+| Full/User dev3 native Sol+Opus audit | **10414876** | `afterok:10414506` |32/32|
+
+Commands are recorded exactly in the [compact Queue 5 receipt](queue5-status.json) and local `/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-full-user-20260912/launches.json`. They use ordinary `scripts/babel/experiment.sbatch --profile results20 revise|detect`; audits use `--resume`. Native detect validates completed revisions before audit execution. The existing dev3 validator uses 1 CPU. All new scientific jobs retain 32 CPUs/256GiB/32 workers, shared provider capacity 60 and one native global audit owner. CPU allocation, assignment workers and provider reservations remain separate limits; no unvalidated CPU patch was adopted and no other session's jobs or dirty work was altered.
+
+## Native policy semantics retained
+
+**Offline elicitation** uses exactly one pre-treatment generation with no live checkpoint; its generation 1 remains active after the initial checkpoint. **Online elicitation** starts from that same pre-treatment rubric, then uses successive revision checkpoints for its normal subsequent updates. **Red-team-artifact** retains its native live artifact-based red-team evidence in subsequent rubric updates. These are distinct policies and remain separate condition records.
+
+The native implementation enforces these timings in `evolution_request.py`, `controller_scoring.py` and `pretreatment_rubrics.py`. `RubricPolicy.uses_red_team_trace` is false for artifact red-team, and versioned trace-defense dispatch requires the separate `red_team_trace` policy plus an explicit version. Neither is selected here. Full/User feedback definitions, solver/model settings, stopping rules, normalization and the Sol+Opus panel remain unchanged. Independent read-only config review found no blocking issue and reproduced the native consumer identity.
+
+## Existing static audit recovery
+
+Static owner **10414690** started at 11:22:29 EDT from pinned **c6ec87b2fbcc3349d32625d2a8cfe78254d557fb**. Native preparation took **180.448s**. The global audit lease was acquired after **380.773s** of admission wait. Provider execution has now run for approximately **153.3s**; telemetry shows **31 owned reservations**, Anthropic-only active work and no new failure. The progress log has processed **1549/1800 rubric work items**, including reused judgments; that is not a count of new provider calls or a final coverage validation. Queue entries can likewise include locally reusable jobs. The healthy native owner remains intact.
+
+Native-validated coverage at recovery admission was **Sol 900/900, Opus 764/900**, with detector/holistic stages complete. The two lossless v5 replays and successful 306/872 v8 smokes are already published; **136 genuinely missing Opus judgments** were scheduled for native recovery; live new publications await a terminal coverage census. Native preparation reports 600 completed absolute/pairwise judgments reused with producer records unchanged. All original 760 valid Opus judgments remain preserved. Final static W/S/H/A/S−H/RH metrics remain withheld until the full required panel validates. See the [Opus repair report](../paperbench-static/opus-rubric-response-validation-fix.md).
+
+## Queue 6 priorities
+
+1. Inspect existing owners before any action: static recovery 10414690; Full/User dev3 producer10414499 and validator10414506; shared Results20 starting-rubric producer10414739; Results20 owners10414738/39/40/10414874 and their existing audit dependencies. Do not create another dispatcher for any namespace.
+2. Allow corrected Full/User dev3 to finish and validate. Its successful validator automatically releases10414874 once the shared Results20 producer also completes. If a concrete failure occurs, classify it and resume only missing assignments natively; keep valid cells and starting rubrics. Update dependent job IDs only if a failed owner has genuinely been replaced by authorized native resume.
+3. Continue independent revision production while audits use the shared global lease. Report Slurm queue time, audit admission wait and provider execution separately. Do not cancel healthy work to change resource allocation.
+4. After static Sol and Opus both reach 900/900 and detector/holistic coverage remains valid, compute the previously withheld final static metrics, task-cluster intervals and paired comparisons. Preserve the distinction between historical uniform-rigorous baseline, fixed-artifact screen and corrected full-revision result.
+5. Collect every condition's native completed-revision and full audit coverage before reporting its final science. Retain the temporary cardinality source while10414690 depends on it; its validated general repair is already integrated without merging unrelated stale history.
+
+Queue 5 hands off with the authorized Full/User workflow submitted and required validation dependencies intact. No red_team_trace condition was started and no final scientific result is claimed for the queued cells.
+
+---
+
 # PaperBench non-trace Results20 — Queue 4 handoff
 
 **All 480 Semi/Score-only Results20 assignments now have queued native revision owners.** Before dispatch the exact inventory was **0 reusable, 0 running, 480 genuinely missing** (60 for each of eight conditions). At 2026-09-12 11:15 EDT, Results20 completion remains **0/480**, active Results20 assignments **0**, and queued assignments **480**. These are submitted jobs, not completed scientific results; CPU quota currently prevents admission.

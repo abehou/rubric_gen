@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench Queue 5 Full/User Results20
+
+- 11:34 EDT: Native census found0 reusable/0 running/360 missing Full/User non-static Results20 assignments; queued their normal revision/audit workflow behind corrected dev3 validation and shared pretreatment completion. Static recovery10414690 passed preparation, acquired the global audit lease after380.773s and is executing only missing Opus work from its900 Sol/764 Opus validated starting coverage; [Queue5 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
+
 ## 2026-09-12 — PaperBench Queue 4 Results20 promotion
 
 - 11:15 EDT: Native dev3 validation now confirms70/72 Semi/Score-only assignments, with only two healthy Score-only-artifact trajectories remaining; submitted Results20 owners10414738/39/40 for480 assignments and native audit dependencies, preserving all prior work. Actual349 score-only delivered turns contain only numeric feedback plus standard instructions across all four rubric policies; [Queue4 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
