@@ -2307,3 +2307,5 @@
 ## 2026-09-12
 
 - 11:17 EDT: Located the existing September9 Results30 list: original20 plus first10 of the official additional25 order, with canonical dev3 excluded. Actual canonical V2 instruction text differs from today’s committed prompt; reconciling saved producer source before heldout generation, with no new outcome-based task selection.
+
+- 11:23 EDT: Ten added-task configs and selected/development input sources pass native checks; no existing added-task seed pools found. Preparing two disjoint four-CPU native seed lanes while historical-V2 prompt authority is unresolved; this does not regenerate any original20 input or outcome.

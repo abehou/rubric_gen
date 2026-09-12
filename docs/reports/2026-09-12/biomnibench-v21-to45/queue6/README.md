@@ -18,4 +18,8 @@ The added-task selected/development rubric pool exists. Its old heldouts are not
 
 The prospective interpretation is preserved S/H/A, low S−H, favorable H−A interpreted with H and A, modest rather than maximized W−S improvement, and RH reported separately in all four windows. Equal-weight Sol+Opus and both auditors remain authoritative. Original twenty, added ten and combined thirty will be reported separately, with task-cluster uncertainty and all failures retained. Historical numerical thresholds remain labeled historical.
 
-Current state: membership fixed; execution input/source preparation underway. No Results30 provider work has yet been dispatched.
+Current state: all ten added-task native configurations and existing selected/development inputs validate, with zero new seed pools present. [Input inventory](input-inventory.json) was produced without provider calls. Each six-assignment shard preserves the v2.1 protocol, models/settings, three-replicate seed and Sol+Opus execution panel.
+
+Seed preparation is independent of heldout generation. Two disjoint lanes request four CPUs/four native seed workers each; each lane processes five tasks sequentially. The native seed command preserves completed blocks, attempts the existing complementary elicitation artifact and retains its failures. This prepares thirty shared seed blocks, not sixty separately sampled treatment starts. No new learner, simulator or outcome implementation is introduced.
+
+The historical prompt search found no retained exact instruction text in Git or the original job's temporary source; the saved provider response returns404. The current committed rigorous prompt is22bb3c…; the historical BioMNIBench receipt is7358961f…. The user has been asked to resolve the added-task generation authority. Seed preparation proceeds independently; heldout generation and revision dispatch await that answer. No historical receipt is edited or declared equal to the new source.
