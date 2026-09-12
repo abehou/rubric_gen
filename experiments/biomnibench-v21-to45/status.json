@@ -1919,5 +1919,128 @@
     "prompt_commit": "47463ca",
     "scope": "new expansion tasks; historical twenty-task heldouts remain unchanged",
     "reporting": "separate original20, additional10, final15; report old/new generation difference"
+  },
+  "queue8": {
+    "state": "native_audit_recovery_and_authorized_heldout_generation",
+    "launch_source": "9aef902",
+    "heldout_source": "d75faba",
+    "audit_consumers": {
+      "queue2": "f7019ff",
+      "queue3": "c10b2c2"
+    },
+    "superseded_pending_only": [
+      "10414579",
+      "10414581",
+      "10414583",
+      "10414585",
+      "10414593",
+      "10414594",
+      "10414595",
+      "10414596"
+    ],
+    "jobs": [
+      {
+        "job_id": "10415263",
+        "name": "trace-q2-reviewed-R1",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-q2-reviewed-R1",
+          "--dependency=afterany:10414577",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue8/audit.sbatch",
+          "queue2",
+          "R1"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912"
+      },
+      {
+        "job_id": "10415264",
+        "name": "trace-q2-reviewed-R2",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-q2-reviewed-R2",
+          "--dependency=afterany:10415263",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue8/audit.sbatch",
+          "queue2",
+          "R2"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912"
+      },
+      {
+        "job_id": "10415265",
+        "name": "trace-q3-reviewed-missing",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-q3-reviewed-missing",
+          "--dependency=afterany:10415264:10414571",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue8/audit.sbatch",
+          "queue3",
+          "semi-fixed",
+          "score_only-fixed",
+          "semi-trace",
+          "score_only-trace",
+          "full-fixed",
+          "user_simulator-fixed",
+          "full-trace",
+          "score_only-trace-no-appendix"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912"
+      },
+      {
+        "job_id": "10415266",
+        "name": "trace-q3-reviewed-collector",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-q3-reviewed-collector",
+          "--dependency=afterany:10415265",
+          "--cpus-per-task=1",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/report.sbatch",
+          "all"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912"
+      },
+      {
+        "job_id": "10415267",
+        "name": "trace-q2-reviewed-report",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-q2-reviewed-report",
+          "--dependency=afterany:10415264",
+          "--cpus-per-task=1",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/report.sbatch"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912"
+      },
+      {
+        "job_id": "10415268",
+        "name": "trace-results30-heldouts",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-results30-heldouts",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912/experiments/biomnibench-v21-to45/queue8/heldouts.sbatch",
+          "queue6"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912"
+      },
+      {
+        "job_id": "10415269",
+        "name": "trace-results45-heldouts",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--job-name=trace-results45-heldouts",
+          "--dependency=afterany:10415268",
+          "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912/experiments/biomnibench-v21-to45/queue8/heldouts.sbatch",
+          "queue7"
+        ],
+        "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912"
+      }
+    ],
+    "provider_budget": "existing shared60/audit1; no new capacity root"
   }
 }
