@@ -1298,3 +1298,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12 — Queue 3 input and scope readiness
 
 - 10:24 EDT: Read-only Slurm steps within owned allocation 10414481 inventoried 71 configured roots and validated 24 scoped native configs; all nine older dev2 seeds differ from the matching control. New outputs use /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/queue3; job IDs follow in the shared status.
+
+## 2026-09-12 — Queue 3 submitted matrix
+
+- 10:32 EDT: Execution b97c4fd submitted producers 10414549–10414572, audits 10414573/575/577/579/581/583/585/593, and one-CPU collectors 10414594–10414596; native resume and six four-CPU producer lanes share cap60/audit1. Exact commands, disjoint outputs and current states are in experiments/biomnibench-v21-to45/status.json; 9/336 User control is reused.

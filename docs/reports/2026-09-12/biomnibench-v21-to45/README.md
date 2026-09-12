@@ -1,6 +1,6 @@
 # BioMNIBench v2.1 → Results45 mission
 
-**Queue item 2: R1/R2 running; native audits and comparison report queued.**
+**Queue item 3: feedback matrix submitted; R1/R2 continue independently.**
 The reference remains **attack_defense_v2.1**, with the reviewed runtime already
 integrated in the existing trace worktree. Queue item 2 tests corrective-only
 and absent appendices; see the [diagnosis and job record](queue2/README.md).
@@ -222,3 +222,13 @@ trace assignments and prepares 63 missing fixed/trace assignments plus nine
 Score-only appendix-off assignments. Ninety-six tests and 24 native input checks
 passed. Full, Semi, Score-only and User comparisons are within-policy trace minus
 fixed; native Score-only trace includes a qualitative appendix when delivered.
+
+### Queue 3 dispatch
+
+10:32 EDT: execution `b97c4fd` owns 24 scoped producers
+**10414549–10414572**, eight audits and collectors **10414594–10414596**.
+The matrix reuses nine User trace cases, adds 63 missing matrix cases, and keeps
+the nine-case score-only appendix-off supplement separate. Three Semi-fixed
+producers have started; later waves await capacity/dependencies. Six unstarted
+report jobs were consolidated after Slurm’s submission-count limit, preserving
+all scientific jobs. See [the exact scope, jobs and progress](queue3/README.md).

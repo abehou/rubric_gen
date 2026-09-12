@@ -6,7 +6,8 @@ eight cells gives **72 comparison assignments**. One compatible completed cell
 is reused; **63 matrix assignments are missing**. A separately labeled nine-case
 score-only/appendix-off supplement brings this package to **81 comparison
 assignments, 72 new and nine reused**. No generic twenty-condition experiment is
-launched. Outcomes remain pending.
+launched. **All missing cells and their audits are submitted; outcomes remain
+pending.**
 
 ## Scope and reuse
 
@@ -139,3 +140,52 @@ Exact source/job records are maintained in the
 [shared mission status](../../../../../experiments/biomnibench-v21-to45/status.json).
 This package is independent of whether R1/R2 improve outcomes. It adds no
 Result20/30/45 run or further scientific variant.
+
+## Submitted jobs and next checkpoint
+
+Tested implementation: `30c9c63`. Frozen execution snapshot:
+`b97c4fd2c9537d6cd898cb795d0dd5561de5bb73`, pushed before new provider work.
+Executing worktree: `runs/babel-code/trace-feedback-matrix-queue3-20260912`.
+
+| Cell | Producer jobs (da-3-4, da-11-1, da-18-1) | Audit |
+|---|---|---|
+| Semi fixed | 10414549, 10414550, 10414551 | 10414573 |
+| Score-only fixed | 10414552, 10414553, 10414554 | 10414575 |
+| Semi trace v2.1 | 10414555, 10414556, 10414557 | 10414577 |
+| Score-only trace v2.1 | 10414558, 10414559, 10414560 | 10414579 |
+| Full fixed | 10414561, 10414562, 10414563 | 10414581 |
+| User fixed | 10414564, 10414565, 10414566 | 10414583 |
+| Full trace v2.1 | 10414567, 10414568, 10414569 | 10414585 |
+| Score-only trace / appendix off | 10414570, 10414571, 10414572 | 10414593 |
+
+Producer waves use six lanes: Semi/Score-only fixed, then their native trace
+cells, then Full/User fixed, then Full trace/Score-only appendix off. Every lane
+uses `afterany`, so one failed cell cannot hold unrelated work indefinitely.
+Audits also run in the table order with native per-task completion checks.
+
+Slurm rejected a later report submission with **QOSMaxSubmitJobPerUserLimit**.
+Only six verified pending provider-free reports (10414574, 10414576, 10414578,
+10414580, 10414582, 10414584) were cancelled and consolidated. No producer, audit,
+other owner's job, completed result or scientific request was cancelled/repeated.
+The exact rejected command and replacement are retained in shared status.
+
+Three one-CPU collectors replace those report jobs:
+
+- **10414594:** Semi fixed/trace and their paired comparison, after both audits.
+- **10414595:** Score-only fixed/native trace and their paired comparison.
+- **10414596:** remaining cells, Full/User paired comparisons and complete matrix,
+  after their audits and the two earlier collectors exit.
+
+Each collector uses the already committed provider-free report implementation.
+Early Semi/Score-only results need not wait for Full/User completion. New reports
+are written under this directory **in the frozen executing worktree**; later
+queue work must collect and publish those exact files. No completed revision or
+auditor response is regenerated for reporting.
+
+At **10:32 EDT**, the native runtime snapshot records **4 newly
+completed revisions, 8 running and 60 not yet started**. The new
+audits remain pending. The last scheduler check showed three active Semi-fixed
+producer jobs, with other producers waiting for CPU capacity or dependencies.
+No recorded assignment failure appeared at startup. These counts are a progress
+snapshot, not completed comparative outcomes. The reused User control retains
+9/9 and 336/336. Queue item 4 can proceed independently; do not resubmit these jobs.

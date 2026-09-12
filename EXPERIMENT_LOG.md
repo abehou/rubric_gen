@@ -2283,3 +2283,7 @@
 ## 2026-09-12 — Queue 3 feedback-channel verification
 
 - 10:24 EDT: Saved native projection confirms Score-only trace includes a qualitative learned appendix when selected; the supplement suppresses only that block and preserves selection history/penalties. Ninety-six tests and 24 native input checks pass; [matrix scope](docs/reports/2026-09-12/biomnibench-v21-to45/queue3/README.md) retains nine compatible User controls and labels old dev2 evidence incompatible.
+
+## 2026-09-12 — Queue 3 scheduling and handoff
+
+- 10:32 EDT: All 63 missing matrix assignments and nine Score-only appendix-off assignments are submitted; the startup snapshot has 4 completed, 8 running and 60 pending, with new audits pending. QOSMaxSubmitJobPerUserLimit required consolidating six never-started reports into three collectors; every producer/audit and other project job remains intact.
