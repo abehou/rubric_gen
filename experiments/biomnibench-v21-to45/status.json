@@ -2,19 +2,28 @@
   "mission_started_at": "2026-09-12T09:27:31-04:00",
   "timezone": "America/New_York",
   "queue_item": 2,
-  "state": "queue_2_tested_ready",
+  "state": "queue_2_submitted",
   "reference_recipe": "attack_defense_v2.1",
   "source_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
   "inventory_job": "10414358",
-  "scientific_jobs_dispatched": [],
-  "provider_calls": 0,
+  "scientific_jobs_dispatched": [
+    "10414481",
+    "10414482",
+    "10414483",
+    "10414484",
+    "10414485",
+    "10414486",
+    "10414487",
+    "10414488"
+  ],
+  "provider_calls": null,
   "checkpoint_window": [
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Commit/push R1/R2, create one frozen execution worktree, submit native producers and dependent evaluations; return for queue item 3.",
-  "updated_at": "2026-09-12T09:59:23.350786-04:00",
+  "next_action": "Queue item 3 may proceed independently. Existing R1/R2 producers are healthy; audits/report have native dependencies. Do not resubmit these jobs.",
+  "updated_at": "2026-09-12T10:09:30.165158-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -43,8 +52,236 @@
       "da-18-1"
     ],
     "replicates": 3,
-    "jobs": {},
+    "jobs": {
+      "R1-da-3-4": {
+        "job_id": "10414481",
+        "stage": "producer",
+        "cpus": 4,
+        "submitted_at": "2026-09-12T10:02:23.354342-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R1-da-3-4",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue2/configs/R1/da-3-4.yaml",
+          "--resume"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "RUNNING",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414481-gy8zabdp/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null,
+        "active_assignment_workers": 3
+      },
+      "R1-da-11-1": {
+        "job_id": "10414482",
+        "stage": "producer",
+        "cpus": 4,
+        "submitted_at": "2026-09-12T10:02:23.380088-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R1-da-11-1",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue2/configs/R1/da-11-1.yaml",
+          "--resume"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "RUNNING",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414482-r6zq8tir/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null,
+        "active_assignment_workers": 3
+      },
+      "R1-da-18-1": {
+        "job_id": "10414483",
+        "stage": "producer",
+        "cpus": 4,
+        "submitted_at": "2026-09-12T10:02:23.403083-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R1-da-18-1",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue2/configs/R1/da-18-1.yaml",
+          "--resume"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "RUNNING",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414483-5rc81con/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null,
+        "active_assignment_workers": 3
+      },
+      "R2-da-3-4": {
+        "job_id": "10414484",
+        "stage": "producer",
+        "cpus": 4,
+        "submitted_at": "2026-09-12T10:02:23.425506-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R2-da-3-4",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue2/configs/R2/da-3-4.yaml",
+          "--resume"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "RUNNING",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414484-1tbrdow5/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null,
+        "active_assignment_workers": 3
+      },
+      "R2-da-11-1": {
+        "job_id": "10414485",
+        "stage": "producer",
+        "cpus": 4,
+        "submitted_at": "2026-09-12T10:02:23.447035-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R2-da-11-1",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue2/configs/R2/da-11-1.yaml",
+          "--resume"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "RUNNING",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414485-78jkoc4v/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null,
+        "active_assignment_workers": 3
+      },
+      "R2-da-18-1": {
+        "job_id": "10414486",
+        "stage": "producer",
+        "cpus": 4,
+        "submitted_at": "2026-09-12T10:02:23.468233-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--account=dfried",
+          "--cpus-per-task=4",
+          "--job-name=trace-q2-R2-da-18-1",
+          "scripts/babel/experiment.sbatch",
+          "--profile",
+          "dev3-4",
+          "revise",
+          "--experiment",
+          "experiments/biomnibench-v21-to45/queue2/configs/R2/da-18-1.yaml",
+          "--resume"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "RUNNING",
+        "runtime_status_path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/runs/runtime-10414486-o23mvpo4/status.json",
+        "assignments": {
+          "running": 3
+        },
+        "assignment_failures": [],
+        "current_failure": null,
+        "active_assignment_workers": 3
+      },
+      "R1-audit": {
+        "job_id": "10414487",
+        "stage": "audit",
+        "cpus": 8,
+        "submitted_at": "2026-09-12T10:02:23.490431-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--dependency=afterok:10414481:10414482:10414483",
+          "--job-name=trace-q2-R1-audit",
+          "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+          "R1"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "PENDING",
+        "pending_reason": "Dependency"
+      },
+      "R2-audit": {
+        "job_id": "10414488",
+        "stage": "audit",
+        "cpus": 8,
+        "submitted_at": "2026-09-12T10:02:23.511254-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--dependency=afterok:10414484:10414485:10414486,afterany:10414487",
+          "--job-name=trace-q2-R2-audit",
+          "experiments/biomnibench-v21-to45/queue2/audit.sbatch",
+          "R2"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "PENDING",
+        "pending_reason": "Dependency"
+      },
+      "comparison-report": {
+        "job_id": "10414489",
+        "stage": "report",
+        "cpus": 1,
+        "submitted_at": "2026-09-12T10:02:23.532822-04:00",
+        "command": [
+          "sbatch",
+          "--parsable",
+          "--dependency=afterok:10414487:10414488",
+          "experiments/biomnibench-v21-to45/queue2/report.sbatch"
+        ],
+        "observed_at": "2026-09-12T10:09:30.165158-04:00",
+        "slurm_state": "PENDING",
+        "pending_reason": "Dependency"
+      }
+    },
     "tests_passed": 86,
-    "native_input_checks": 6
-  }
+    "native_input_checks": 6,
+    "execution_commit": "534e797998c3059c1582034e07b1c2d664d2ce10",
+    "execution_worktree": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
+    "startup_summary": "All six producers running, three active assignments each; no recorded assignment failure. Two audits and report pending dependencies."
+  },
+  "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls."
 }

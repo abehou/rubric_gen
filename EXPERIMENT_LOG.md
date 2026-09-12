@@ -2271,3 +2271,7 @@
 ## 2026-09-12 — Canonical v2.1 selected-criterion residual
 
 - 09:59 EDT: Provider-free comparison of126same-input selected-criterion/auditor rows found20positive,106zero and0negative W−S contributions; da-11-1 supplies68.89% of the7.50mean gap, and a major numeric withdrawal follows ordinary feedback with no appendix. [Nine-case diagnosis](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) retains judge disagreements and mixed mechanisms; tested R1/R2 ablations are not presumed improvements.
+
+## 2026-09-12 — Queue 2 parallel appendix comparison dispatched
+
+- 10:09 EDT: R1/R2 began from tested execution `534e797` with unchanged v2.1 learner/simulator and exact canonical pretreatment reuse; all 18 new assignments are active without recorded failures, while the completed 9/336 control is retained. Native audit/report dependencies are submitted; [diagnosis and job record](docs/reports/2026-09-12/biomnibench-v21-to45/queue2/README.md) distinguish observed appendix opportunities from unproven causes.

@@ -1,9 +1,10 @@
 # BioMNIBench v2.1 → Results45 mission
 
-**Queue item 1: inventory complete; no new scientific experiment dispatched.**
+**Queue item 2: R1/R2 running; native audits and comparison report queued.**
 The reference remains **attack_defense_v2.1**, with the reviewed runtime already
-integrated in the existing trace worktree. The next package comes from queue
-item 2; this inventory does not invent its treatment or repeat a completed run.
+integrated in the existing trace worktree. Queue item 2 tests corrective-only
+and absent appendices; see the [diagnosis and job record](queue2/README.md).
+The inventory below records the initial state; completed runs remain preserved.
 
 Mission start: **2026-09-12 09:27:31 EDT**. The requested 9–10-hour checkpoint
 falls at **18:27–19:27 EDT** today, irrespective of whether scale-up has finished.
@@ -204,3 +205,12 @@ force. No extra hash, recovery framework, or general preflight gate was added.
 ## Queue 2 milestone
 
 The [appendix-only comparison](queue2/README.md) has a completed nine-case selected-criterion diagnosis, 86 passing tests and native input checks. R1 retains only corrective appendices; R2 removes appendices while preserving selection history and ordinary learned-rule influence. Both use the saved canonical User v2.1 control. Dispatch and exact job state are recorded in the shared mission status.
+
+### Queue 2 dispatch
+
+10:09 EDT: execution `534e797` is running 18 fresh canonical User
+assignments in jobs **10414481–10414486**, reusing the complete nine-case v2.1
+control. Sol+Opus audit jobs **10414487–10414488** and comparison report
+**10414489** wait on dependencies. Startup shows no assignment failures.
+The [queue 2 report](queue2/README.md) records the complete criterion-level
+diagnosis, tests, input reuse and exact scope. Item 3 can proceed independently.

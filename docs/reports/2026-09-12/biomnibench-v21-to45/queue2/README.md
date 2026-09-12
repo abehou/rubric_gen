@@ -1,6 +1,6 @@
 # Queue 2: v2.1 User appendix ablations
 
-**Ready for the declared R1/R2 comparison; no replacement hypothesis chosen.**
+**R1/R2 submitted and running; outcomes pending. No replacement hypothesis chosen.**
 The nine-case canonical control supports testing appendix exposure, but does not
 establish that appendices cause its residual W−S gap. Important failures also
 follow ordinary User concerns without an appendix. No simulator, learner,
@@ -162,9 +162,34 @@ Audit dependencies serialize the two cells in addition to the shared audit lease
 The one-CPU reporting job depends on both complete audits and computes all metric
 decompositions, individual auditors and paired task/replicate contrasts.
 
-One committed execution worktree will serve both variants so later queue items
-cannot hot-swap their source. Job IDs and the execution commit are appended to
-the [shared mission status](../../../../../experiments/biomnibench-v21-to45/status.json)
-at dispatch. No discarded smoke trajectory, new static control, or Result20 run
+Both variants execute the committed source below in one isolated worktree, so later
+queue items cannot hot-swap their source. Exact submission commands and startup
+state are in the [shared mission status](../../../../../experiments/biomnibench-v21-to45/status.json). No discarded smoke trajectory, new static control, or Result20 run
 is part of this package. Outcomes and case review will determine what the
 appendix switches actually did; there is no presumed winner or automated scale-up.
+
+## Submitted work and handoff
+
+Implementation milestone `ad4e97e` and execution commit
+`534e797998c3059c1582034e07b1c2d664d2ce10` were pushed before provider work.
+The latter integrates concurrent PaperBench documentation without changing this
+experiment. Frozen executing source:
+`runs/babel-code/trace-appendix-queue2-20260912`.
+
+| Stage | Job IDs | CPUs per job | Dependency |
+|---|---|---:|---|
+| R1 producers: da-3-4, da-11-1, da-18-1 | 10414481, 10414482, 10414483 | 4 | None |
+| R2 producers: da-3-4, da-11-1, da-18-1 | 10414484, 10414485, 10414486 | 4 | None |
+| R1 Sol+Opus audit | 10414487 | 8 | All three R1 producers succeed |
+| R2 Sol+Opus audit | 10414488 | 8 | All three R2 producers succeed; R1 audit exits |
+| Paired comparison report | 10414489 | 1 | Both audits succeed |
+
+At **10:09 EDT**, all six producers were running with three active
+assignments each and no recorded assignment failure. Audits and report were
+pending their dependencies. This is **18 active fresh assignments plus nine
+reused completed controls**, not a completed challenger result. Native runtime
+records show solver/learning progress; no scientific resubmission is needed.
+
+Queue item 3 can start independent work while these jobs continue. Later
+report collection and case review must use these exact outputs; new metric or
+RH results are not yet available.
