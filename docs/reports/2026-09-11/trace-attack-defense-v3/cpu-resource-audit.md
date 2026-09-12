@@ -45,3 +45,27 @@ each task, with the same one-worker-per-task concurrency as v3.1. It records Git
 commit/restart in append-mode Slurm logs and creates no experiment-specific
 recovery framework. Production Result20 is still not authorized to launch until
 development is satisfactory.
+
+## Completed v3.2 evidence
+
+The reduced requests have now completed the unchanged scientific pipeline.
+All five jobs below exited 0:0; no active job was resized or interrupted.
+
+| job / stage | CPUs | elapsed | total CPU seconds | average used cores |
+|---|---:|---:|---:|---:|
+| 10411526 producer | 32 | 2:04:02 | 3,301.817 | 0.444 |
+| 10411527 finalizer | 1 | 1:19 | 22.486 | 0.285 |
+| 10411528 Sol+Opus audit | 8 | 22:47 | 24.552 | 0.018 |
+| 10411530 report | 1 | 0:38 | 1.134 | 0.030 |
+| 10411532 forensic | 1 | 1:44 | 2.424 | 0.023 |
+
+The audit completed all 330 required judgments with the existing 32 request
+workers and shared capacity limits. Serial one-CPU jobs validated all nine cases
+and produced complete reports. These observations support the stage-specific
+reductions; they are not a controlled throughput comparison to 32 CPUs. No
+further producer reduction is inferred from averages. CPU accounting includes
+waiting time in the denominator and is not a peak-thread measurement.
+
+Structured accounting, including maximum RSS and allocation efficiency, is in
+[the JSON](cpu-resource-audit.json). No model/settings, worker count, BLAS-thread,
+scientific prompt, outcome or evaluation change was made to save CPUs.

@@ -246,5 +246,67 @@
       "worker_concurrency_changed": false,
       "reason": "serial Python/NFS reading, no model calls or parallel worker pool"
     }
+  ],
+  "completed_v32_stage_accounting": [
+    {
+      "job_id": 10411526,
+      "stage": "stress_producer",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "allocated_cpus": 32,
+      "elapsed_seconds": 7442,
+      "total_cpu_seconds": 3301.817,
+      "average_used_cores": 0.4436733404998656,
+      "allocation_efficiency_percent": 1.3864791890620802,
+      "max_rss_kib": 2918324
+    },
+    {
+      "job_id": 10411527,
+      "stage": "finalizer",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "allocated_cpus": 1,
+      "elapsed_seconds": 79,
+      "total_cpu_seconds": 22.486,
+      "average_used_cores": 0.2846329113924051,
+      "allocation_efficiency_percent": 28.463291139240503,
+      "max_rss_kib": 413048
+    },
+    {
+      "job_id": 10411528,
+      "stage": "outcome_audit",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "allocated_cpus": 8,
+      "elapsed_seconds": 1367,
+      "total_cpu_seconds": 24.552,
+      "average_used_cores": 0.017960497439648865,
+      "allocation_efficiency_percent": 0.2245062179956108,
+      "max_rss_kib": 710372
+    },
+    {
+      "job_id": 10411530,
+      "stage": "outcome_report",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "allocated_cpus": 1,
+      "elapsed_seconds": 38,
+      "total_cpu_seconds": 1.134,
+      "average_used_cores": 0.029842105263157892,
+      "allocation_efficiency_percent": 2.984210526315789,
+      "max_rss_kib": 63900
+    },
+    {
+      "job_id": 10411532,
+      "stage": "forensic_export",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "allocated_cpus": 1,
+      "elapsed_seconds": 104,
+      "total_cpu_seconds": 2.424,
+      "average_used_cores": 0.023307692307692307,
+      "allocation_efficiency_percent": 2.330769230769231,
+      "max_rss_kib": 228416
+    }
   ]
 }

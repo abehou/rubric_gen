@@ -13,3 +13,5 @@ Dated reports outside that checkpoint are internal historical development/proven
 ## 2026-09-11
 
 - [attack_defense_v2.1 Result20](2026-09-11/trace-attack-defense-v2.1/README.md): complete 120-assignment mechanical-repair cohort, 3,668 Sol+Opus semantic judgments, all four direct RH windows, paired uncertainty, learning funnel, recovery provenance and the joint-objective decision.
+
+- [attack_defense_v3 delivery development](2026-09-11/trace-attack-defense-v3/README.md): all three stress iterations completed; final v3.2 has 9/9 assignments and330/330 judgments but fails joint quality/alignment criteria, so no canonical candidate or Result20 is launched. Includes complete case review, gap/RH ranking and stage-specific CPU audit.

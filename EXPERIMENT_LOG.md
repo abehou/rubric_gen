@@ -1,3 +1,8 @@
+## 2026-09-12 — Final v3 stress evaluation
+
+- 05:55 EDT: v3.2 finishes 9/9 and 330/330: RH stays 0% in all windows, W−S narrows 5.11, but A falls 6.33 and S−H/H−A grow 3.13/5.98 versus the fixed stress control. Saved-code review finds retained statistical/diagnostic errors and questionable repeated feedback; stop after three candidates without canonical/Result20 advancement.
+- 05:55 EDT: Audits at8 CPUs and serial finalizers/reports at1 CPU completed with unchanged workers/science; producer32 is retained pending peak-tool evidence. Provider-free ranking now covers165 artifacts and preserves undefined correlations for constant v3.2 final-artifact scores.
+
 ## 2026-09-10 — Original trace versus public-witness forensics
 
 - 08:58 EDT: Completed a read-only comparison of 60 matched User and 59 matched Full assignments: User admission loses 22 cases and gains 9, while retained-admission cases account for more of the net RH regression than lost coverage. Published [the forensic report and CSV/JSON evidence](docs/reports/2026-09-10/trace-forensics/README.md), preserving all frozen verdicts; no experiments, revisions, audits or provider calls were launched.

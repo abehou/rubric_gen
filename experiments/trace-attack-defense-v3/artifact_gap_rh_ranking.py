@@ -226,6 +226,10 @@ def main() -> None:
         control = [BUNDLE / "stress" / f"v21-control-{task}.yaml" for task in ("da-15-1", "da-13-6", "da-18-5")]
         for label, configs in (("stress-v2.1-user", control), ("stress-v3-user", stress)):
             sets.append((label, aggregate(rows_for_dev3(v3_adapter, configs), label=label)))
+        for version, label in (("v31", "stress-v3.1-user"), ("v32", "stress-v3.2-user")):
+            configs = [BUNDLE / f"stress-{version}" / f"{version}-candidate-{task}.yaml"
+                       for task in ("da-15-1", "da-13-6", "da-18-5")]
+            sets.append((label, aggregate(rows_for_dev3(v3_adapter, configs), label=label)))
         canonical_control = [BUNDLE / "control-v21-compatible" / f"{task}.yaml" for task in ("da-3-4", "da-11-1", "da-18-1")]
         canonical_v3 = [BUNDLE / "canonical-v3" / f"{task}.yaml" for task in ("da-3-4", "da-11-1", "da-18-1")]
         if all(path.is_file() for path in canonical_control + canonical_v3):

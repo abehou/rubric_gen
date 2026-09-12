@@ -1,0 +1,521 @@
+{
+  "provider_calls": 0,
+  "source": "saved generation evolution.json and actual turns/turn-NNN/prompt.txt",
+  "generation_appearances": {
+    "actual_calls": 1201,
+    "cache_hits": 1610,
+    "logical_requests": 2811,
+    "logical_call_ceiling": 3757,
+    "proposer_call_budget": 33813,
+    "rubric_free_preference_count": 635,
+    "rubric_gap_count": 417,
+    "selected_pair_count": 119,
+    "induction_pair_count": 295,
+    "validation_pair_count": 122,
+    "structural_rejection_count": 6
+  },
+  "request_stage_appearances": {
+    "diagnosis": 119,
+    "quality": 669,
+    "rubric_view": 1374,
+    "application": 543,
+    "compilation": 56,
+    "semantic": 50
+  },
+  "unique_quality_verdicts": {
+    "ordered": 158,
+    "null": 9
+  },
+  "unique_admitted_ids": 14,
+  "realized_prompt_checks": [
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-008/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-009/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace/turns/turn-010/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-006/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-007/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-008/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-009/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/turns/turn-010/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 1,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 2,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-001/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-002/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-003/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-004/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 3,
+      "path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace/turns/turn-005/prompt.txt",
+      "separate_focused_block": false,
+      "origin_field": false,
+      "elicited_id": false
+    }
+  ],
+  "limitations": "Absence of structural metadata is not evidence that natural-language numeric target leakage never occurred."
+}

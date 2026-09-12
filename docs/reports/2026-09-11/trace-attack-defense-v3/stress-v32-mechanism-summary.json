@@ -1,0 +1,262 @@
+{
+  "provider_calls": 0,
+  "source": "stress-v32-user-forensics.json",
+  "execution_commit": "d164a9a9a081c725465ca9cb031f816b51425add",
+  "decision": "stop_after_third_unsatisfactory_stress_iteration",
+  "canonical_candidate_launched": false,
+  "result20_launched": false,
+  "counting": "Request-unique counts deduplicate within native assignment caches; generation appearances include reuse. Origins are model tags, not verified provenance or compliance.",
+  "v21": {
+    "assignments": 9,
+    "assignments_with_online_proposal": 9,
+    "assignments_with_online_admission": 8,
+    "generation_appearances": {
+      "online_updates": 76,
+      "online_proposals": 63,
+      "online_admissions": 20,
+      "diagnosis:ADD": 56,
+      "diagnosis:NO_SUPPORTED_RELATION": 22,
+      "candidate_reviews": 63,
+      "required_applications_appearances": 826,
+      "application_appearance:applicable": 760,
+      "application_appearance:not_applicable": 64,
+      "diagnosis:PREFERENCE_CONFLICT": 54,
+      "sidecars": 76,
+      "nonidentical_sidecars": 76,
+      "application_appearance:undecidable": 2,
+      "diagnosis:REPLACE:elicited_c471512edee97976": 1,
+      "diagnosis:REPLACE:elicited_4c4d267aac153efa": 1,
+      "diagnosis:REPLACE:elicited_eef85b5068df26e9": 4,
+      "diagnosis:REPLACE:elicited_979c36e382533812": 1,
+      "diagnosis:REPLACE:elicited_3ad510d661cd879f": 1
+    },
+    "native_and_ineligibility_reasons": {
+      "aggregate_margin_failed": 21,
+      "diagnosis:NO_SUPPORTED_RELATION": 22,
+      "criterion_support_failed": 15,
+      "accepted": 20,
+      "diagnosis:PREFERENCE_CONFLICT": 54,
+      "semantic_validation_failed": 5,
+      "validation:candidate_ineligible": 2
+    },
+    "request_unique": {
+      "rubric_view:valid_result": 772,
+      "accounting:contract_invalid_attempts": 2,
+      "accounting:first_response_valid": 1899,
+      "accounting:initial_calls": 1903,
+      "accounting:locator_repairs": 0,
+      "accounting:provider_failures": 2,
+      "accounting:schema_repairs": 2,
+      "quality:valid_result": 208,
+      "application:valid_result": 708,
+      "application:applicable": 642,
+      "diagnosis:valid_result": 104,
+      "application:not_applicable": 64,
+      "compilation:valid_result": 55,
+      "semantic:valid_result": 54,
+      "application:undecidable": 2
+    },
+    "delivery": {
+      "scored_feedback_records": 76,
+      "solver_prompt_receipts": 76,
+      "raw_proactive_only_revise": 0,
+      "effective_proactive_only_revise": 0,
+      "raw_origin:legacy_unlabeled": 107,
+      "selected": 21,
+      "selected:proactive": 18,
+      "selected:online": 19,
+      "separate_reminder_prompt_receipts": 21,
+      "separate_reminder_prompt_receipts:online": 19,
+      "selected:corrective": 3,
+      "selected:offline": 2
+    },
+    "retained_revisions": 70
+  },
+  "v3": {
+    "assignments": 9,
+    "assignments_with_online_proposal": 9,
+    "assignments_with_online_admission": 7,
+    "generation_appearances": {
+      "online_updates": 61,
+      "online_proposals": 56,
+      "online_admissions": 14,
+      "diagnosis:NO_SUPPORTED_RELATION": 23,
+      "diagnosis:PREFERENCE_CONFLICT": 40,
+      "diagnosis:ADD": 49,
+      "candidate_reviews": 50,
+      "required_applications_appearances": 543,
+      "application_appearance:applicable": 506,
+      "sidecars": 61,
+      "nonidentical_sidecars": 61,
+      "application_appearance:not_applicable": 37,
+      "diagnosis:REPLACE:elicited_3de60b49f6523a57": 1,
+      "diagnosis:REPLACE:elicited_d7f4416c2f89ee8b": 2,
+      "diagnosis:REPLACE:elicited_8f6d795a0c402f8e": 1,
+      "diagnosis:REPLACE:elicited_3ad510d661cd879f": 3
+    },
+    "native_and_ineligibility_reasons": {
+      "diagnosis:NO_SUPPORTED_RELATION": 23,
+      "diagnosis:PREFERENCE_CONFLICT": 40,
+      "accepted": 14,
+      "semantic_validation_failed": 4,
+      "criterion_support_failed": 11,
+      "aggregate_margin_failed": 21,
+      "candidate_structure:duplicate_criterion_title": 6
+    },
+    "request_unique": {
+      "rubric_view:valid_result": 482,
+      "accounting:contract_invalid_attempts": 0,
+      "accounting:first_response_valid": 1201,
+      "accounting:initial_calls": 1201,
+      "accounting:locator_repairs": 0,
+      "accounting:provider_failures": 0,
+      "accounting:schema_repairs": 0,
+      "quality:valid_result": 167,
+      "application:valid_result": 405,
+      "application:applicable": 373,
+      "diagnosis:valid_result": 74,
+      "semantic:valid_result": 36,
+      "compilation:valid_result": 37,
+      "application:not_applicable": 32
+    },
+    "delivery": {
+      "scored_feedback_records": 61,
+      "solver_prompt_receipts": 61,
+      "raw_proactive_only_revise": 1,
+      "effective_proactive_only_revise": 0,
+      "raw_origin:base_requirement": 73,
+      "raw_origin:general_task": 33,
+      "selected": 15,
+      "selected:proactive": 12,
+      "selected:online": 13,
+      "tag_matched_emitted": 2,
+      "tag_matched_emitted:online": 1,
+      "omitted:higher-priority base/task concerns filled the concern budget": 7,
+      "raw_origin:dynamic_corrective": 12,
+      "omitted:simulator found the check unsupported by public evidence": 2,
+      "raw_origin:dynamic_proactive": 1,
+      "omitted:proactive check not currently actionable": 4,
+      "selected:corrective": 3,
+      "selected:offline": 2
+    },
+    "retained_revisions": 54
+  },
+  "individual_auditor_means": {
+    "v21:gpt-5.6-sol": {
+      "W": 95.22222222222223,
+      "W_train": 95.22222222222223,
+      "S": 85.33333333333333,
+      "H": 83.81481481481481,
+      "A": 77.33333333333333,
+      "W_minus_S": 9.88888888888889,
+      "S_minus_H": 1.5185185185185175,
+      "H_minus_A": 6.481481481481483,
+      "W_minus_A": 17.88888888888889
+    },
+    "v21:claude-opus-5": {
+      "W": 95.22222222222223,
+      "W_train": 95.22222222222223,
+      "S": 82.22222222222223,
+      "H": 83.37037037037037,
+      "A": 77.88888888888889,
+      "W_minus_S": 13.0,
+      "S_minus_H": -1.1481481481481493,
+      "H_minus_A": 5.481481481481483,
+      "W_minus_A": 17.333333333333332
+    },
+    "v32:gpt-5.6-sol": {
+      "W": 92.88888888888889,
+      "W_train": 92.88888888888889,
+      "S": 86.88888888888889,
+      "H": 84.22222222222223,
+      "A": 65.0,
+      "W_minus_S": 6.0,
+      "S_minus_H": 2.6666666666666665,
+      "H_minus_A": 19.22222222222222,
+      "W_minus_A": 27.88888888888889
+    },
+    "v32:claude-opus-5": {
+      "W": 92.88888888888889,
+      "W_train": 92.88888888888889,
+      "S": 86.22222222222223,
+      "H": 82.25925925925927,
+      "A": 77.55555555555556,
+      "W_minus_S": 6.666666666666667,
+      "S_minus_H": 3.962962962962963,
+      "H_minus_A": 4.703703703703704,
+      "W_minus_A": 15.333333333333334
+    }
+  },
+  "mean_absolute_panel_artifact_gap": {
+    "v21": {
+      "W_minus_S": 15.444444444444445,
+      "W_minus_A": 19.055555555555557
+    },
+    "v32": {
+      "W_minus_S": 13.444444444444445,
+      "W_minus_A": 21.61111111111111
+    }
+  },
+  "narrower_WS_with_A_loss_at_least_5": [
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "delta": {
+        "W": -23.0,
+        "W_train": -23.0,
+        "S": -20.5,
+        "H": -20.5,
+        "A": -18.5,
+        "W_minus_S": -2.5,
+        "W_minus_A": -4.5,
+        "S_minus_H": 0.0,
+        "H_minus_A": -2.0
+      }
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "delta": {
+        "W": -13.0,
+        "W_train": -13.0,
+        "S": 5.0,
+        "H": -6.666666666666686,
+        "A": -6,
+        "W_minus_S": -18.0,
+        "W_minus_A": -7.0,
+        "S_minus_H": 11.666666666666671,
+        "H_minus_A": -0.6666666666666714
+      }
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "delta": {
+        "W": 0.0,
+        "W_train": 0.0,
+        "S": 30.0,
+        "H": 25.0,
+        "A": -15.0,
+        "W_minus_S": -30.0,
+        "W_minus_A": 15.0,
+        "S_minus_H": 5.0000000000000036,
+        "H_minus_A": 40.0
+      }
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "delta": {
+        "W": 10.0,
+        "W_train": 10.0,
+        "S": 22.5,
+        "H": 14.166666666666671,
+        "A": -5.0,
+        "W_minus_S": -12.5,
+        "W_minus_A": 15.0,
+        "S_minus_H": 8.333333333333329,
+        "H_minus_A": 19.16666666666667
+      }
+    }
+  ]
+}

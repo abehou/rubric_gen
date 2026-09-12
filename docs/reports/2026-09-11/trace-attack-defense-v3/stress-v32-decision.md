@@ -1,7 +1,7 @@
 # Third and final allowed stress delivery iteration
 
 Status: decision recorded from complete v3.1 stress outcomes and saved trajectories;
-implementation and tests are complete; execution has not yet started. This is iteration three
+execution and full audit are complete; see [the adverse final result](stress-v32-manual-review.md). This is iteration three
 (v3, v3.1, v3.2), not another Result20 experiment. The v2.1 stress control is reused.
 
 **One causal hypothesis:** under User feedback, treating an unavailable preferred

@@ -1,3 +1,7 @@
+## 2026-09-12 — v3 development closed without advancement
+
+- 05:55 EDT: The third stress candidate completes 9/9 and all 330 required judgments but loses 6.33 A points and increases S−H/H−A versus its matched v2.1 control. The authorized three-iteration loop is exhausted; no canonical v3, four-policy comparison, Result20, or further variant is launched.
+
 ## 2026-09-12 — Current v3 development authorization
 
 - 01:26 EDT: Continue the already-launched v3.1 stress candidate and queued finalizer/audits; preserve all completed outputs and recover only missing work. At most three User-delivery iterations across stress dev3, then canonical dev3 and the descriptive Full/Semi/Score-only/User comparison; exactly one Result20 is conditional on satisfactory development evidence, with no Result20 prompt tuning.

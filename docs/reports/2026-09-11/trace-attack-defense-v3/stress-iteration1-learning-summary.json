@@ -1,0 +1,377 @@
+{
+  "provider_calls": 0,
+  "cases": [
+    {
+      "task_id": "da-15-1",
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-15-1/study/biomnibench-da-factorial-r10-6acf315677b9/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 10,
+        "online_proposals": 7,
+        "online_admissions": 2,
+        "diagnosis:ADD": 7,
+        "diagnosis:PREFERENCE_CONFLICT": 13,
+        "candidate_reviews": 7,
+        "required_applications_appearances": 110,
+        "application_appearance:applicable": 94,
+        "application_appearance:not_applicable": 16,
+        "sidecars": 10,
+        "nonidentical_sidecars": 10
+      },
+      "native_and_ineligibility_reasons": {
+        "criterion_support_failed": 1,
+        "diagnosis:PREFERENCE_CONFLICT": 13,
+        "aggregate_margin_failed": 4,
+        "accepted": 2
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 116,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 280,
+        "accounting:initial_calls": 281,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 1,
+        "accounting:schema_repairs": 0,
+        "application:valid_result": 110,
+        "application:applicable": 94,
+        "application:not_applicable": 16,
+        "semantic:valid_result": 7,
+        "quality:valid_result": 28,
+        "compilation:valid_result": 7,
+        "diagnosis:valid_result": 12
+      }
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 2,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-15-1/study/biomnibench-da-factorial-r10-6acf315677b9/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 10,
+        "online_proposals": 13,
+        "online_admissions": 2,
+        "diagnosis:ADD": 13,
+        "diagnosis:NO_SUPPORTED_RELATION": 3,
+        "candidate_reviews": 13,
+        "required_applications_appearances": 181,
+        "application_appearance:applicable": 178,
+        "diagnosis:PREFERENCE_CONFLICT": 4,
+        "application_appearance:not_applicable": 3,
+        "sidecars": 10,
+        "nonidentical_sidecars": 10
+      },
+      "native_and_ineligibility_reasons": {
+        "accepted": 2,
+        "diagnosis:NO_SUPPORTED_RELATION": 3,
+        "criterion_support_failed": 9,
+        "diagnosis:PREFERENCE_CONFLICT": 4,
+        "aggregate_margin_failed": 2
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 78,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 284,
+        "accounting:initial_calls": 284,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 0,
+        "accounting:schema_repairs": 0,
+        "compilation:valid_result": 10,
+        "quality:valid_result": 30,
+        "application:valid_result": 142,
+        "application:applicable": 141,
+        "diagnosis:valid_result": 14,
+        "semantic:valid_result": 10,
+        "application:not_applicable": 1
+      }
+    },
+    {
+      "task_id": "da-15-1",
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-15-1/study/biomnibench-da-factorial-r10-6acf315677b9/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 10,
+        "online_proposals": 12,
+        "online_admissions": 2,
+        "diagnosis:NO_SUPPORTED_RELATION": 4,
+        "diagnosis:PREFERENCE_CONFLICT": 4,
+        "diagnosis:ADD": 12,
+        "candidate_reviews": 12,
+        "required_applications_appearances": 187,
+        "application_appearance:not_applicable": 12,
+        "application_appearance:applicable": 175,
+        "sidecars": 10,
+        "nonidentical_sidecars": 10
+      },
+      "native_and_ineligibility_reasons": {
+        "diagnosis:NO_SUPPORTED_RELATION": 4,
+        "diagnosis:PREFERENCE_CONFLICT": 4,
+        "accepted": 2,
+        "criterion_support_failed": 7,
+        "aggregate_margin_failed": 3
+      },
+      "request_unique_counts": {
+        "application:valid_result": 145,
+        "application:applicable": 137,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 305,
+        "accounting:initial_calls": 306,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 1,
+        "accounting:schema_repairs": 0,
+        "rubric_view:valid_result": 98,
+        "quality:valid_result": 30,
+        "semantic:valid_result": 9,
+        "application:not_applicable": 8,
+        "compilation:valid_result": 9,
+        "diagnosis:valid_result": 14
+      }
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-13-6/study/biomnibench-da-factorial-r10-e357985e24f9/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 10,
+        "online_proposals": 6,
+        "online_admissions": 2,
+        "diagnosis:ADD": 6,
+        "diagnosis:PREFERENCE_CONFLICT": 12,
+        "candidate_reviews": 6,
+        "required_applications_appearances": 77,
+        "application_appearance:not_applicable": 13,
+        "application_appearance:applicable": 52,
+        "application_appearance:undecidable": 12,
+        "diagnosis:NO_SUPPORTED_RELATION": 2,
+        "sidecars": 10,
+        "nonidentical_sidecars": 10
+      },
+      "native_and_ineligibility_reasons": {
+        "accepted": 2,
+        "diagnosis:PREFERENCE_CONFLICT": 12,
+        "semantic_validation_failed": 1,
+        "validation:candidate_ineligible": 1,
+        "aggregate_margin_failed": 1,
+        "diagnosis:NO_SUPPORTED_RELATION": 2,
+        "criterion_support_failed": 1
+      },
+      "request_unique_counts": {
+        "application:valid_result": 77,
+        "application:applicable": 52,
+        "accounting:contract_invalid_attempts": 2,
+        "accounting:first_response_valid": 221,
+        "accounting:initial_calls": 224,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 1,
+        "accounting:schema_repairs": 2,
+        "rubric_view:valid_result": 90,
+        "quality:valid_result": 30,
+        "application:undecidable": 12,
+        "compilation:valid_result": 6,
+        "application:not_applicable": 13,
+        "semantic:valid_result": 6,
+        "diagnosis:valid_result": 14
+      }
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 2,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-13-6/study/biomnibench-da-factorial-r10-e357985e24f9/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 10,
+        "online_proposals": 5,
+        "online_admissions": 0,
+        "diagnosis:NO_SUPPORTED_RELATION": 1,
+        "diagnosis:PREFERENCE_CONFLICT": 14,
+        "diagnosis:ADD": 5,
+        "candidate_reviews": 5,
+        "required_applications_appearances": 70,
+        "application_appearance:applicable": 63,
+        "application_appearance:not_applicable": 7,
+        "sidecars": 10,
+        "nonidentical_sidecars": 10
+      },
+      "native_and_ineligibility_reasons": {
+        "diagnosis:NO_SUPPORTED_RELATION": 1,
+        "diagnosis:PREFERENCE_CONFLICT": 14,
+        "aggregate_margin_failed": 2,
+        "criterion_support_failed": 2,
+        "semantic_validation_failed": 1
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 42,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 158,
+        "accounting:initial_calls": 159,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 1,
+        "accounting:schema_repairs": 0,
+        "application:valid_result": 70,
+        "application:applicable": 63,
+        "application:not_applicable": 7,
+        "compilation:valid_result": 5,
+        "diagnosis:valid_result": 10,
+        "quality:valid_result": 26,
+        "semantic:valid_result": 5
+      }
+    },
+    {
+      "task_id": "da-13-6",
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-13-6/study/biomnibench-da-factorial-r10-e357985e24f9/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 5,
+        "online_proposals": 4,
+        "online_admissions": 4,
+        "diagnosis:PREFERENCE_CONFLICT": 5,
+        "diagnosis:NO_SUPPORTED_RELATION": 1,
+        "diagnosis:ADD": 4,
+        "candidate_reviews": 4,
+        "required_applications_appearances": 32,
+        "application_appearance:applicable": 32,
+        "sidecars": 5,
+        "nonidentical_sidecars": 5
+      },
+      "native_and_ineligibility_reasons": {
+        "diagnosis:PREFERENCE_CONFLICT": 5,
+        "diagnosis:NO_SUPPORTED_RELATION": 1,
+        "accepted": 4
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 56,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 118,
+        "accounting:initial_calls": 118,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 0,
+        "accounting:schema_repairs": 0,
+        "application:valid_result": 32,
+        "application:applicable": 32,
+        "quality:valid_result": 13,
+        "compilation:valid_result": 4,
+        "semantic:valid_result": 4,
+        "diagnosis:valid_result": 9
+      }
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 1,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-18-5/study/biomnibench-da-factorial-r10-e26d8b302f18/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 5,
+        "online_proposals": 7,
+        "online_admissions": 2,
+        "diagnosis:ADD": 7,
+        "diagnosis:NO_SUPPORTED_RELATION": 2,
+        "candidate_reviews": 7,
+        "required_applications_appearances": 61,
+        "application_appearance:not_applicable": 19,
+        "application_appearance:applicable": 42,
+        "diagnosis:PREFERENCE_CONFLICT": 1,
+        "sidecars": 5,
+        "nonidentical_sidecars": 5
+      },
+      "native_and_ineligibility_reasons": {
+        "criterion_support_failed": 4,
+        "diagnosis:NO_SUPPORTED_RELATION": 2,
+        "accepted": 2,
+        "diagnosis:PREFERENCE_CONFLICT": 1,
+        "aggregate_margin_failed": 1
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 56,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 152,
+        "accounting:initial_calls": 152,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 0,
+        "accounting:schema_repairs": 0,
+        "compilation:valid_result": 7,
+        "application:valid_result": 61,
+        "application:not_applicable": 19,
+        "diagnosis:valid_result": 10,
+        "semantic:valid_result": 7,
+        "application:applicable": 42,
+        "quality:valid_result": 11
+      }
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 2,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-18-5/study/biomnibench-da-factorial-r10-e26d8b302f18/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 5,
+        "online_proposals": 2,
+        "online_admissions": 1,
+        "diagnosis:NO_SUPPORTED_RELATION": 5,
+        "diagnosis:ADD": 2,
+        "candidate_reviews": 2,
+        "required_applications_appearances": 19,
+        "application_appearance:applicable": 14,
+        "diagnosis:PREFERENCE_CONFLICT": 3,
+        "application_appearance:not_applicable": 5,
+        "sidecars": 5,
+        "nonidentical_sidecars": 5
+      },
+      "native_and_ineligibility_reasons": {
+        "diagnosis:NO_SUPPORTED_RELATION": 5,
+        "accepted": 1,
+        "diagnosis:PREFERENCE_CONFLICT": 3,
+        "criterion_support_failed": 1
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 38,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 81,
+        "accounting:initial_calls": 81,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 0,
+        "accounting:schema_repairs": 0,
+        "application:valid_result": 19,
+        "application:applicable": 14,
+        "application:not_applicable": 5,
+        "quality:valid_result": 13,
+        "compilation:valid_result": 2,
+        "semantic:valid_result": 2,
+        "diagnosis:valid_result": 7
+      }
+    },
+    {
+      "task_id": "da-18-5",
+      "replicate": 3,
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter1/v3-candidate/da-18-5/study/biomnibench-da-factorial-r10-e26d8b302f18/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace",
+      "counts": {
+        "online_updates": 5,
+        "online_proposals": 3,
+        "online_admissions": 1,
+        "diagnosis:ADD": 3,
+        "diagnosis:PREFERENCE_CONFLICT": 3,
+        "candidate_reviews": 3,
+        "required_applications_appearances": 19,
+        "application_appearance:applicable": 19,
+        "diagnosis:NO_SUPPORTED_RELATION": 4,
+        "sidecars": 5,
+        "nonidentical_sidecars": 5
+      },
+      "native_and_ineligibility_reasons": {
+        "accepted": 1,
+        "diagnosis:PREFERENCE_CONFLICT": 3,
+        "aggregate_margin_failed": 2,
+        "diagnosis:NO_SUPPORTED_RELATION": 4
+      },
+      "request_unique_counts": {
+        "rubric_view:valid_result": 32,
+        "accounting:contract_invalid_attempts": 0,
+        "accounting:first_response_valid": 75,
+        "accounting:initial_calls": 75,
+        "accounting:locator_repairs": 0,
+        "accounting:provider_failures": 0,
+        "accounting:schema_repairs": 0,
+        "semantic:valid_result": 3,
+        "application:valid_result": 19,
+        "application:applicable": 19,
+        "quality:valid_result": 11,
+        "compilation:valid_result": 3,
+        "diagnosis:valid_result": 7
+      }
+    }
+  ]
+}

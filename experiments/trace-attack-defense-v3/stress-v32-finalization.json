@@ -1,0 +1,64 @@
+{
+  "assignments": [
+    {
+      "assignment_id": "da-15-1--rep-003--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-fc0423598fc1",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-003/luna/user-simulator-red-team-trace",
+      "task": "da-15-1"
+    },
+    {
+      "assignment_id": "da-15-1--rep-001--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-fc0423598fc1",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-001/luna/user-simulator-red-team-trace",
+      "task": "da-15-1"
+    },
+    {
+      "assignment_id": "da-15-1--rep-002--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-fc0423598fc1",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-15-1/study/biomnibench-da-factorial-r10-fc0423598fc1/experiments/da-15-1/rep-002/luna/user-simulator-red-team-trace",
+      "task": "da-15-1"
+    },
+    {
+      "assignment_id": "da-13-6--rep-003--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-cdbaf706aa37",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace",
+      "task": "da-13-6"
+    },
+    {
+      "assignment_id": "da-13-6--rep-001--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-cdbaf706aa37",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-001/luna/user-simulator-red-team-trace",
+      "task": "da-13-6"
+    },
+    {
+      "assignment_id": "da-13-6--rep-002--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-cdbaf706aa37",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-002/luna/user-simulator-red-team-trace",
+      "task": "da-13-6"
+    },
+    {
+      "assignment_id": "da-18-5--rep-003--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-845d6d423d4d",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-003/luna/user-simulator-red-team-trace",
+      "task": "da-18-5"
+    },
+    {
+      "assignment_id": "da-18-5--rep-001--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-845d6d423d4d",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-001/luna/user-simulator-red-team-trace",
+      "task": "da-18-5"
+    },
+    {
+      "assignment_id": "da-18-5--rep-002--solver-luna--user-simulator-red-team-trace",
+      "experiment_id": "biomnibench-da-factorial-r10-845d6d423d4d",
+      "root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-18-5/study/biomnibench-da-factorial-r10-845d6d423d4d/experiments/da-18-5/rep-002/luna/user-simulator-red-team-trace",
+      "task": "da-18-5"
+    }
+  ],
+  "completed_assignments": 9,
+  "expected_assignments": 9,
+  "job": "10411527",
+  "kind": "trace_v3_2_stress_complete",
+  "provider_calls": 0,
+  "recipe": "attack_defense_v3.2"
+}

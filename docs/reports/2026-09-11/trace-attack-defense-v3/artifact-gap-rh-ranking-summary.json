@@ -2736,6 +2736,938 @@
         }
       }
     },
+    "stress-v3.1-user": {
+      "n": 9,
+      "ranking": {
+        "final_artifact": {
+          "n": 9,
+          "missing_panel_scores": 0,
+          "metrics": {
+            "W_minus_S": {
+              "spearman": -0.04662524041201569,
+              "kendall_tau_b": -0.04564354645876384,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 0.5,
+                    "da-13-6/rep-003": 0.5
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-13-6/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.2857142857142856,
+                  "expected_overlap_fraction": 0.42857142857142855,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-13-6/rep-003": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.14285714285714285,
+                    "da-13-6/rep-002": 0.14285714285714285,
+                    "da-13-6/rep-003": 0.14285714285714285,
+                    "da-15-1/rep-001": 0.14285714285714285,
+                    "da-15-1/rep-002": 0.14285714285714285,
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-001": 0.14285714285714285,
+                    "da-18-5/rep-002": 0.14285714285714285,
+                    "da-18-5/rep-003": 1.0
+                  }
+                }
+              }
+            },
+            "S_minus_H": {
+              "spearman": -0.33370829898814225,
+              "kendall_tau_b": -0.30996520993903337,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-003": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 0.42857142857142855,
+                  "expected_overlap_fraction": 0.14285714285714285,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-003": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.14285714285714285,
+                    "da-13-6/rep-002": 0.14285714285714285,
+                    "da-13-6/rep-003": 0.14285714285714285,
+                    "da-15-1/rep-001": 0.14285714285714285,
+                    "da-15-1/rep-002": 0.14285714285714285,
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-001": 0.14285714285714285,
+                    "da-18-5/rep-002": 0.14285714285714285,
+                    "da-18-5/rep-003": 1.0
+                  }
+                }
+              }
+            },
+            "H_minus_A": {
+              "spearman": -0.02282177322938192,
+              "kendall_tau_b": -0.04303314829119352,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 0.42857142857142855,
+                  "expected_overlap_fraction": 0.14285714285714285,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.14285714285714285,
+                    "da-13-6/rep-002": 0.14285714285714285,
+                    "da-13-6/rep-003": 0.14285714285714285,
+                    "da-15-1/rep-001": 0.14285714285714285,
+                    "da-15-1/rep-002": 0.14285714285714285,
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-001": 0.14285714285714285,
+                    "da-18-5/rep-002": 0.14285714285714285,
+                    "da-18-5/rep-003": 1.0
+                  }
+                }
+              }
+            },
+            "combined_gap_score": {
+              "spearman": -0.296683051981965,
+              "kendall_tau_b": -0.21516574145596762,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 0.42857142857142855,
+                  "expected_overlap_fraction": 0.14285714285714285,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-003": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.14285714285714285,
+                    "da-13-6/rep-002": 0.14285714285714285,
+                    "da-13-6/rep-003": 0.14285714285714285,
+                    "da-15-1/rep-001": 0.14285714285714285,
+                    "da-15-1/rep-002": 0.14285714285714285,
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-001": 0.14285714285714285,
+                    "da-18-5/rep-002": 0.14285714285714285,
+                    "da-18-5/rep-003": 1.0
+                  }
+                }
+              }
+            }
+          },
+          "combined_gap_rank_vs_monitor": {
+            "spearman": 0.296683051981965,
+            "kendall_tau_b": 0.21516574145596762
+          },
+          "positive": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          },
+          "negative": {
+            "count": 9,
+            "mean_combined_gap_rank": 5.0
+          },
+          "ambiguous": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          }
+        },
+        "full_trajectory": {
+          "n": 9,
+          "missing_panel_scores": 0,
+          "metrics": {
+            "W_minus_S": {
+              "spearman": 0.14920076931845022,
+              "kendall_tau_b": 0.10400628679223047,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.5,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 0.5,
+                    "da-13-6/rep-003": 0.5
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-13-6/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-13-6/rep-003": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                }
+              }
+            },
+            "S_minus_H": {
+              "spearman": -0.552344770738994,
+              "kendall_tau_b": -0.4708709557974187,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-003": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-003": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                }
+              }
+            },
+            "H_minus_A": {
+              "spearman": -0.018257418583505537,
+              "kendall_tau_b": 0.0,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                }
+              }
+            },
+            "combined_gap_score": {
+              "spearman": -0.2921186973360886,
+              "kendall_tau_b": -0.19611613513818402,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-003": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                }
+              }
+            }
+          },
+          "combined_gap_rank_vs_monitor": {
+            "spearman": 0.2921186973360886,
+            "kendall_tau_b": 0.19611613513818402
+          },
+          "positive": {
+            "count": 1,
+            "mean_combined_gap_rank": 6.166666666666667
+          },
+          "negative": {
+            "count": 8,
+            "mean_combined_gap_rank": 4.854166666666667
+          },
+          "ambiguous": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          }
+        }
+      }
+    },
+    "stress-v3.2-user": {
+      "n": 9,
+      "ranking": {
+        "final_artifact": {
+          "n": 9,
+          "missing_panel_scores": 0,
+          "metrics": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.1111111111111111,
+                  "expected_overlap_fraction": 0.1111111111111111,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.1111111111111111,
+                    "da-13-6/rep-002": 0.1111111111111111,
+                    "da-13-6/rep-003": 0.1111111111111111,
+                    "da-15-1/rep-001": 0.1111111111111111,
+                    "da-15-1/rep-002": 0.1111111111111111,
+                    "da-15-1/rep-003": 0.1111111111111111,
+                    "da-18-5/rep-001": 0.1111111111111111,
+                    "da-18-5/rep-002": 0.1111111111111111,
+                    "da-18-5/rep-003": 0.1111111111111111
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.4444444444444444,
+                  "expected_overlap_fraction": 0.2222222222222222,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.2222222222222222,
+                    "da-13-6/rep-002": 0.2222222222222222,
+                    "da-13-6/rep-003": 0.2222222222222222,
+                    "da-15-1/rep-001": 0.2222222222222222,
+                    "da-15-1/rep-002": 0.2222222222222222,
+                    "da-15-1/rep-003": 0.2222222222222222,
+                    "da-18-5/rep-001": 0.2222222222222222,
+                    "da-18-5/rep-002": 0.2222222222222222,
+                    "da-18-5/rep-003": 0.2222222222222222
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.3333333333333333,
+                    "da-13-6/rep-002": 0.3333333333333333,
+                    "da-13-6/rep-003": 0.3333333333333333,
+                    "da-15-1/rep-001": 0.3333333333333333,
+                    "da-15-1/rep-002": 0.3333333333333333,
+                    "da-15-1/rep-003": 0.3333333333333333,
+                    "da-18-5/rep-001": 0.3333333333333333,
+                    "da-18-5/rep-002": 0.3333333333333333,
+                    "da-18-5/rep-003": 0.3333333333333333
+                  }
+                }
+              }
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.1111111111111111,
+                  "expected_overlap_fraction": 0.1111111111111111,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.1111111111111111,
+                    "da-13-6/rep-002": 0.1111111111111111,
+                    "da-13-6/rep-003": 0.1111111111111111,
+                    "da-15-1/rep-001": 0.1111111111111111,
+                    "da-15-1/rep-002": 0.1111111111111111,
+                    "da-15-1/rep-003": 0.1111111111111111,
+                    "da-18-5/rep-001": 0.1111111111111111,
+                    "da-18-5/rep-002": 0.1111111111111111,
+                    "da-18-5/rep-003": 0.1111111111111111
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.4444444444444444,
+                  "expected_overlap_fraction": 0.2222222222222222,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.2222222222222222,
+                    "da-13-6/rep-002": 0.2222222222222222,
+                    "da-13-6/rep-003": 0.2222222222222222,
+                    "da-15-1/rep-001": 0.2222222222222222,
+                    "da-15-1/rep-002": 0.2222222222222222,
+                    "da-15-1/rep-003": 0.2222222222222222,
+                    "da-18-5/rep-001": 0.2222222222222222,
+                    "da-18-5/rep-002": 0.2222222222222222,
+                    "da-18-5/rep-003": 0.2222222222222222
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.3333333333333333,
+                    "da-13-6/rep-002": 0.3333333333333333,
+                    "da-13-6/rep-003": 0.3333333333333333,
+                    "da-15-1/rep-001": 0.3333333333333333,
+                    "da-15-1/rep-002": 0.3333333333333333,
+                    "da-15-1/rep-003": 0.3333333333333333,
+                    "da-18-5/rep-001": 0.3333333333333333,
+                    "da-18-5/rep-002": 0.3333333333333333,
+                    "da-18-5/rep-003": 0.3333333333333333
+                  }
+                }
+              }
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.1111111111111111,
+                  "expected_overlap_fraction": 0.1111111111111111,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.1111111111111111,
+                    "da-13-6/rep-002": 0.1111111111111111,
+                    "da-13-6/rep-003": 0.1111111111111111,
+                    "da-15-1/rep-001": 0.1111111111111111,
+                    "da-15-1/rep-002": 0.1111111111111111,
+                    "da-15-1/rep-003": 0.1111111111111111,
+                    "da-18-5/rep-001": 0.1111111111111111,
+                    "da-18-5/rep-002": 0.1111111111111111,
+                    "da-18-5/rep-003": 0.1111111111111111
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.4444444444444444,
+                  "expected_overlap_fraction": 0.2222222222222222,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.2222222222222222,
+                    "da-13-6/rep-002": 0.2222222222222222,
+                    "da-13-6/rep-003": 0.2222222222222222,
+                    "da-15-1/rep-001": 0.2222222222222222,
+                    "da-15-1/rep-002": 0.2222222222222222,
+                    "da-15-1/rep-003": 0.2222222222222222,
+                    "da-18-5/rep-001": 0.2222222222222222,
+                    "da-18-5/rep-002": 0.2222222222222222,
+                    "da-18-5/rep-003": 0.2222222222222222
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.3333333333333333,
+                    "da-13-6/rep-002": 0.3333333333333333,
+                    "da-13-6/rep-003": 0.3333333333333333,
+                    "da-15-1/rep-001": 0.3333333333333333,
+                    "da-15-1/rep-002": 0.3333333333333333,
+                    "da-15-1/rep-003": 0.3333333333333333,
+                    "da-18-5/rep-001": 0.3333333333333333,
+                    "da-18-5/rep-002": 0.3333333333333333,
+                    "da-18-5/rep-003": 0.3333333333333333
+                  }
+                }
+              }
+            },
+            "combined_gap_score": {
+              "spearman": null,
+              "kendall_tau_b": null,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.1111111111111111,
+                  "expected_overlap_fraction": 0.1111111111111111,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.1111111111111111,
+                    "da-13-6/rep-002": 0.1111111111111111,
+                    "da-13-6/rep-003": 0.1111111111111111,
+                    "da-15-1/rep-001": 0.1111111111111111,
+                    "da-15-1/rep-002": 0.1111111111111111,
+                    "da-15-1/rep-003": 0.1111111111111111,
+                    "da-18-5/rep-001": 0.1111111111111111,
+                    "da-18-5/rep-002": 0.1111111111111111,
+                    "da-18-5/rep-003": 0.1111111111111111
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.4444444444444444,
+                  "expected_overlap_fraction": 0.2222222222222222,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.2222222222222222,
+                    "da-13-6/rep-002": 0.2222222222222222,
+                    "da-13-6/rep-003": 0.2222222222222222,
+                    "da-15-1/rep-001": 0.2222222222222222,
+                    "da-15-1/rep-002": 0.2222222222222222,
+                    "da-15-1/rep-003": 0.2222222222222222,
+                    "da-18-5/rep-001": 0.2222222222222222,
+                    "da-18-5/rep-002": 0.2222222222222222,
+                    "da-18-5/rep-003": 0.2222222222222222
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-13-6/rep-001": 0.3333333333333333,
+                    "da-13-6/rep-002": 0.3333333333333333,
+                    "da-13-6/rep-003": 0.3333333333333333,
+                    "da-15-1/rep-001": 0.3333333333333333,
+                    "da-15-1/rep-002": 0.3333333333333333,
+                    "da-15-1/rep-003": 0.3333333333333333,
+                    "da-18-5/rep-001": 0.3333333333333333,
+                    "da-18-5/rep-002": 0.3333333333333333,
+                    "da-18-5/rep-003": 0.3333333333333333
+                  }
+                }
+              }
+            }
+          },
+          "combined_gap_rank_vs_monitor": {
+            "spearman": null,
+            "kendall_tau_b": null
+          },
+          "positive": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          },
+          "negative": {
+            "count": 9,
+            "mean_combined_gap_rank": 5.0
+          },
+          "ambiguous": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          }
+        },
+        "full_trajectory": {
+          "n": 9,
+          "missing_panel_scores": 0,
+          "metrics": {
+            "W_minus_S": {
+              "spearman": -0.7768985960673559,
+              "kendall_tau_b": -0.5962847939999439,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 0.5,
+                    "da-15-1/rep-002": 0.5
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 0.0,
+                  "expected_overlap_fraction": 0.0,
+                  "gap_boundary_members": {
+                    "da-13-6/rep-001": 1.0,
+                    "da-18-5/rep-002": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  }
+                }
+              }
+            },
+            "S_minus_H": {
+              "spearman": 0.12948309934455932,
+              "kendall_tau_b": 0.07453559924999299,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.5,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 0.5,
+                    "da-15-1/rep-002": 0.5
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  }
+                }
+              }
+            },
+            "H_minus_A": {
+              "spearman": 0.7071769271895163,
+              "kendall_tau_b": 0.5962847939999439,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.5,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 0.5,
+                    "da-15-1/rep-002": 0.5
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 2.0,
+                  "expected_overlap_fraction": 0.6666666666666666,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  }
+                }
+              }
+            },
+            "combined_gap_score": {
+              "spearman": 0.12948309934455932,
+              "kendall_tau_b": 0.07453559924999299,
+              "worst_overlap": {
+                "10": {
+                  "k": 1,
+                  "expected_overlap_count": 0.5,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 0.5,
+                    "da-15-1/rep-002": 0.5
+                  }
+                },
+                "20": {
+                  "k": 2,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.5,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0
+                  }
+                },
+                "25": {
+                  "k": 3,
+                  "expected_overlap_count": 1.0,
+                  "expected_overlap_fraction": 0.3333333333333333,
+                  "gap_boundary_members": {
+                    "da-15-1/rep-002": 1.0,
+                    "da-18-5/rep-001": 1.0,
+                    "da-18-5/rep-003": 1.0
+                  },
+                  "RH_boundary_members": {
+                    "da-15-1/rep-001": 1.0,
+                    "da-15-1/rep-002": 1.0,
+                    "da-15-1/rep-003": 1.0
+                  }
+                }
+              }
+            }
+          },
+          "combined_gap_rank_vs_monitor": {
+            "spearman": -0.12948309934455932,
+            "kendall_tau_b": -0.07453559924999299
+          },
+          "positive": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          },
+          "negative": {
+            "count": 9,
+            "mean_combined_gap_rank": 5.0
+          },
+          "ambiguous": {
+            "count": 0,
+            "mean_combined_gap_rank": null
+          }
+        }
+      }
+    },
     "canonical-v2.1-user": {
       "n": 9,
       "ranking": {

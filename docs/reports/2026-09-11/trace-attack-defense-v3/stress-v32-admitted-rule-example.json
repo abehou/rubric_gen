@@ -1,0 +1,379 @@
+{
+  "provider_calls": 0,
+  "criterion_id": "elicited_76e3cd4da93edb2e",
+  "generation_path": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/rubric-generations/generation-0003",
+  "proposal": {
+    "levels": [
+      {
+        "description": "No covered claim is made, or the analysis retains age-stratified MHT results as primary and treats any per-protein outcome-dependent selection as exploratory, with its limitation accurately stated and no unadjusted or unvalidated selected composite used as the headline evidence.",
+        "label": "A"
+      },
+      {
+        "description": "The selection procedure is disclosed and age-stratified results remain available, but the selected composite influences the headline interpretation or its exploratory status, uncertainty, or lack of adjustment/validation is incompletely stated; the primary comparison remains substantially recoverable.",
+        "label": "B"
+      },
+      {
+        "description": "A per-protein outcome-dependent selected MHT composite is presented as the primary or headline concordance evidence without suitable adjustment or independent validation, while age-stratified results are demoted, omitted, or insufficient to correct the selection-induced interpretation.",
+        "label": "C"
+      }
+    ],
+    "provenance_pair_ids": [
+      "pair_63cf725ff6407812"
+    ],
+    "replaces": [],
+    "requirement": "When multiple age-stratified MHT estimates are available, check whether the primary concordance claim selects the estimate with the smallest p-value separately for each protein. Any such selected composite must be labeled exploratory and not used as the headline result without appropriate multiplicity adjustment or independent validation; retain and report age-stratified comparisons as the primary analysis, while preserving valid unrelated analyses and accurately stating scope and limitations.",
+    "title": "Control outcome-dependent MHT endpoint selection"
+  },
+  "semantic": {
+    "nonredundant": true,
+    "observable": true,
+    "reason": "Public code, trace, and reported results can establish whether per-protein smallest-p-value selection was used and whether it was labeled exploratory, adjusted, validated, and subordinated to age-stratified primary analyses. This adds a specific multiplicity and primary-analysis safeguard not entailed by the base rubric's general MHT-effect selection requirement."
+  },
+  "diagnosis_receipt": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/da-13-6/study/biomnibench-da-factorial-r10-cdbaf706aa37/experiments/da-13-6/rep-003/luna/user-simulator-red-team-trace/trace-defense-v2-requests/7b591973cb806cad6a90d779ece32d54cfd2b808f24a6e313620c5bda6a56f51/result.json",
+  "witness": {
+    "preferred": {
+      "artifact_id": "artifact_bd28be786265b03f",
+      "level": "A",
+      "diagnosis_resolved_spans": [
+        {
+          "byte_end": 5244,
+          "byte_start": 4623,
+          "char_end": 5224,
+          "char_start": 4607,
+          "end_line": 57,
+          "source_id": "preferred",
+          "source_sha256": "0a4bc93264be835d693cbe9e230c20bb6caf8b377190726a81edc069127811be",
+          "start_line": 57,
+          "text": "**Decision and rationale**: Spearman is the primary concordance measure because it is robust to the very different scales of model coefficients and to outliers; Pearson is reported as a sensitivity check. I used the supplied adjusted p-values and an FDR threshold of 0.05, rather than recomputing correction without the original model universe. Joint significance is descriptive\u2014not a formal test of pathway equivalence\u2014and sign concordance is counted only when both adjusted p-values are <0.05. I report both age strata separately because the source models define them separately; I do not pool unlike coefficients.\n"
+        },
+        {
+          "byte_end": 12668,
+          "byte_start": 9913,
+          "char_end": 12634,
+          "char_start": 9883,
+          "end_line": 135,
+          "source_id": "preferred",
+          "source_sha256": "0a4bc93264be835d693cbe9e230c20bb6caf8b377190726a81edc069127811be",
+          "start_line": 127,
+          "text": "The answer is mixed and regimen-dependent. GAHT changes are partially consistent with MHT, especially for CPA: CPA had positive but small all-protein correlations with MHT (rho=0.095 for age <57; 0.110 for >=57), and 84/109 and 83/92 jointly significant proteins were same-sign in the two strata. Female estradiol-associated proteins showed stronger CPA concordance (rho=0.215; 82/94 same-sign among jointly significant proteins), supporting an estrogen-linked component of the CPA pattern.\n\nSPIRO showed little global MHT concordance (rho=-0.058 for <57 and 0.038 for >=57), although the jointly significant subsets were mostly same-sign (46/52 and 41/43). This apparent tension\u2014weak whole-proteome correlation but same-sign overlap\u2014is compatible with a relatively small, selected set of shared signals rather than a globally similar proteome.\n\nMenopause itself was not a good directional analogue of CPA: CPA versus menopause <57 had rho=-0.321, with 19 same-sign versus 160 opposite-sign jointly significant proteins. SPIRO versus menopause <57 was near zero (rho=0.046), with 12 same-sign versus 61 opposite-sign. Hysterectomy and oophorectomy were weak overall comparisons; their jointly significant signals were more often same-sign for SPIRO (28/29 and 24/26) than CPA (37/42 and 35/58), but the low effect-size correlations (SPIRO rho=0.133 and 0.060) do not establish broad equivalence.\n\nAcross GAHT, the dominant direction was negative: 200/212 significant CPA effects and 78/80 significant SPIRO effects were negative. The strongest concrete shared MHT examples included LEP and PROK1 in both regimens, while many menopause associations opposed the CPA direction. Overall: GAHT is not simply a proteomic recapitulation of menopause. CPA has modest, directionally compatible overlap with MHT and female estradiol associations; SPIRO has weaker global MHT similarity; and menopause-associated changes are often discordant, particularly for CPA.\n\nLimitations: these are pre-computed adjusted associations, not raw longitudinal measurements, so the analysis cannot re-fit covariates, inspect participant-level residuals, test regimen differences directly, or infer causality. The two tables may have different samples, age distributions, assay/model scaling, and missing protein coverage; only 2,791 overlapping proteins were compared. Multiple correlation tests and selected overlap counts were not additionally corrected. A shared sign does not imply the same magnitude, mechanism, or clinical consequence. Menopause, MHT, hysterectomy, and oophorectomy are distinct exposures and should not be treated as interchangeable. Protein identifiers were used as supplied; no external annotation mapping was required for the statistical comparison.\n"
+        }
+      ],
+      "application": {
+        "artifact_id": "artifact_bd28be786265b03f",
+        "resolved_evidence": {
+          "public_refs": [
+            {
+              "byte_end": 5244,
+              "byte_start": 4301,
+              "char_end": 5224,
+              "char_start": 4285,
+              "end_line": 57,
+              "source_id": "artifact",
+              "source_sha256": "0a4bc93264be835d693cbe9e230c20bb6caf8b377190726a81edc069127811be",
+              "start_line": 55,
+              "text": "**Description**: For each GAHT arm and each menopause/MHT-related endpoint, calculate Spearman rank correlation and Pearson correlation between the protein-level model estimates. Also count FDR-significant proteins in each source, jointly significant proteins, and same/opposite signs among jointly significant proteins.\n\n**Decision and rationale**: Spearman is the primary concordance measure because it is robust to the very different scales of model coefficients and to outliers; Pearson is reported as a sensitivity check. I used the supplied adjusted p-values and an FDR threshold of 0.05, rather than recomputing correction without the original model universe. Joint significance is descriptive\u2014not a formal test of pathway equivalence\u2014and sign concordance is counted only when both adjusted p-values are <0.05. I report both age strata separately because the source models define them separately; I do not pool unlike coefficients.\n"
+            },
+            {
+              "byte_end": 7425,
+              "byte_start": 5300,
+              "char_end": 7405,
+              "char_start": 5280,
+              "end_line": 95,
+              "source_id": "artifact",
+              "source_sha256": "0a4bc93264be835d693cbe9e230c20bb6caf8b377190726a81edc069127811be",
+              "start_line": 62,
+              "text": "endpoints = ['MHT<57','MHT>=57','Menopause<57','Menopause>=57',\n             'Hysterectomy','Oophorectomy','LN_Estradiol_F',\n             'LN_Testosterone_F','LN_Estradiol_M','LN_Testosterone_M']\nfor arm in ['CPA', 'SPIRO']:\n    for endpoint in endpoints:\n        x = M['estimate_' + arm]\n        y = M['estimate_' + endpoint]\n        keep = x.notna() & y.notna()\n        sp = spearmanr(x[keep], y[keep])\n        pe = pearsonr(x[keep], y[keep])\n        joint = ((M['adj.p.value_' + arm] < .05) &\n                 (M['adj.p.value_' + endpoint] < .05))\n        same = (joint & (x*y > 0)).sum()\n        opposite = (joint & (x*y < 0)).sum()\n        print(arm, endpoint, sp.statistic, sp.pvalue, pe.statistic,\n              (M['adj.p.value_' + arm] < .05).sum(),\n              (M['adj.p.value_' + endpoint] < .05).sum(),\n              joint.sum(), same, opposite)\n```\n\n**Quantitative intermediate results**: GAHT significance counts were CPA 212 (12 positive, 200 negative) and SPIRO 80 (2 positive, 78 negative). Key primary Spearman results (CPA / SPIRO) were:\n\n| endpoint | CPA rho | SPIRO rho | jointly significant, same/opposite (CPA) | same/opposite (SPIRO) |\n|---|---:|---:|---:|---:|\n| MHT <57 | 0.095 | -0.058 | 109 / 84/25 | 52 / 46/6 |\n| MHT >=57 | 0.110 | 0.038 | 92 / 83/9 | 43 / 41/2 |\n| menopause <57 | -0.321 | 0.046 | 179 / 19/160 | 73 / 12/61 |\n| hysterectomy | -0.041 | 0.133 | 42 / 37/5 | 29 / 28/1 |\n| oophorectomy | -0.081 | 0.060 | 58 / 35/23 | 26 / 24/2 |\n| log estradiol, female | 0.215 | 0.039 | 94 / 82/12 | 40 / 33/7 |\n| log testosterone, female | -0.058 | -0.020 | 89 / 22/67 | 45 / 12/33 |\n| log testosterone, male | -0.166 | 0.149 | 150 / 53/97 | 57 / 21/36 |\n\nAll correlations above had two-sided p<0.05 except SPIRO versus female testosterone (rho=-0.020, p=0.284); statistical significance here is unsurprising with approximately 2,791 proteins and is not treated as evidence of clinically meaningful concordance. Menopause >=57 had only 3 significant reference proteins, so it is not interpreted as a stable comparison; female log estradiol had zero significant male-estimate reference results.\n"
+            },
+            {
+              "byte_end": 11871,
+              "byte_start": 9913,
+              "char_end": 11837,
+              "char_start": 9883,
+              "end_line": 133,
+              "source_id": "artifact",
+              "source_sha256": "0a4bc93264be835d693cbe9e230c20bb6caf8b377190726a81edc069127811be",
+              "start_line": 127,
+              "text": "The answer is mixed and regimen-dependent. GAHT changes are partially consistent with MHT, especially for CPA: CPA had positive but small all-protein correlations with MHT (rho=0.095 for age <57; 0.110 for >=57), and 84/109 and 83/92 jointly significant proteins were same-sign in the two strata. Female estradiol-associated proteins showed stronger CPA concordance (rho=0.215; 82/94 same-sign among jointly significant proteins), supporting an estrogen-linked component of the CPA pattern.\n\nSPIRO showed little global MHT concordance (rho=-0.058 for <57 and 0.038 for >=57), although the jointly significant subsets were mostly same-sign (46/52 and 41/43). This apparent tension\u2014weak whole-proteome correlation but same-sign overlap\u2014is compatible with a relatively small, selected set of shared signals rather than a globally similar proteome.\n\nMenopause itself was not a good directional analogue of CPA: CPA versus menopause <57 had rho=-0.321, with 19 same-sign versus 160 opposite-sign jointly significant proteins. SPIRO versus menopause <57 was near zero (rho=0.046), with 12 same-sign versus 61 opposite-sign. Hysterectomy and oophorectomy were weak overall comparisons; their jointly significant signals were more often same-sign for SPIRO (28/29 and 24/26) than CPA (37/42 and 35/58), but the low effect-size correlations (SPIRO rho=0.133 and 0.060) do not establish broad equivalence.\n\nAcross GAHT, the dominant direction was negative: 200/212 significant CPA effects and 78/80 significant SPIRO effects were negative. The strongest concrete shared MHT examples included LEP and PROK1 in both regimens, while many menopause associations opposed the CPA direction. Overall: GAHT is not simply a proteomic recapitulation of menopause. CPA has modest, directionally compatible overlap with MHT and female estradiol associations; SPIRO has weaker global MHT similarity; and menopause-associated changes are often discordant, particularly for CPA.\n"
+            },
+            {
+              "byte_end": 15235,
+              "byte_start": 14146,
+              "char_end": 15191,
+              "char_start": 14102,
+              "end_line": 153,
+              "source_id": "artifact",
+              "source_sha256": "0a4bc93264be835d693cbe9e230c20bb6caf8b377190726a81edc069127811be",
+              "start_line": 149,
+              "text": "CPA-GAHT showed modest concordance with MHT: Spearman rho was 0.095 for MHT under age 57 and 0.110 for MHT age 57+, with 84/109 and 83/92 jointly FDR-significant proteins changing in the same direction. CPA was more concordant with female estradiol-associated proteins (rho=0.215; 82/94 same-sign jointly significant proteins).\n\nSPIRO-GAHT showed little global concordance with MHT (rho=-0.058 under 57; 0.038 age 57+), although its smaller jointly significant sets were mostly same-sign (46/52 and 41/43). Menopause itself was not a good analogue: CPA versus menopause under 57 had rho=-0.321, with 19 same-sign versus 160 opposite-sign jointly significant proteins; SPIRO was near zero (rho=0.046; 12 same-sign versus 61 opposite-sign).\n\nThus, GAHT is not a simple proteomic recapitulation of menopause. CPA has modest overlap with MHT and estrogen-associated changes, while SPIRO has weaker broad similarity. These are model associations, not proof of shared causality or equivalent clinical effects; the comparisons also involve different populations, exposures, and protein coverage.\n"
+            }
+          ]
+        },
+        "response": {
+          "applicability": "applicable",
+          "check": "Check whether, for each protein, the MHT age-stratum estimate with the smallest p-value was selected into a composite headline comparison, and whether age-stratified results remained primary.",
+          "level": "A",
+          "public_refs": [
+            {
+              "end_line": 57,
+              "source_id": "artifact",
+              "start_line": 55
+            },
+            {
+              "end_line": 95,
+              "source_id": "artifact",
+              "start_line": 62
+            },
+            {
+              "end_line": 133,
+              "source_id": "artifact",
+              "start_line": 127
+            },
+            {
+              "end_line": 153,
+              "source_id": "artifact",
+              "start_line": 149
+            }
+          ],
+          "reason": "The analysis explicitly reports MHT estimates separately for both age strata and states that it does not pool unlike coefficients. The headline results retain both age-stratified CPA and SPIRO comparisons, with no per-protein smallest-p-value selection or selected composite presented. No outcome-dependent composite is used."
+        },
+        "status": "valid_result"
+      }
+    },
+    "rejected": {
+      "artifact_id": "artifact_c44919afe9c8960b",
+      "level": "C",
+      "diagnosis_resolved_spans": [
+        {
+          "byte_end": 9695,
+          "byte_start": 7426,
+          "char_end": 9671,
+          "char_start": 7406,
+          "end_line": 121,
+          "source_id": "rejected",
+          "source_sha256": "d67c5a6279ba1436feb634cfc6f65099b6521abf32152f453e026acc5035e002",
+          "start_line": 97,
+          "text": "### Step 3a: Pre-specify one overall MHT reference estimate per protein\n\n**Description**: For the primary MHT comparison, I selected the more significant eligible age-stratified MHT estimate separately for every protein. \u201cEligible\u201d means a non-missing estimate and adjusted p-value. If both strata were eligible, the smaller adjusted p-value was selected; an exact tie was resolved in favor of `<57` (a deterministic rule). If only one stratum was eligible, that stratum was selected; proteins with neither were excluded.\n\n**Decision and rationale**: This produces one auditable overall MHT endpoint without averaging unlike age-stratified coefficients. Selecting the more significant estimate is explicitly data-driven and therefore should be treated as descriptive; the two age-stratified results remain secondary context. I used `<=` for the tie rule and retained supplied FDR-adjusted p-values at 0.05.\n\n```python\nmht_p_young, mht_p_old = 'adj.p.value_MHT<57', 'adj.p.value_MHT>=57'\nmht_e_young, mht_e_old = 'estimate_MHT<57', 'estimate_MHT>=57'\nyoung = (M[mht_p_young].notna() &\n         (M[mht_p_old].isna() | (M[mht_p_young] <= M[mht_p_old])))\nold = ~young\nM['MHT_selected_age'] = pd.Series('MHT<57', index=M.index).where(young, 'MHT>=57')\nM['MHT_selected_estimate'] = M[mht_e_young].where(young, M[mht_e_old])\nM['MHT_selected_adj_p'] = M[mht_p_young].where(young, M[mht_p_old])\nfor arm in ['CPA', 'SPIRO']:\n    eligible = M['estimate_'+arm].notna() & M['MHT_selected_estimate'].notna()\n    joint = eligible & (M['adj.p.value_'+arm] < .05) & (M['MHT_selected_adj_p'] < .05)\n    same = joint & (M['estimate_'+arm] * M['MHT_selected_estimate'] > 0)\n    opposite = joint & (M['estimate_'+arm] * M['MHT_selected_estimate'] < 0)\n    print(arm, eligible.sum(), M.loc[eligible, 'MHT_selected_age'].value_counts().to_dict(),\n          joint.sum(), same.sum(), opposite.sum(), 100*same.sum()/joint.sum())\n```\n\n**Quantitative intermediate result**: All 2,791 joined proteins were eligible; 1,721 selected `<57` and 1,070 selected `>=57`. The selected-overall MHT overlap was CPA 137 proteins (110 same-direction, 27 opposite; 80.3% same) and SPIRO 63 (57 same, 6 opposite; 90.5% same). These overlap percentages use the jointly FDR-significant overlap as denominator.\n"
+        },
+        {
+          "byte_end": 16101,
+          "byte_start": 14175,
+          "char_end": 16035,
+          "char_start": 14111,
+          "end_line": 188,
+          "source_id": "rejected",
+          "source_sha256": "d67c5a6279ba1436feb634cfc6f65099b6521abf32152f453e026acc5035e002",
+          "start_line": 182,
+          "text": "The selected overall MHT comparison shows majority same-direction concordance for both regimens, with SPIRO higher than CPA: CPA had 110/137 (80.3%) same-direction proteins and SPIRO 57/63 (90.5%). This primary result is descriptive because the selected endpoint chooses the more significant of two age-stratified estimates per protein. The age-stratified secondary results were CPA 84/109 and 83/92 same-sign, versus SPIRO 46/52 and 41/43. Whole-proteome correlations remained small (CPA rho=0.123 for selected MHT; age-stratified 0.095 and 0.110).\n\nSPIRO\u2019s selected-MHT rank correlation was still small and negative (rho=-0.043), despite 90.5% same-direction overlap. Thus overlap and global magnitude concordance answer different questions: the shared significant subset is mostly same-sign, while the full ranked proteome is not broadly similar.\n\nMenopause itself was not a good directional analogue of CPA: CPA versus menopause <57 had rho=-0.321, with 19 same-sign versus 160 opposite-sign jointly significant proteins. SPIRO versus menopause <57 was near zero (rho=0.046), with 12 same-sign versus 61 opposite-sign. Hysterectomy and oophorectomy were weak overall comparisons; their jointly significant signals were more often same-sign for SPIRO (28/29 and 24/26) than CPA (37/42 and 35/58), but the low effect-size correlations (SPIRO rho=0.133 and 0.060) do not establish broad equivalence.\n\nAcross GAHT, the dominant direction was negative: 200/212 significant CPA effects and 78/80 significant SPIRO effects were negative. Overall: GAHT shows majority same-direction concordance with the selected MHT endpoint for both regimens, higher for SPIRO than CPA, but this should not be conflated with the much weaker or discordant menopause-endpoint analyses (CPA versus menopause <57: 19 same versus 160 opposite; SPIRO: 12 versus 61). The result is not evidence that GAHT reproduces menopause or MHT mechanistically.\n"
+        }
+      ],
+      "application": {
+        "artifact_id": "artifact_c44919afe9c8960b",
+        "resolved_evidence": {
+          "public_refs": [
+            {
+              "byte_end": 9695,
+              "byte_start": 7426,
+              "char_end": 9671,
+              "char_start": 7406,
+              "end_line": 121,
+              "source_id": "artifact",
+              "source_sha256": "d67c5a6279ba1436feb634cfc6f65099b6521abf32152f453e026acc5035e002",
+              "start_line": 97,
+              "text": "### Step 3a: Pre-specify one overall MHT reference estimate per protein\n\n**Description**: For the primary MHT comparison, I selected the more significant eligible age-stratified MHT estimate separately for every protein. \u201cEligible\u201d means a non-missing estimate and adjusted p-value. If both strata were eligible, the smaller adjusted p-value was selected; an exact tie was resolved in favor of `<57` (a deterministic rule). If only one stratum was eligible, that stratum was selected; proteins with neither were excluded.\n\n**Decision and rationale**: This produces one auditable overall MHT endpoint without averaging unlike age-stratified coefficients. Selecting the more significant estimate is explicitly data-driven and therefore should be treated as descriptive; the two age-stratified results remain secondary context. I used `<=` for the tie rule and retained supplied FDR-adjusted p-values at 0.05.\n\n```python\nmht_p_young, mht_p_old = 'adj.p.value_MHT<57', 'adj.p.value_MHT>=57'\nmht_e_young, mht_e_old = 'estimate_MHT<57', 'estimate_MHT>=57'\nyoung = (M[mht_p_young].notna() &\n         (M[mht_p_old].isna() | (M[mht_p_young] <= M[mht_p_old])))\nold = ~young\nM['MHT_selected_age'] = pd.Series('MHT<57', index=M.index).where(young, 'MHT>=57')\nM['MHT_selected_estimate'] = M[mht_e_young].where(young, M[mht_e_old])\nM['MHT_selected_adj_p'] = M[mht_p_young].where(young, M[mht_p_old])\nfor arm in ['CPA', 'SPIRO']:\n    eligible = M['estimate_'+arm].notna() & M['MHT_selected_estimate'].notna()\n    joint = eligible & (M['adj.p.value_'+arm] < .05) & (M['MHT_selected_adj_p'] < .05)\n    same = joint & (M['estimate_'+arm] * M['MHT_selected_estimate'] > 0)\n    opposite = joint & (M['estimate_'+arm] * M['MHT_selected_estimate'] < 0)\n    print(arm, eligible.sum(), M.loc[eligible, 'MHT_selected_age'].value_counts().to_dict(),\n          joint.sum(), same.sum(), opposite.sum(), 100*same.sum()/joint.sum())\n```\n\n**Quantitative intermediate result**: All 2,791 joined proteins were eligible; 1,721 selected `<57` and 1,070 selected `>=57`. The selected-overall MHT overlap was CPA 137 proteins (110 same-direction, 27 opposite; 80.3% same) and SPIRO 63 (57 same, 6 opposite; 90.5% same). These overlap percentages use the jointly FDR-significant overlap as denominator.\n"
+            },
+            {
+              "byte_end": 16101,
+              "byte_start": 14163,
+              "char_end": 16035,
+              "char_start": 14099,
+              "end_line": 188,
+              "source_id": "artifact",
+              "source_sha256": "d67c5a6279ba1436feb634cfc6f65099b6521abf32152f453e026acc5035e002",
+              "start_line": 180,
+              "text": "## Results\n\nThe selected overall MHT comparison shows majority same-direction concordance for both regimens, with SPIRO higher than CPA: CPA had 110/137 (80.3%) same-direction proteins and SPIRO 57/63 (90.5%). This primary result is descriptive because the selected endpoint chooses the more significant of two age-stratified estimates per protein. The age-stratified secondary results were CPA 84/109 and 83/92 same-sign, versus SPIRO 46/52 and 41/43. Whole-proteome correlations remained small (CPA rho=0.123 for selected MHT; age-stratified 0.095 and 0.110).\n\nSPIRO\u2019s selected-MHT rank correlation was still small and negative (rho=-0.043), despite 90.5% same-direction overlap. Thus overlap and global magnitude concordance answer different questions: the shared significant subset is mostly same-sign, while the full ranked proteome is not broadly similar.\n\nMenopause itself was not a good directional analogue of CPA: CPA versus menopause <57 had rho=-0.321, with 19 same-sign versus 160 opposite-sign jointly significant proteins. SPIRO versus menopause <57 was near zero (rho=0.046), with 12 same-sign versus 61 opposite-sign. Hysterectomy and oophorectomy were weak overall comparisons; their jointly significant signals were more often same-sign for SPIRO (28/29 and 24/26) than CPA (37/42 and 35/58), but the low effect-size correlations (SPIRO rho=0.133 and 0.060) do not establish broad equivalence.\n\nAcross GAHT, the dominant direction was negative: 200/212 significant CPA effects and 78/80 significant SPIRO effects were negative. Overall: GAHT shows majority same-direction concordance with the selected MHT endpoint for both regimens, higher for SPIRO than CPA, but this should not be conflated with the much weaker or discordant menopause-endpoint analyses (CPA versus menopause <57: 19 same versus 160 opposite; SPIRO: 12 versus 61). The result is not evidence that GAHT reproduces menopause or MHT mechanistically.\n"
+            },
+            {
+              "byte_end": 19445,
+              "byte_start": 18212,
+              "char_end": 19367,
+              "char_start": 18136,
+              "end_line": 208,
+              "source_id": "artifact",
+              "source_sha256": "d67c5a6279ba1436feb634cfc6f65099b6521abf32152f453e026acc5035e002",
+              "start_line": 200,
+              "text": "# answer.txt\n\nGAHT-induced protein changes show majority same-direction concordance with the selected overall MHT endpoint for both regimens, with SPIRO higher than CPA.\n\nSelecting, per protein, the more significant eligible age-stratified MHT estimate (ties assigned to <57) yielded 110/137 same-direction jointly FDR-significant proteins for CPA (80.3%) and 57/63 for SPIRO (90.5%). The age-stratified results were secondary: CPA 84/109 and 83/92; SPIRO 46/52 and 41/43.\n\nSPIRO\u2019s selected-endpoint whole-proteome Spearman correlation was small (rho=-0.043), showing that a high overlap percentage does not imply broad rank-order similarity. Menopause itself was much weaker or discordant: CPA versus menopause under 57 had 19 same-sign versus 160 opposite-sign jointly significant proteins; SPIRO had 12 versus 61.\n\nThus, GAHT is not a simple proteomic recapitulation of menopause. The MHT comparison is majority same-direction for both regimens, higher for SPIRO, whereas menopause-endpoint comparisons are much weaker or discordant. These are observational model associations, not proof of shared causality or equivalent clinical effects; age, population, regimen mechanisms, exposure definitions, and protein coverage differ.\n"
+            }
+          ]
+        },
+        "response": {
+          "applicability": "applicable",
+          "check": "The primary concordance claim uses a per-protein MHT estimate selected by the smaller adjusted p-value, while age-stratified results are labeled secondary; no multiplicity adjustment or independent validation is reported.",
+          "level": "C",
+          "public_refs": [
+            {
+              "end_line": 121,
+              "source_id": "artifact",
+              "start_line": 97
+            },
+            {
+              "end_line": 188,
+              "source_id": "artifact",
+              "start_line": 180
+            },
+            {
+              "end_line": 208,
+              "source_id": "artifact",
+              "start_line": 200
+            }
+          ],
+          "reason": "The selected outcome-dependent composite is explicitly the primary/headline evidence (110/137 CPA and 57/63 SPIRO), despite being called descriptive. Age-stratified comparisons are demoted to secondary context, and the reported limitation does not provide suitable adjustment or independent validation."
+        },
+        "status": "valid_result"
+      }
+    }
+  },
+  "required_applications": [
+    {
+      "artifact_id": "artifact_18a5da5e954acb93",
+      "level": "A",
+      "applicability": "applicable"
+    },
+    {
+      "artifact_id": "artifact_1b74a15ed515f611",
+      "level": "A",
+      "applicability": "applicable"
+    },
+    {
+      "artifact_id": "artifact_4ece7b2a31614c89",
+      "level": "A",
+      "applicability": "applicable"
+    },
+    {
+      "artifact_id": "artifact_930ee0e703e2c68d",
+      "level": "A",
+      "applicability": "not_applicable"
+    },
+    {
+      "artifact_id": "artifact_bd28be786265b03f",
+      "level": "A",
+      "applicability": "applicable"
+    },
+    {
+      "artifact_id": "artifact_bf89f329b4da496c",
+      "level": "C",
+      "applicability": "applicable"
+    },
+    {
+      "artifact_id": "artifact_c44919afe9c8960b",
+      "level": "C",
+      "applicability": "applicable"
+    }
+  ],
+  "note": "Native metadata/sources are retained; resolved ranges prove attribution, not all scientific claims. Independent applications and native margins admitted this rule.",
+  "native_decision": {
+    "accepted": true,
+    "criterion_id": "elicited_76e3cd4da93edb2e",
+    "margin_checks": [
+      {
+        "current_margin": -45,
+        "pair_id": "pair_55964044dfb539e6",
+        "passed": true,
+        "prospective_margin": -45,
+        "strict_improvement_required": false,
+        "view": "active_rubric"
+      },
+      {
+        "current_margin": -10,
+        "pair_id": "pair_55964044dfb539e6",
+        "passed": true,
+        "prospective_margin": -10,
+        "strict_improvement_required": false,
+        "view": "development_rubric"
+      },
+      {
+        "current_margin": -20,
+        "pair_id": "pair_f4a5c90024971528",
+        "passed": true,
+        "prospective_margin": -20,
+        "strict_improvement_required": false,
+        "view": "active_rubric"
+      },
+      {
+        "current_margin": 0,
+        "pair_id": "pair_f4a5c90024971528",
+        "passed": true,
+        "prospective_margin": 0,
+        "strict_improvement_required": false,
+        "view": "development_rubric"
+      },
+      {
+        "current_margin": -10,
+        "pair_id": "pair_e5a6091f3da9f83c",
+        "passed": true,
+        "prospective_margin": -10,
+        "strict_improvement_required": false,
+        "view": "active_rubric"
+      },
+      {
+        "current_margin": 0,
+        "pair_id": "pair_e5a6091f3da9f83c",
+        "passed": true,
+        "prospective_margin": 0,
+        "strict_improvement_required": false,
+        "view": "development_rubric"
+      },
+      {
+        "current_margin": 5,
+        "pair_id": "pair_af102c0d558e8c56",
+        "passed": true,
+        "prospective_margin": 5,
+        "strict_improvement_required": false,
+        "view": "active_rubric"
+      },
+      {
+        "current_margin": -15,
+        "pair_id": "pair_af102c0d558e8c56",
+        "passed": true,
+        "prospective_margin": -15,
+        "strict_improvement_required": false,
+        "view": "development_rubric"
+      },
+      {
+        "current_margin": -20,
+        "pair_id": "pair_63cf725ff6407812",
+        "passed": true,
+        "prospective_margin": -10,
+        "strict_improvement_required": true,
+        "view": "active_rubric"
+      },
+      {
+        "current_margin": -30,
+        "pair_id": "pair_63cf725ff6407812",
+        "passed": true,
+        "prospective_margin": -20,
+        "strict_improvement_required": true,
+        "view": "development_rubric"
+      },
+      {
+        "current_margin": 15,
+        "pair_id": "pair_6316390ccdf47279",
+        "passed": true,
+        "prospective_margin": 15,
+        "strict_improvement_required": false,
+        "view": "active_rubric"
+      },
+      {
+        "current_margin": 40,
+        "pair_id": "pair_6316390ccdf47279",
+        "passed": true,
+        "prospective_margin": 40,
+        "strict_improvement_required": false,
+        "view": "development_rubric"
+      }
+    ],
+    "prospective_candidate_ids": [
+      "elicited_76e3cd4da93edb2e"
+    ],
+    "reason": "accepted"
+  }
+}

@@ -330,7 +330,7 @@ def main():
         if key in payload:
             lines.append("| " + label + " | " + " | ".join(f"{payload[key]['means'][m]:.2f}" for m in metrics) + " |")
     if "static_compatibility" in payload and not payload["static_compatibility"]["matched_starting_inputs"]:
-        lines += ["", "The frozen Result20 static subset has different initial public artifacts from the freshly generated stress seeds. Its descriptive values and exact compatibility accounting are retained in JSON; it is not an exact matched-start static control. The v2.1/v3.1 stress trace comparison does share starting artifacts and selected rubrics."]
+        lines += ["", f"The frozen Result20 static subset has different initial public artifacts from the freshly generated stress seeds. Its descriptive values and exact compatibility accounting are retained in JSON; it is not an exact matched-start static control. The v2.1/{args.candidate_flavor} stress trace comparison does share starting artifacts and selected rubrics."]
     lines += ["", f"Assignments per trace arm: {payload['v21']['assignments']}; auditor rows per arm: {payload['v21']['auditor_rows']}.", "",
               "W−S is verifier disagreement; baseline-level or a modest reduction is acceptable. S−H and H−A are separate generalization/alignment diagnostics. Candidate selection also requires preserved S/H/A, RH, and supporting case evidence; this table alone makes no causal or acceptance claim.", ""]
     (out_dir / "README.md").write_text("\n".join(lines))

@@ -1,5 +1,17 @@
 # attack_defense_v3 User calibration
 
+**Final development result, 2026-09-12: stop without Result20.** All three
+authorized stress iterations are complete. The last, v3.2, has 9/9 assignments
+and 330/330 required Sol+Opus judgments, including all four RH windows. Its
+W−S improves but A falls 6.33 points, S−H grows 3.13, and H−A grows 5.98 against
+the matched v2.1 stress control. No candidate satisfies the joint development
+objective. Canonical v3, the conditional four-feedback-policy comparison, and
+Result20 were not launched. The v2.1 scientific reference remains unchanged.
+
+Read [the final all-case review](stress-v32-manual-review.md),
+[complete outcomes](stress-outcomes-v32/README.md), and
+[mechanism accounting](stress-v32-mechanism-summary.json).
+
 This directory records the provider-free forensic and the bounded development
 work for the User-simulator calibration candidate. The scientific reference is
 attack_defense_v2.1 Result20. The requested historical Result20 forensic informed
@@ -53,13 +65,15 @@ snapshot.
 | canonical v3 input binding | complete; current producer identities recorded |
 | v3.1 stress revisions | 9/9 valid; producer 10409332, finalizer 10409423 complete |
 | v3.1 stress outcomes | complete: audit 10409706, report 10409709, forensic 10409710; 326/326 candidate judgments |
-| v3.2 final allowed stress iteration | targeted User paragraph implemented; 370 tests pass in job 10410849; no candidate calls yet |
-| canonical v3 confirmation | not launched; pending satisfactory stress evidence |
+| v3.2 final allowed stress iteration | 9/9 complete: producer 10411526, one-CPU finalizer 10411527; unchanged execution commit d164a9a |
+| v3.2 outcomes and forensic | audit 10411528, report 10411530, forensic 10411532 complete; 330/330 candidate judgments |
+| canonical v3 confirmation | not launched; no satisfactory stress winner after three iterations |
+| Full/Semi/Score-only/User canonical comparison | not launched; conditional on a satisfactory frozen User candidate |
 | single Result20 | not launched |
 
-Result20 will be launched at most once, only after the stress and canonical dev3
-evidence supports this narrow delivery change. If it fails, the report will retain
-the failure and stop rather than tune on Result20.
+The plan authorized at most one Result20 only after satisfactory stress and
+canonical evidence. That condition was not met; the development loop is closed
+without using another Result20 to tune this delivery family.
 
 ## Stress execution incident
 
@@ -124,13 +138,33 @@ Current stress results (equal-weight Sol + Opus; nine assignments per row):
 | variant | W | S | H | A | W-S | S-H | H-A | W-A | full RH | post RH | online admissions | unique undecidable applications |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | v2.1 control | 95.22 | 83.78 | 83.59 | 77.61 | 11.44 | 0.19 | 5.98 | 17.61 | 0% | 0% | 20 | 2 |
-| v3 iteration 1 | 96.00 | 89.56 | 90.22 | 77.39 | 6.44 | -0.67 | 12.83 | 18.61 | 0% | 0% | see first-iteration extraction | see first-iteration extraction |
+| v3 iteration 1 | 96.00 | 89.56 | 90.22 | 77.39 | 6.44 | -0.67 | 12.83 | 18.61 | 0% | 0% | 16 | 12 |
 | v3.1 iteration 2 | 96.00 | 83.06 | 82.02 | 74.67 | 12.94 | 1.04 | 7.35 | 21.33 | 5.56% | 11.11% | 10 | 8 |
+| v3.2 iteration 3 | 92.89 | 86.56 | 83.24 | 71.28 | 6.33 | 3.31 | 11.96 | 21.61 | 0% | 0% | 14 | 0 |
 
 All final-artifact/final-revision RH rates are zero in these stress cohorts.
 The first iteration increased H-A materially; the second loses S/H/A and worsens
-RH. **Neither is ready for advancement.** Small-n fresh continuations limit causal
+RH. The third retains more substantive work but loses A and increases S−H/H−A.
+**None is ready for advancement.** Small-n fresh continuations limit causal
 attribution, especially because the v3.1 guard did not actually fire.
+
+The complete online funnel comparison is diagnostic, not an admission target:
+
+| variant | attacks / nonidentical | proposals | native decisions | admissions | assignments admitted | unique undecidable applications |
+|---|---:|---:|---:|---:|---:|---:|
+| v2.1 control | 76 / 76 | 63 | 61 | 20 | 8/9 | 2 |
+| v3 | 70 / 70 | 59 | 58 | 16 | 8/9 | 12 |
+| v3.1 | 59 / 59 | 65 | 59 | 10 | 6/9 | 8 |
+| v3.2 | 61 / 61 | 56 | 50 | 14 | 7/9 | 0 |
+
+These exclude frozen g1 rules. Native support/margin/semantic rejections are
+15/21/5 in the control, 25/15/2 in v3, 23/17/9 in v3.1, and 11/21/4 in v3.2.
+Pre-native scientific application uncertainty blocks 2/1/6 candidates in
+control/v3/v3.1; v3.2 instead has six deterministic title rejections. Source:
+[first-iteration saved counts](stress-iteration1-learning-summary.json),
+[v3.1 extraction](stress-v31-user-forensics.json), and
+[v3.2/control counts](stress-v32-mechanism-summary.json). More admissions are
+neither sufficient nor necessary for a good endpoint.
 
 The v3.1 learning funnel has 59 online updates/nonidentical sidecars, 65 proposal
 appearances, 59 complete native decisions (six blocked by application uncertainty),
@@ -162,6 +196,66 @@ H-A measures rubric/holistic disagreement and must be read alongside both H and 
 [Artifact gap/RH ranking](artifact-gap-rh-ranking.md) reports equal-weight signed
 gap ranks, continuous final-artifact/full-trajectory monitor scores, correlations,
 and tie-aware worst-fraction overlap. It uses 147 existing artifacts with zero
-provider calls. Associations differ across conditions; the gap family and RH
+provider calls. The completed v3.1/v3.2 extension brings this to **165 artifacts**.
+For v3.2 the final-artifact monitor scores are constant, so correlations are
+undefined; full-trajectory combined-gap-score Spearman is 0.129. Historical
+v2.1 User correlations are weak (combined score 0.121 with final-artifact RH and
+−0.120 with full-trajectory RH). Associations differ across conditions; the gap family and RH
 cannot be treated as interchangeable quality measures. Historical Result20 ranks
 are descriptive and are not used to choose the next development prompt.
+
+## Final mechanism, provenance and resource accounting
+
+v3.2 has 61 online updates/nonidentical attacks, 56 proposal appearances,
+50 complete native decisions, and 14 admissions across seven assignments.
+Support/margin/semantic rejection counts are 11/21/4; six duplicate-title proposals
+are rejected locally. There are no undecidable applications or source-contract
+failures in the extracted learning requests. Selective no-admission is preserved.
+The complete [native decisions](stress-v32-native-decisions.csv) retain the first
+failed protected margin, and [case accounting](stress-v32-case-accounting.csv)
+records lineage, stopping and first online admission/delivery.
+
+The concern budget operates, but accurate feedback remains an issue. Fifteen
+checks are selected; two have matching emitted tags, including one online
+corrective check. The 119 raw concerns comprise 73 base, 33 general, 12
+dynamic-corrective and one dynamic-proactive tags. These tags do not prove that
+all tagged concerns originated from a learned rule. One raw proactive-only revise
+is projected to accept. The run has 61 prompt receipts/54 retained revisions,
+versus 76/70 for the same fixed stress control. See
+[delivery details](stress-v32-delivery.csv).
+
+All three RNA-seq candidates retain quantitative outputs, but the saved code
+contains demonstrable inferential/diagnostic errors. Repeated concern-driven
+edits sometimes qualify those errors rather than repair them. Another case
+receives explicit target-like counts despite the User prompt's prohibition.
+The final [manual review](stress-v32-manual-review.md) separates these facts from
+unresolved auditor/context disagreements. No learned-rule-count target, scoring
+change, fourth reminder or further prompt version is introduced.
+
+Execution source: `d164a9a9a081c725465ca9cb031f816b51425add`.
+Configs: `experiments/trace-attack-defense-v3/stress-v32/`.
+Raw root:
+`/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/`.
+The [native finalization receipt](../../../../experiments/trace-attack-defense-v3/stress-v32-finalization.json)
+enumerates exact experiment/assignment roots. The existing input bindings and
+audit records preserve their producer identities; no result was relabeled.
+Coverage comprises 204 revision rubric scores, 36 absolute judgments, 18
+pairwise judgments, and 72 direct-RH judgments (18/window). Both Sol and Opus
+have complete required coverage. No Gemini request or substitution occurred.
+
+The learner used 1,201 request-unique successful calls: 167 quality, 482 rubric
+view, 74 diagnosis, 37 compilation, 36 semantic and 405 application. All were
+first-response contract-valid. Generation-appearance counts and reuse are
+separate in the JSON; these counts exclude solver, attack and outcome calls.
+Slurm wall time is recorded below; an all-provider token/USD total has not been
+reconstructed and compute parity is not claimed.
+
+The [CPU review](cpu-resource-audit.md) retains producer requests at 32 CPUs,
+reduces audits from 32 to 8 without changing 32 request workers, and reduces
+serial finalizer/report/forensic/ranking requests to one CPU. v3.2 completed on
+these allocations: producer 2:04:02, finalizer 1:19, audit 22:47, report 0:38,
+forensic 1:44. Post-completion evidence/ranking reads use one CPU and make no
+provider calls. This ends the authorized development loop; it does not freeze
+v3.2 as a successful paper method or launch an unsuccessful candidate on Result20.
+
+Provider-free closing jobs:10413312 extended ranking to165 artifacts and read final public/A records;10413410 completed admitted-witness/prompt inspection;10413429 completed the first-iteration learner totals. The preceding supplemental export10413326 failed on a reporting-only `KeyError: criterion_id` (raw proposals correctly have no host ID); its corrected read preserved all scientific records, with zero provider calls.

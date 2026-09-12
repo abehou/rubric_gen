@@ -1,3 +1,8 @@
+## 2026-09-12 — Trace v3 reporting and realized feedback review
+
+- 05:55 EDT: Structural delivery tests do not establish model compliance: saved v3.2 User feedback emits target-like numerical guidance, and origin tags can name dynamic concerns without a selected rule. Record these limitations without modifying the completed candidate or official judgments.
+- 05:55 EDT: A provider-free evidence exporter assumed host-owned IDs existed in raw compiler proposals and failed with KeyError before writing its supplement; corrected it to retain raw proposals separately from native admitted IDs, with no model/audit rerun or scientific mutation.
+
 ## 2026-09-10 — Trace forensic provenance and mapping review
 
 - 08:58 EDT: Saved A/B presentation mapping and ordinal-to-criterion penalty accounting validate; reviewed support failures include model application/preference mistakes rather than a demonstrated bookkeeping inversion. The current candidate YAML was repointed after execution, so the [forensic report](docs/reports/2026-09-10/trace-forensics/README.md) binds conclusions to native manifests, launch hashes and immutable source receipts; active implementation remains unchanged.

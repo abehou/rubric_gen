@@ -1,3 +1,7 @@
+## 2026-09-12 — Final trace v3.2 stress result
+
+- 05:55 EDT: Source d164a9a; producer10411526, finalizer10411527, audit10411528, report10411530 and forensic10411532 all completed 0:0. Exact roots, 9/9 and 330/330 coverage, all-case evidence and the no-advancement decision are in [the v3 report](docs/reports/2026-09-11/trace-attack-defense-v3/README.md); raw v3.2 outputs remain under `/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/stress-iter3/v32-candidate/`.
+
 ## 2026-09-09 — Publication and cleanup complete
 
 - 22:18 EDT: Report10380610 and cleanup10380691 completed exit0; all363 top-level run entries retained, no scientific owner active. Accepted output index remains docs/reports/2026-09-09/baseline-freeze/README.md.
