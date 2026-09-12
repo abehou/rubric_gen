@@ -54,8 +54,8 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Await q7 native seed validation 10417284 and Results30 da-1-3 recovery 10417469; then dispatch Results45 revisions and Results30 audits.",
-  "updated_at": "2026-09-12T16:47:00-04:00",
+  "next_action": "Await q7 single seed recovery 10417574 and Results30 da-1-3 recovery 10417469; revalidate q7 45/45 and then dispatch Results45 revisions and Results30 audits.",
+  "updated_at": "2026-09-12T17:05:00-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -2040,6 +2040,15 @@
         "submitted_at": "2026-09-12T15:55:00-04:00",
         "slurm_state": "RUNNING",
         "exit_code": "pending"
+      },
+      "single-da17-1-recovery": {
+        "job_id": "10417574",
+        "stage": "seed_recovery",
+        "cpus": 4,
+        "native_workers": 4,
+        "scope": "guarded native SeedSetRunner for da-17-1 only; assertion requires reps 1/2 valid and rep 3 absent",
+        "submitted_at": "2026-09-12T17:02:00-04:00",
+        "slurm_state": "RUNNING"
       }
     },
     "revision_jobs": [],
@@ -2091,8 +2100,16 @@
       "scope": "provider-free per-replicate check after the four missing-only lane resumes",
       "manifest_inventory": "10416170 (completed manifest-only check retained)",
       "native_job": "10417284",
-      "native_scope": "provider-free resolve_seed validation for all 15 Results45 task configs"
-    }
+      "native_scope": "provider-free resolve_seed validation for all 15 Results45 task configs",
+      "native_state": "COMPLETED",
+      "expected_blocks": 45,
+      "valid_blocks_before_single_recovery": 44,
+      "invalid_blocks_before_single_recovery": 1,
+      "invalid_block": "da-17-1/rep-003",
+      "recovery_job": "10417574",
+      "recovery_scope": "guarded native SeedSetRunner; assertion requires da-17-1 reps 1/2 valid and rep 3 absent before provider call"
+    },
+    "seed_dispatch_state": "Native validator 10417284 found 44/45 valid; guarded single-block recovery 10417574 dispatched for da-17-1 rep-003 only."
   },
   "heldout_decision": {
     "status": "authorized",
@@ -2272,7 +2289,7 @@
     "note": "Queue2/queue3 follow-up audits remain provider/native-reuse work; Results30/45 revision and audit stages are now dispatched only after verified seed coverage."
   },
   "current_resume": {
-    "observed_at": "2026-09-12T16:47:00-04:00",
+    "observed_at": "2026-09-12T17:05:00-04:00",
     "provider_free_inventory_jobs": {
       "results30_initial_failed_wrapper": "10415640",
       "results30_corrected": "10415666",
@@ -2367,9 +2384,11 @@
     "native_seed_integrity_check_results30": "10417222",
     "native_seed_integrity_check_results30_state": "COMPLETED; 30/30 native resolve_seed blocks valid",
     "native_seed_integrity_check_results45": "10417284",
-    "native_seed_integrity_check_results45_state": "RUNNING/PENDING; separate q7 directory validation after collector argument correction",
+    "native_seed_integrity_check_results45_state": "COMPLETED; 44/45 native resolve_seed blocks valid; da-17-1 rep-003 only missing",
     "results30_da_1_3_revision_final": "10417289",
     "results30_da_1_3_revision_recovery": "10417469",
-    "results30_da_1_3_revision_recovery_state": "RUNNING; only four failed assignments eligible after verified empty-directory cleanup; two completed assignments preserved"
+    "results30_da_1_3_revision_recovery_state": "RUNNING; only four failed assignments eligible after verified empty-directory cleanup; two completed assignments preserved",
+    "results45_single_seed_recovery": "10417574",
+    "results45_single_seed_recovery_state": "RUNNING; guarded native recovery for da-17-1 replicate 3 only"
   }
 }
