@@ -70,16 +70,12 @@ def check_semantic_records(root: Path, name: str, summary: dict) -> None:
 
 
 def source_records(study: Path):
-    ledger = json.loads((study / "study.json").read_text())
-    if "execution_conditions" not in ledger:
-        return ledger["records"]
-    # Scoped collections retain the entire original ledger. Bind the declared
-    # population to the explicit source config, never infer it from successes.
     from rubric_gen.submission_revision.experiment import load_experiment
     from rubric_gen.submission_revision.execution_scope import terminal_records
-    experiment = load_experiment(Path(ledger["experiment_path"]))
-    assert experiment.experiment_id == ledger["experiment_id"]
-    return terminal_records(experiment, ledger)
+    from rubric_gen.submission_revision.source_resolution import resolve_study_sources
+    ledger = json.loads((study / "study.json").read_text())
+    sources = resolve_study_sources(study, load_experiment(Path(ledger['experiment_path'])))
+    return terminal_records(sources.experiment, sources.ledger)
 
 
 def check(study: Path, audit: Path, *, expected_models=None):

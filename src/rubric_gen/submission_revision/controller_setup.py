@@ -236,27 +236,13 @@ def _seed_reuse(
         master_scoring_identity,
         context="master rubric judge",
     )
-    seed_execution = extract_judge_execution_contract(
-        seed_contract,
-        context="seeded initial judgment",
-    )
-    if (
-        seed_execution
-        != extract_judge_execution_contract(
-            optimizer_contract,
-            context="optimizer judge",
-        )
-        or seed_execution
-        != extract_judge_execution_contract(
-            master_contract,
-            context="master judge",
-        )
-    ):
-        raise RuntimeError(
-            "seeded initial judgment uses a different scoring contract for "
-            "judge execution"
-        )
-    return seed_contract == optimizer_contract, seed_contract == master_contract
+    from .store import same_scoring_semantics
+    seed_execution = extract_judge_execution_contract(seed_contract, context="seeded initial judgment")
+    if not all(same_scoring_semantics(seed_execution, extract_judge_execution_contract(contract, context="revision judge"))
+               for contract in (optimizer_contract, master_contract)):
+        raise RuntimeError("seeded initial judgment uses a different scoring contract for judge execution")
+    return (same_scoring_semantics(seed_contract, optimizer_contract),
+            same_scoring_semantics(seed_contract, master_contract))
 
 
 def build_revision_setup(

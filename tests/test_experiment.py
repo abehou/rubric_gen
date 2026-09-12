@@ -1212,6 +1212,8 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import rubric_gen.submission_revision.source_resolution as sources_module
+    monkeypatch.setattr(sources_module, 'resolve_study_sources', lambda *_: object())
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
@@ -1246,7 +1248,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         def preflight(self) -> None:
             calls.append("rubric_score-preflight")
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             calls.append("rubric_score")
             return 0
 
@@ -1262,7 +1267,10 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         def preflight(self) -> None:
             calls.append("rubric_free_score-preflight")
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             calls.append("rubric_free_score")
             return 0
 
@@ -1270,9 +1278,9 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     monkeypatch.setattr(
         targets_module,
         "load_evaluation_targets",
-        lambda _config: calls.append("target-loading") or targets,
+        lambda _config, *_sources: calls.append("target-loading") or targets,
     )
-    monkeypatch.setattr(direct_audit_module, "run_direct_detection", direct)
+    monkeypatch.setattr(direct_audit_module, "prepare_direct_detection", lambda config, *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: direct(config)))
     monkeypatch.setattr(
         outcome_panel_module,
         "RubricScoreRunner",
@@ -1291,7 +1299,8 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
     ))
 
     assert status == 1
-    assert calls == [
+    assert calls[:3] == ["target-loading", "rubric_score-preflight", "rubric_free_score-preflight"]
+    assert sorted(calls) == sorted([
         "target-loading",
         "rubric_score-preflight",
         "rubric_free_score-preflight",
@@ -1301,7 +1310,7 @@ def test_detect_runs_score_methods_when_direct_panel_has_failures(
         "direct",
         "rubric_score",
         "rubric_free_score",
-    ]
+    ])
     assert len(direct_configs) == 4
     assert {config.window.value for config in direct_configs} == {
         "full_trajectory",
@@ -1316,6 +1325,8 @@ def test_detect_returns_failure_for_an_incomplete_score_panel(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import rubric_gen.submission_revision.source_resolution as sources_module
+    monkeypatch.setattr(sources_module, 'resolve_study_sources', lambda *_: object())
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
@@ -1337,16 +1348,19 @@ def test_detect_returns_failure_for_an_incomplete_score_panel(
         def preflight(self) -> None:
             pass
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             return 1
 
     monkeypatch.setattr(commands_module, "load_experiment", lambda _path: experiment)
     monkeypatch.setattr(
         targets_module,
         "load_evaluation_targets",
-        lambda _config: (object(),),
+        lambda _config, *_sources: (object(),),
     )
-    monkeypatch.setattr(direct_audit_module, "run_direct_detection", lambda _config: 0)
+    monkeypatch.setattr(direct_audit_module, "prepare_direct_detection", lambda *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: 0))
     monkeypatch.setattr(outcome_panel_module, "RubricScoreRunner", RunnerStub)
     monkeypatch.setattr(outcome_panel_module, "RubricFreeScoreRunner", RunnerStub)
 
@@ -1362,6 +1376,8 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import rubric_gen.submission_revision.source_resolution as sources_module
+    monkeypatch.setattr(sources_module, 'resolve_study_sources', lambda *_: object())
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
@@ -1387,7 +1403,10 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
         def preflight(self) -> None:
             calls.append("rubric_score-preflight")
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             calls.append("rubric_score")
             raise RuntimeError("strong judge unavailable")
 
@@ -1402,7 +1421,10 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
         def preflight(self) -> None:
             calls.append("rubric_free_score-preflight")
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             calls.append("rubric_free_score")
             return 0
 
@@ -1410,12 +1432,12 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
     monkeypatch.setattr(
         targets_module,
         "load_evaluation_targets",
-        lambda _config: (object(),),
+        lambda _config, *_sources: (object(),),
     )
     monkeypatch.setattr(
         direct_audit_module,
-        "run_direct_detection",
-        lambda _config: 0,
+        "prepare_direct_detection",
+        lambda *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: 0),
     )
     monkeypatch.setattr(
         outcome_panel_module,
@@ -1428,25 +1450,29 @@ def test_detect_runs_rubric_free_stage_after_rubric_score_exception(
         RubricFreeRunnerStub,
     )
 
-    with pytest.raises(RuntimeError, match="rubric_score"):
+    with pytest.raises(ExceptionGroup, match="evaluation suite stage failures") as failed:
         commands_module.run_detect(argparse.Namespace(
             experiment="experiment.yaml",
             max_concurrency=3,
             resume=False,
         ))
 
-    assert calls == [
+    assert "strong judge unavailable" in str(failed.value.exceptions[0])
+    assert calls[:2] == ["rubric_score-preflight", "rubric_free_score-preflight"]
+    assert sorted(calls) == sorted([
         "rubric_score-preflight",
         "rubric_free_score-preflight",
         "rubric_score",
         "rubric_free_score",
-    ]
+    ])
 
 
 def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import rubric_gen.submission_revision.source_resolution as sources_module
+    monkeypatch.setattr(sources_module, 'resolve_study_sources', lambda *_: object())
     import rubric_gen.submission_revision.evaluation.direct as direct_audit_module
     import rubric_gen.submission_revision.evaluation.targets as targets_module
     import rubric_gen.submission_revision.evaluation.runner as outcome_panel_module
@@ -1472,7 +1498,10 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
         def preflight(self) -> None:
             calls.append("rubric_score-preflight")
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             calls.append("rubric_score-provider")
             return 0
 
@@ -1488,7 +1517,10 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
             calls.append("rubric_free_score-preflight")
             raise RuntimeError("rubric_free_evaluation calls exceeds its hard cap")
 
-        def run(self) -> int:
+        def prepare_resume(self) -> bool:
+            return False
+
+        def run_prepared(self, *, executor) -> int:
             calls.append("rubric_free_score-provider")
             return 0
 
@@ -1496,12 +1528,12 @@ def test_detect_stops_before_provider_work_when_stage_preflight_fails(
     monkeypatch.setattr(
         targets_module,
         "load_evaluation_targets",
-        lambda _config: (object(),),
+        lambda _config, *_sources: (object(),),
     )
     monkeypatch.setattr(
         direct_audit_module,
-        "run_direct_detection",
-        lambda _config: calls.append("direct-provider") or 0,
+        "prepare_direct_detection",
+        lambda *_: SimpleNamespace(prepare_resume=lambda: False, run_prepared=lambda **kw: calls.append("direct-provider") or 0),
     )
     monkeypatch.setattr(
         outcome_panel_module,
@@ -1760,7 +1792,12 @@ def test_study_resume_trusts_completed_records(
     )
     monkeypatch.setattr(study_module, "run_submission_revision", unexpected)
 
+    from rubric_gen.submission_revision import source_resolution
+    resolved = []
+    monkeypatch.setattr(source_resolution, "resolve_study_sources",
+                        lambda *a, **kw: resolved.append((a, kw)))
     assert runner.run() == 0
+    assert resolved == [((output, experiment), {"require_terminal": False})]
     finished = json.loads((output / "study.json").read_text())
     assert finished["status"] == "completed"
     assert {record["status"] for record in finished["records"]} == {"completed"}

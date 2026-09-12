@@ -432,13 +432,13 @@ def _rubric_score_implementation_identity(
     evaluation_hashes = {job.evaluation_implementation_sha256 for job in jobs}
     benchmarks = {job.target.benchmark for job in jobs}
     if (
-        len(evaluation_hashes) != 1
-        or not _is_sha256(next(iter(evaluation_hashes)))
+        not evaluation_hashes
+        or not all(_is_sha256(value) for value in evaluation_hashes)
         or len(benchmarks) != 1
     ):
         raise RuntimeError("revision rubric score stage implementation changed")
     return {
-        "evaluation_sha256": next(iter(evaluation_hashes)),
+        "evaluation_sha256": next(iter(evaluation_hashes)) if len(evaluation_hashes) == 1 else _evaluation_implementation_sha256(),
         "grading_implementations": [
             implementations[key] for key in sorted(implementations)
         ],

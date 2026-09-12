@@ -91,6 +91,26 @@ def test_numeric_token_counts_are_not_failed_exit_codes(tmp_path):
     assert any(e['event']=='operation_returned_failure' and e.get('operation')=='stage' for e in events)
 
 
+def test_prepared_token_count_is_reused_at_admission_only_for_exact_request(monkeypatch):
+    from rubric_gen.runtime import llm
+    from dataclasses import replace
+    capacity._reset_token_counts_after_fork()
+    request=llm.StructuredRequest(instructions='fixed',evidence='full evidence',schema_name='fixed',schema={'type':'object'},max_output_tokens=100)
+    calls=[]
+    @limited('token-count')
+    def count(model,request):
+        calls.append((model,request))
+        assert Slots(Path(capacity.policy()['coordination_dir'])/'provider',60).active_count()==1
+        return 100
+    monkeypatch.setattr(llm,'count_input_tokens',count)
+    assert capacity.cached_input_tokens('claude-opus-5',request)==100
+    _,tokens=capacity._anthropic_admission('hosted-generation',('claude-opus-5',request),{})
+    assert tokens==100 and len(calls)==1
+    assert capacity.cached_input_tokens('claude-opus-5',replace(request,evidence='different full evidence'))==100
+    assert capacity.cached_input_tokens('gpt-5.6-sol',request)==100
+    assert len(calls)==3
+
+
 def test_child_worker_pool_reserves_its_whole_budget(tmp_path,monkeypatch):
     from rubric_gen.benchmarks.harvey_lab.evaluator import HarveyEvaluator
     evaluator=object.__new__(HarveyEvaluator)

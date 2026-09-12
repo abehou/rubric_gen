@@ -2220,3 +2220,15 @@
 ## 2026-09-12 — Stress v3.1 complete, not ready to advance
 
 - 01:52 EDT: All nine stress assignments validated; audit 10409706 and report 10409709 completed with 326/326 candidate judgments across the unchanged Sol+Opus panel. Relative to the matched v2.1 control, S/H/A fell 0.72/1.57/2.94, W-S rose 1.50, and full/post-update RH rose to 5.56%/11.11%; no canonical candidate or Result20 launched.
+
+## 2026-09-11 — Runtime validation ownership
+
+- 08:28 EDT: Reserved reusable diagnostic allocation 10398213; active owners 10397534 and 10398066 were inspected without mutation. All 758 repaired consumer status files are inode-independent and their producer counterparts match the recorded original bytes; exact criterion-specific replay resolves the reported neutral-policy mismatch.
+
+## 2026-09-11 — Runtime cleanup measurements
+
+- 09:43 EDT: Fixed 18-assignment/54-turn native scheduling measured 2.83s/1.55s/0.93s at 2/4/8 workers; fixed 18-source/36-request preparation measured first dispatch 1.456s versus 0.085s and total 2.416s versus 0.597s for former serial loading versus the bounded pipeline. These use controlled providers, not live service timings.
+- 09:43 EDT: Real 120-source preparation took 1.16s scope resolution, 64.95s all-window boundaries and 18.82s rendering (480 inputs, 995 trajectory reads/220,339,988 bytes); warm in-invocation replay took 0.0077s with no extra reads. Eight real app servers started in 6.31s, no startup errors or model turns, peak sampled owned-tree RSS 1,207,324 KiB.
+- 10:15 EDT: Two normal native resumes of the repaired 120-assignment audit reused all 3,668 judgments with zero provider/token-count operations; preparation took 85.35s and 38.81s. Both completed while the older PaperBench owner retained its audit lease; the separate two-assignment runtime audit is prepared and waiting for that lease without holding provider slots.
+- 10:22 EDT: Equalizing plotting startup corrected the controlled preparation wall-time comparison to 1.658s/0.595s (2.79×), with first dispatch 1.456s/0.086s and identical 18 reads/36 requests/92,140 request bytes. The earlier 2.416s serial timing included first-use plotting overhead; both measurements remain recorded.
+- 10:49 EDT: The fixed two-revision runtime audit completed 60/60 logical judgments through 66 physical generation calls, with eight peak owned reservations, no retries/failures, 103.36s execution and 42m30.6s audit admission wait. Native resumes on 5c15bbc and ddac6a2 issued zero provider calls; latest revision resume retained exactly two completed and 238 pending ledger rows.

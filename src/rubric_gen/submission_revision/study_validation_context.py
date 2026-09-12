@@ -44,6 +44,7 @@ from rubric_gen.submission_revision.seeds import (
 from rubric_gen.submission_revision.store import (
     extract_judge_execution_contract,
     extract_seed_scoring_contract,
+    same_scoring_semantics,
 )
 from rubric_gen.submission_revision.user_simulator import SimulatedUserFeedback
 from rubric_gen.submission_revision.assignments import ExperimentAssignment
@@ -58,6 +59,26 @@ class ScoringSetup:
     initial_contract: dict[str, object]
     master_judge: FrozenRubricJudge
     master_contract: dict[str, object]
+
+
+class RecordedRubricJudge(FrozenRubricJudge):
+    """Read-only judge view retaining a completed producer's code provenance.
+
+    Rubric, model, review settings and evidence are validated by current code.
+    This view cannot dispatch a request or label it with a historical identity.
+    """
+    def __init__(self, config, rubric, implementation):
+        super().__init__(config, rubric)
+        if (not isinstance(implementation, str) or len(implementation) != 64
+                or any(c not in '0123456789abcdef' for c in implementation)):
+            raise ValueError('recorded judge implementation provenance is invalid')
+        self.implementation = implementation
+
+    def scoring_identity(self):
+        return {**super().scoring_identity(), 'scoring_implementation_sha256': self.implementation}
+
+    def evaluate(self, *args, **kwargs):
+        raise RuntimeError('a recorded producer judge is read-only')
 
 
 @dataclass(frozen=True)
@@ -84,6 +105,7 @@ class ValidationContext:
     min_revisions: int
     expected_ids: tuple[str, ...]
     scoring: ScoringSetup
+    source: object = None
 
 
 def build_validation_context(
@@ -92,6 +114,7 @@ def build_validation_context(
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
+    *, source=None,
 ) -> ValidationContext:
     if experiment_dir.is_symlink() or not experiment_dir.is_dir():
         raise RuntimeError(f"revision is not a regular directory: {experiment_dir}")
@@ -142,13 +165,13 @@ def build_validation_context(
         manifest_identity,
         context="revision manifest",
     )
-    if extract_judge_execution_contract(
+    if not same_scoring_semantics(extract_judge_execution_contract(
         seed_contract,
         context="revision seed",
-    ) != extract_judge_execution_contract(
+    ), extract_judge_execution_contract(
         manifest_contract,
         context="revision manifest",
-    ):
+    )):
         raise RuntimeError("revision seed and judge use different execution contracts")
     max_revisions = int(protocol["max_revisions"])
     min_revisions = int(protocol["min_revisions"])
@@ -167,6 +190,7 @@ def build_validation_context(
         task_dir,
         selection,
         rubric_policy,
+        recorded_implementation=manifest_identity["scoring_implementation_sha256"] if source else None,
     )
     if (
         scoring.initial_rubric.sha256 != selection.optimizer_sha256
@@ -199,7 +223,7 @@ def build_validation_context(
         max_revisions=max_revisions,
         min_revisions=min_revisions,
         expected_ids=expected_ids,
-        scoring=scoring,
+        scoring=scoring, source=source,
     )
 
 
@@ -210,6 +234,7 @@ def _build_scoring_setup(
     task_dir: Path,
     selection: ParaphraseSelection,
     rubric_policy: RubricPolicy,
+    *, recorded_implementation=None,
 ) -> ScoringSetup:
     initial_generation = load_rubric_generation(
         experiment_dir,
@@ -235,7 +260,8 @@ def _build_scoring_setup(
         max_review_chars=max_review_chars,
     )
     initial_rubric = resolve_optimizer_rubric(judge_config)
-    initial_judge = FrozenRubricJudge(judge_config, initial_rubric)
+    make_judge = FrozenRubricJudge if recorded_implementation is None else lambda config, rubric: RecordedRubricJudge(config, rubric, recorded_implementation)
+    initial_judge = make_judge(judge_config, initial_rubric)
     initial_contract = extract_seed_scoring_contract(
         initial_judge.scoring_identity(),
         context="resolved initial rubric",
@@ -246,7 +272,7 @@ def _build_scoring_setup(
         rubric_path=None,
     )
     master_rubric = resolve_optimizer_rubric(master_config)
-    master_judge = FrozenRubricJudge(master_config, master_rubric)
+    master_judge = make_judge(master_config, master_rubric)
     master_contract = extract_seed_scoring_contract(
         master_judge.scoring_identity(),
         context="resolved master rubric",
@@ -314,6 +340,7 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
         "rubric_proposer_model": protocol["rubric_proposer_model"],
         "rubric_proposer_max_retries": protocol["rubric_proposer_max_retries"],
         "rubric_generation_implementation_sha256": (
+            context.manifest["rubric_generation_implementation_sha256"] if context.source else
             rubric_generation_implementation_sha256(protocol.get("red_team_trace_version") if context.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None)
         ),
         "review": protocol["review"],

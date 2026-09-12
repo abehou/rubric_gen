@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name=rubric-dev3
 #SBATCH --partition=preempt
 #SBATCH --qos=preempt_cpu_qos
 #SBATCH --nodes=1
@@ -9,26 +8,20 @@
 #SBATCH --time=2-00:00:00
 #SBATCH --no-requeue
 #SBATCH --signal=B:TERM@300
-#SBATCH --chdir=/home/aydanh/repos/rubric_gen
 #SBATCH --output=runs/slurm-%x-%j.out
 set -euo pipefail
 umask 077
-export PYTHONPATH="$PWD/src"
-export PYTHONDONTWRITEBYTECODE=1
-# Bound local library threads; remote API worker concurrency is independent.
-export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
+cd "${SLURM_SUBMIT_DIR:?Submit from the pinned source checkout}"
+export RUBRIC_GEN_PROJECT_ROOT="$PWD" PYTHONPATH="$PWD/src:$PWD/scripts/babel"
+export PYTHONPYCACHEPREFIX=/data/user_data/aydanh/rubric_gen/cache/python/runtime-${SLURM_JOB_ID}
+export PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
 export TOKENIZERS_PARALLELISM=false RAYON_NUM_THREADS=1
-export UV_LINK_MODE=copy
 export UV_CACHE_DIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/uv
 export UV_PROJECT_ENVIRONMENT=/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602
-export PYTHONPYCACHEPREFIX=/data/user_data/aydanh/rubric_gen/cache/python/runtime-${SLURM_JOB_ID}
 export XDG_CACHE_HOME=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/xdg
+export MPLCONFIGDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/matplotlib
 export TMPDIR=/data/user_data/aydanh/rubric_gen/cache/runtime-throughput/tmp-${SLURM_JOB_ID}
 export BIOMNIBENCH_LIVE_ROOT=/data/user_data/aydanh/rubric_gen/live/runtime-throughput
-mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$BIOMNIBENCH_LIVE_ROOT"
-"$UV_PROJECT_ENVIRONMENT/bin/python" -c 'import sys; assert sys.version_info[:2] == (3,12)'
-if [[ "${1:-}" == "runtime" ]]; then
-    exec "$UV_PROJECT_ENVIRONMENT/bin/python" scripts/babel/runtime_check.py
-fi
-exec "$UV_PROJECT_ENVIRONMENT/bin/python" scripts/babel/launch.py "$@"
+mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$MPLCONFIGDIR" "$BIOMNIBENCH_LIVE_ROOT"
+exec "$UV_PROJECT_ENVIRONMENT/bin/python" scripts/babel/experiment.py "$@"

@@ -50,6 +50,7 @@ def run_seed(args: argparse.Namespace) -> int:
 
 def run_revise(args: argparse.Namespace) -> int:
     experiment = load_experiment(resolve_project_path(args.experiment))
+    assignment_workers = getattr(args, "assignment_workers", None)
     return StudyRunner(StudyRunConfig(
         experiment=experiment,
         seed_run_dir=Path(str(experiment.dag["seed"]["output_dir"])),
@@ -57,7 +58,7 @@ def run_revise(args: argparse.Namespace) -> int:
             str(experiment.dag["paraphrase"]["output_dir"])
         ),
         output_dir=Path(str(experiment.dag["revise"]["output_dir"])),
-        max_concurrency=args.max_concurrency,
+        max_concurrency=args.max_concurrency if assignment_workers is None else assignment_workers,
         resume=args.resume,
     )).run()
 
@@ -71,26 +72,7 @@ def run_paraphrase(args: argparse.Namespace) -> int:
     )).run()
 
 
-@limited("audit-study", kind="audit", returns_exit_code=True)
 def run_detect(args: argparse.Namespace) -> int:
-    from rubric_gen.submission_revision.evaluation.direct import (
-        DirectDetectionConfig,
-        run_direct_detection,
-    )
-    from rubric_gen.submission_revision.detection_windows import (
-        RevisionDetectionWindow,
-    )
-    from rubric_gen.submission_revision.evaluation.jobs import (
-        EvaluationConfig,
-    )
-    from rubric_gen.submission_revision.evaluation.targets import (
-        load_evaluation_targets,
-    )
-    from rubric_gen.submission_revision.evaluation.runner import (
-        RubricFreeScoreRunner,
-        RubricScoreRunner,
-    )
-
     experiment = load_experiment(resolve_project_path(args.experiment))
     study_value = getattr(args, "study_dir", None)
     study_dir = (
@@ -100,6 +82,29 @@ def run_detect(args: argparse.Namespace) -> int:
     )
     paraphrase_dir = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     output_dir = Path(str(experiment.dag["detect"]["output_dir"]))
+    from rubric_gen.runtime.audit_execution import audit_output_owner
+    with audit_output_owner(output_dir):
+        try:
+            return _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir)
+        except Exception as error:
+            from rubric_gen.runtime.capacity import emit
+            from rubric_gen.runtime.failures import failure_category
+            emit('audit_failed', error_type=type(error).__name__, category=failure_category(error),
+                 next_automatic_action='none: inspect preserved failure and missing work')
+            raise
+
+
+def _run_detect_owned(args, experiment, study_dir, paraphrase_dir, output_dir) -> int:
+    import time
+    from rubric_gen.runtime.capacity import emit
+    from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+    from rubric_gen.runtime.audit_execution import AuditExecutor
+    from rubric_gen.submission_revision.source_resolution import resolve_study_sources
+    from rubric_gen.submission_revision.evaluation.direct import DirectDetectionConfig, prepare_direct_detection
+    from rubric_gen.submission_revision.detection_windows import RevisionDetectionWindow
+    from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+    from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
+    from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner, RubricFreeScoreRunner
     rubric_score_config = EvaluationConfig(
         experiment=experiment,
         study_dir=study_dir,
@@ -116,7 +121,19 @@ def run_detect(args: argparse.Namespace) -> int:
         max_concurrency=args.max_concurrency,
         resume=args.resume,
     )
-    targets = load_evaluation_targets(rubric_score_config)
+    started = time.monotonic()
+    emit('audit_phase', phase='source_scope_identity', output_dir=str(output_dir))
+    sources = resolve_study_sources(study_dir, experiment)
+    targets = load_evaluation_targets(rubric_score_config, sources)
+    shared_evidence = {}
+    direct_runners = {
+        f"direct_{window.value}": prepare_direct_detection(DirectDetectionConfig(
+            experiment=experiment, study_dir=study_dir,
+            output_dir=output_dir / f"direct_{window.value}",
+            max_concurrency=args.max_concurrency, resume=args.resume, window=window,
+        ), sources, shared_evidence)
+        for window in RevisionDetectionWindow
+    }
     rubric_score_runner = RubricScoreRunner(
         rubric_score_config,
         targets,
@@ -128,38 +145,65 @@ def run_detect(args: argparse.Namespace) -> int:
 
     # These reads prepare exact semantic jobs and enforce both stage caps.
     # They do not scan or hash complete revision workspaces.
+    emit('audit_phase', phase='scoring_preparation', source_scope_seconds=time.monotonic()-started)
     rubric_score_runner.preflight()
     rubric_free_score_runner.preflight()
+    emit('audit_phase', phase='saved_response_validation')
+    reused = [rubric_score_runner.prepare_resume(), rubric_free_score_runner.prepare_resume()]
+    with ThreadPoolExecutor(max_workers=min(args.max_concurrency, len(direct_runners))) as preparation:
+        reused.extend(preparation.map(lambda runner: runner.prepare_resume(), direct_runners.values()))
 
     statuses: dict[str, int] = {}
     errors: list[tuple[str, Exception]] = []
-
-    def execute(name: str, operation: Callable[[], int]) -> None:
+    stages = {**direct_runners, "rubric_score": rubric_score_runner,
+              "rubric_free_score": rubric_free_score_runner}
+    prepared_seconds = time.monotonic()-started
+    def execute_stage(name, runner, requests):
+        stage_started = time.monotonic()
+        emit('audit_stage_started', stage=name)
         try:
-            statuses[name] = int(operation())
-        except Exception as exc:
-            errors.append((name, exc))
-
-    for window in RevisionDetectionWindow:
-        execute(
-            f"direct_{window.value}",
-            lambda window=window: run_direct_detection(DirectDetectionConfig(
-                experiment=experiment,
-                study_dir=study_dir,
-                output_dir=output_dir / f"direct_{window.value}",
-                max_concurrency=args.max_concurrency,
-                resume=args.resume,
-                window=window,
-            )),
-        )
-    execute("rubric_score", rubric_score_runner.run)
-    execute("rubric_free_score", rubric_free_score_runner.run)
+            result = runner.run_prepared(executor=requests)
+        except Exception as error:
+            from rubric_gen.runtime.failures import failure_category
+            emit('audit_stage_failed', stage=name, error_type=type(error).__name__,
+                 category=failure_category(error), elapsed_seconds=time.monotonic()-stage_started)
+            raise
+        emit('audit_stage_completed', stage=name, exit_code=int(result),
+             elapsed_seconds=time.monotonic()-stage_started)
+        return result
+    from contextlib import nullcontext
+    from rubric_gen.runtime.capacity import reservation
+    # A fully validated completed audit needs no provider or token-count calls.
+    # Its output remains exclusively owned while local publication is completed.
+    admission = nullcontext() if all(reused) else reservation('audit')
+    admission_started = time.monotonic()
+    emit('audit_phase', phase='audit_admission', preparation_seconds=prepared_seconds,
+         generation_required=not all(reused))
+    with admission, AuditExecutor(args.max_concurrency, tuple(experiment.outcome_audit['models'])) as requests:
+        execution_started = time.monotonic()
+        emit('audit_phase', phase='execution', preparation_seconds=prepared_seconds,
+             admission_wait_seconds=execution_started-admission_started)
+        with ThreadPoolExecutor(max_workers=len(stages)) as coordinators:
+            futures = {coordinators.submit(execute_stage, name, runner, requests): name
+                       for name, runner in stages.items()}
+            while futures:
+                done, _ = wait(futures, timeout=30, return_when=FIRST_COMPLETED)
+                emit('audit_queue', **requests.status())
+                for future in done:
+                    name = futures.pop(future)
+                    try:
+                        statuses[name] = int(future.result())
+                    except Exception as exc:
+                        errors.append((name, exc))
+                        print(f"{name}: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+    emit('audit_phase', phase='incomplete' if errors or any(statuses.values()) else 'complete',
+         preparation_seconds=prepared_seconds, execution_seconds=time.monotonic()-execution_started,
+         stage_exit_codes=statuses, failed_stages=[name for name, _ in errors])
     if errors:
-        stages = ", ".join(name for name, _error in errors)
-        first = errors[0][1]
-        raise RuntimeError(
-            f"evaluation suite failed in {stages}; other stages were still run"
-        ) from first
+        raise ExceptionGroup("evaluation suite stage failures", [
+            RuntimeError(f"{name}: {type(error).__name__}: {error}").with_traceback(error.__traceback__)
+            for name, error in errors
+        ])
     return int(any(statuses.values()))
 
 
@@ -173,6 +217,7 @@ def run_dag(args: argparse.Namespace) -> int:
         experiment=str(experiment.path),
         max_concurrency=args.max_concurrency,
         resume=resume,
+        assignment_workers=getattr(args, "assignment_workers", None),
     )
     if run_seed(common):
         return 1

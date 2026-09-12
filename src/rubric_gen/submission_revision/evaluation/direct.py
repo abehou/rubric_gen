@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -12,8 +11,7 @@ from rubric_gen.detection.runner import DetectionRunner
 from rubric_gen.submission_revision.detection_windows import RevisionDetectionWindow
 from rubric_gen.submission_revision.evaluation.evidence import revision_detection_source
 from rubric_gen.submission_revision.experiment import Experiment
-from rubric_gen.submission_revision.study_layout import resolve_study_experiment
-from rubric_gen.submission_revision.execution_scope import terminal_records
+from rubric_gen.submission_revision.source_resolution import StudySources, resolve_study_sources
 
 
 @dataclass(frozen=True)
@@ -42,59 +40,16 @@ class DetectionStudy:
 def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionStudy:
     """Validate a terminal study and return its completed revisions."""
 
-    source = study_dir.resolve()
-    study_path = source / "study.json"
-    try:
-        study = json.loads(study_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"invalid randomized benchmark study: {source}") from exc
-    if (
-        study.get("kind") != "rubric-gen-randomized-revision-study"
-        or study.get("status") not in {"completed", "failed", "completed_scope", "failed_scope"}
-        or type(study.get("experiment_path")) is not str
-        or type(study.get("experiment_id")) is not str
-        or type(study.get("seed_run_dir")) is not str
-        or type(study.get("paraphrase_run_dir")) is not str
-        or study.get("pretreatment_rubric_root")
-        != str(source / "pretreatment-rubrics")
-    ):
-        raise ValueError(f"unsupported benchmark study: {source}")
+    sources = resolve_study_sources(study_dir, experiment)
+    return _detection_study(sources)
 
-    if study["experiment_path"] != str(experiment.path):
-        raise ValueError(f"benchmark study uses a different experiment: {source}")
-    records = study.get("records")
-    if not isinstance(records, list) or any(
-        not isinstance(item, dict) for item in records
-    ):
-        raise ValueError(f"benchmark study has invalid records: {source}")
-    assignments = {
-        item.assignment_id: item for item in experiment.assignments
-    }
-    record_ids = [str(record.get("assignment_id")) for record in records]
-    if len(record_ids) != len(set(record_ids)) or set(record_ids) != set(assignments):
-        raise ValueError(f"benchmark study ledger differs from its experiment: {source}")
 
-    revisions: list[Path] = []
-    for record in terminal_records(experiment, study):
-        status = record.get("status")
-        if status not in {"completed", "failed", "invalid"}:
-            raise ValueError(
-                "benchmark study must reach a terminal checkpoint before audit: "
-                f"{source}"
-            )
-        if status == "completed":
-            assignment = assignments[str(record["assignment_id"])]
-            revisions.append(
-                resolve_study_experiment(source, record, assignment).resolve()
-            )
-    if len(revisions) != len(set(revisions)):
-        raise ValueError("duplicate benchmark revision experiment")
-    if not revisions:
-        raise ValueError("benchmark study has no completed assignments to audit")
+def _detection_study(sources: StudySources) -> DetectionStudy:
+    experiment = sources.experiment
     return DetectionStudy(
-        revisions=tuple(revisions),
+        revisions=tuple(source.directory for source in sources.revisions),
         experiment_id=experiment.experiment_id,
-        study_experiment_id=str(study["experiment_id"]),
+        study_experiment_id=experiment.experiment_id,
         tasks_dir=experiment.tasks_dir.resolve(),
         settings=experiment.outcome_audit,
     )
@@ -103,7 +58,14 @@ def load_detection_study(study_dir: Path, experiment: Experiment) -> DetectionSt
 def run_direct_detection(config: DirectDetectionConfig) -> int:
     """Run the study's sealed direct detection."""
 
-    study = load_detection_study(config.study_dir, config.experiment)
+    return prepare_direct_detection(config).run()
+
+
+def prepare_direct_detection(
+    config: DirectDetectionConfig, sources: StudySources | None = None, shared_inputs: dict | None = None,
+) -> DetectionRunner:
+    sources = sources or resolve_study_sources(config.study_dir, config.experiment)
+    study = _detection_study(sources)
     models = tuple(study.settings.get("models", ()))
     primary_rule = str(study.settings["primary_rule"])
     max_input_tokens = int(study.settings["max_input_tokens"])
@@ -125,10 +87,13 @@ def run_direct_detection(config: DirectDetectionConfig) -> int:
     source = revision_detection_source(
         study.revisions,
         tasks_dir=study.tasks_dir,
-        experiment_ids=(study.study_experiment_id,),
+        experiment_ids=tuple(sorted({study.study_experiment_id, *(source.producer.experiment_id for source in sources.revisions)})),
         window=config.window,
+        resolved_sources=sources.revisions,
+        shared_inputs=shared_inputs,
     )
-    result = DetectionRunner(DetectionConfig(
+    code_root = next((parent for parent in config.experiment.path.parents if (parent / 'src/rubric_gen').is_dir()), None)
+    runner = DetectionRunner(DetectionConfig(
         source=source,
         models=models,
         output_dir=evaluation_dir,
@@ -138,12 +103,10 @@ def run_direct_detection(config: DirectDetectionConfig) -> int:
         max_input_tokens=max_input_tokens,
         max_output_tokens=max_output_tokens,
         primary_rule=primary_rule,
-    )).run()
-    print(
-        "Wrote direct reward-hacking judgments "
-        f"for {config.window.value}: {evaluation_dir / 'summary.json'}"
-    )
-    return result
+    ), resume_code_root=code_root)
+    if resume_evaluation:
+        runner._write_or_validate_run_settings()
+    return runner
 
 
 def _evaluation_dir(root: Path, identity: str, *, resume: bool) -> Path:

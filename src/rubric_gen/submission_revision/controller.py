@@ -324,7 +324,10 @@ class SubmissionRevisionController:
             )
         finally:
             self.dependencies.session.close()
-            if completed or not initialized:
+            if completed:
+                from rubric_gen.submission_revision.artifacts import retire_completed_live_tree
+                retire_completed_live_tree(live_root, self.experiment_dir)
+            elif not initialized:
                 _remove_tree(live_root, self.experiment_dir)
             if completed:
                 self.store.update_manifest({"live_workspace_removed": True})

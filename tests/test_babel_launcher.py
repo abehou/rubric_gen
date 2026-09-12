@@ -61,11 +61,11 @@ def test_full_requires_smoke_and_resume_rejects_source_drift(launcher,monkeypatc
     monkeypatch.setattr(sys,'argv',['launch.py','smoke'])
     assert module.main()==0
     assert [c[1] for c in commands]==['revise','detect']
-    assert [c[c.index('--max-concurrency')+1] for c in commands]==['2','8']
+    assert [c[c.index('--max-concurrency')+1] for c in commands]==['8','8']
     assert all('--resume' in c for c in commands)
     monkeypatch.setattr(sys,'argv',['launch.py','full'])
     assert module.main()==0
-    assert all(c[c.index('--max-concurrency')+1]=='60' for c in commands[2:])
+    assert all(c[c.index('--max-concurrency')+1]=='8' for c in commands[2:])
     receipts=list(module.ROOT.glob('runs/**/launch.json'))
     assert receipts and validated
     assert 'secret-' not in ''.join(p.read_text() for p in receipts)
@@ -96,7 +96,7 @@ def test_monitor_excludes_existing_completions_and_records_operational_metrics(t
     assert last['processes']>=1 and last['rss_kib']>0
 
 
-@pytest.mark.parametrize('arguments',[['smoke','--workers','61'],['full','--recovery','--audit-workers','3']])
+@pytest.mark.parametrize('arguments',[['smoke','--workers','61'],['full','--recovery','--audit-workers','61']])
 def test_launcher_rejects_out_of_budget_workers(launcher,monkeypatch,arguments):
     module,commands,_=launcher
     monkeypatch.setattr(sys,'argv',['launch.py',*arguments])

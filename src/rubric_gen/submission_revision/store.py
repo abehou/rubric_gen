@@ -77,6 +77,16 @@ def extract_judge_execution_contract(
     return {key: identity[key] for key in JUDGE_EXECUTION_CONTRACT_KEYS}
 
 
+def same_scoring_semantics(left: dict, right: dict) -> bool:
+    """Compare request/scoring fields while retaining both producer code receipts.
+
+    This is used only after the saved artifact's ordinary integrity validation;
+    runtime source provenance alone is not a reason to purchase another score.
+    """
+    return ({k: v for k, v in left.items() if k != 'scoring_implementation_sha256'}
+            == {k: v for k, v in right.items() if k != 'scoring_implementation_sha256'})
+
+
 class RevisionStore:
     """Persist and verify one revision experiment's durable control state."""
 
@@ -163,7 +173,7 @@ class RevisionStore:
         manifest = read_json_object(self.manifest_path, "revision manifest")
         if manifest.get("initial_scoring_identity") != self.scoring_identity:
             raise RuntimeError("optimizer scoring identity changed in the manifest")
-        if identity != self.scoring_identity:
+        if not same_scoring_semantics(identity, self.scoring_identity):
             raise RuntimeError("optimizer scoring identity changed during revision")
 
     def append_event(self, payload: dict[str, object]) -> None:

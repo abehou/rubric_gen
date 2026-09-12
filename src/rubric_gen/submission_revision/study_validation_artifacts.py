@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .store import same_scoring_semantics
+
 import os
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -520,7 +522,7 @@ def _rubric_artifact_paths(
     rubric_hash = generation.rubric.content_sha256
     if (
         submission_index == 0
-        and context.seed_contract == context.scoring.initial_contract
+        and same_scoring_semantics(context.seed_contract, context.scoring.initial_contract)
         and context.seed_contract["rendered_rubric_sha256"] == rubric_hash
     ):
         validation, evaluation, _ = context.seed.judgment
@@ -567,6 +569,9 @@ def _generation_judge(
         manifest_sha256=None,
     )
     config = replace(context.scoring.judge_config, rubric_path=rubric_path)
+    if context.source is not None:
+        from .study_validation_context import RecordedRubricJudge
+        return rubric, RecordedRubricJudge(config, rubric, context.manifest['initial_scoring_identity']['scoring_implementation_sha256'])
     return rubric, FrozenRubricJudge(config, rubric)
 
 
@@ -651,7 +656,7 @@ def _fixed_original_artifact_paths(
         context.scoring.initial_generation.rubric.content_sha256
         == selection.master_sha256
     )
-    if submission_index == 0 and context.seed_contract == context.scoring.master_contract:
+    if submission_index == 0 and same_scoring_semantics(context.seed_contract, context.scoring.master_contract):
         validation, evaluation, _ = context.seed.judgment
         return validation, evaluation
     if same_base_and_master and (

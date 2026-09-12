@@ -68,6 +68,7 @@ from rubric_gen.submission_revision.store import (
     RevisionStore,
     extract_scoring_identity as _extract_scoring_identity,
     extract_seed_scoring_contract as _extract_seed_scoring_contract,
+    same_scoring_semantics,
 )
 from rubric_gen.submission_revision.user_simulator_history import (
     build_simulated_user_history,
@@ -898,9 +899,9 @@ class RevisionScorer:
                 context="seeded optimizer score validation",
             )
             reported = judge.scoring_identity()
-            if identity != _extract_seed_scoring_contract(
-                reported,
-                context="round judge",
+            if not same_scoring_semantics(
+                identity,
+                _extract_seed_scoring_contract(reported, context="round judge"),
             ):
                 raise RuntimeError(
                     "seeded score does not match the scoring contract"

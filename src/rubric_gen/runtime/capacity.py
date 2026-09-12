@@ -171,7 +171,7 @@ def emit(event: str, **fields):
     """Append operational facts only, never prompts, keys or exception messages."""
     root = Path(policy()["coordination_dir"])
     record = dict(event=event, time=time.time(), pid=os.getpid(), host=socket.gethostname(),
-                  job_id=os.environ.get("SLURM_JOB_ID"), **fields)
+                  job_id=os.environ.get("SLURM_JOB_ID"), invocation_id=os.environ.get("RUBRIC_GEN_INVOCATION_ID"), **fields)
     path = root / f"events-{socket.gethostname()}-{os.getpid()}.jsonl"
     # Host/PID filenames have a single process owner. Retaining its descriptor
     # avoids an NFS OPEN/CLOSE and distributed lock cycle for every event.
@@ -191,9 +191,10 @@ def reservation(kind="provider", count=1):
     capacity = settings["aggregate_concurrency"] if kind == "provider" else settings["audit_studies"]
     root = Path(settings["coordination_dir"]) / kind
     started = time.monotonic()
+    lease_id = uuid.uuid4().hex
+    emit('waiting', kind=kind, slots=count, lease_id=lease_id)
     with Slots(root, capacity).lease(count):
         depths[key] = 1; _LOCAL.depths = depths
-        lease_id = uuid.uuid4().hex
         try:
             emit("acquired", kind=kind, slots=count, lease_id=lease_id,
                  wait_seconds=time.monotonic() - started)
@@ -267,6 +268,19 @@ def _reset_token_counts_after_fork():
 os.register_at_fork(after_in_child=_reset_token_counts_after_fork)
 
 
+def cached_input_tokens(model, request):
+    """Reuse the existing exact request key between preparation and admission."""
+    from rubric_gen.runtime.llm import count_input_tokens
+    key = hashlib.sha256(repr((model, request)).encode()).hexdigest()
+    with _TOKEN_COUNTS_LOCK:
+        tokens = _TOKEN_COUNTS.get(key)
+    if tokens is None:
+        tokens = count_input_tokens(model, request)
+        with _TOKEN_COUNTS_LOCK:
+            _TOKEN_COUNTS[key] = tokens
+    return tokens
+
+
 def _anthropic_admission(operation, args, kwargs):
     if operation != 'hosted-generation':
         return None, None
@@ -274,15 +288,7 @@ def _anthropic_admission(operation, args, kwargs):
     request = args[1] if len(args) > 1 else kwargs.get('request_value')
     if not isinstance(model, str) or not model.startswith('claude-'):
         return None, None
-    from rubric_gen.runtime.llm import count_input_tokens
-    key = hashlib.sha256(repr((model, request)).encode()).hexdigest()
-    with _TOKEN_COUNTS_LOCK:
-        tokens = _TOKEN_COUNTS.get(key)
-    if tokens is None:
-        with reservation():
-            tokens = count_input_tokens(model, request)
-        with _TOKEN_COUNTS_LOCK:
-            _TOKEN_COUNTS[key] = tokens
+    tokens = cached_input_tokens(model, request)
     root = Path(policy()['coordination_dir']) / 'anthropic-input-tokens'
     return SharedTokenWindow(root), tokens
 
@@ -299,6 +305,7 @@ def limited(operation, *, kind="provider", slots=None, returns_exit_code=False):
                     if delay <= 0:
                         started = time.monotonic()
                         request_key = hashlib.sha256(repr((operation, args, kwargs)).encode()).hexdigest()
+                        emit("operation_started", operation=operation, request_key=request_key)
                         try:
                             result = function(*args, **kwargs)
                         except BaseException as exc:
@@ -309,8 +316,10 @@ def limited(operation, *, kind="provider", slots=None, returns_exit_code=False):
                                 except (TypeError, ValueError):
                                     retry_after = 60
                                 token_window.cool_down(retry_after)
+                            from rubric_gen.runtime.failures import failure_category
                             emit("operation_failed", operation=operation, request_key=request_key,
                                  error_type=type(exc).__name__, status_code=getattr(exc, "status_code", None),
+                                 category=failure_category(exc),
                                  elapsed_seconds=time.monotonic() - started)
                             raise
                         failed = (returns_exit_code and type(result) is int and result != 0) or getattr(result, "exit_code", 0) != 0
@@ -318,6 +327,7 @@ def limited(operation, *, kind="provider", slots=None, returns_exit_code=False):
                              elapsed_seconds=time.monotonic() - started)
                         return result
                 # Do not occupy any global provider slots during rate waits.
+                emit("token_wait", operation=operation, wait_seconds=min(delay, 5.0))
                 time.sleep(min(delay, 5.0))
         return wrapped
     return decorate

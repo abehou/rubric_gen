@@ -77,7 +77,7 @@ def main():
     parser.add_argument('--audit-workers',type=int)
     args=parser.parse_args()
     for value in (args.workers,args.audit_workers):
-        if value is not None and not 1 <= value <= (2 if args.recovery else 60):parser.error('workers must be 1–60, or 1–2 for recovery')
+        if value is not None and not 1 <= value <= 60:parser.error('workers must be 1–60')
     if not os.environ.get('SLURM_JOB_ID'):raise RuntimeError('launch requires a Slurm allocation')
     os.chdir(ROOT)
     settings=policy()
@@ -91,8 +91,8 @@ def main():
         value=dotenv_values(ROOT/'.env.local').get(key)
         if not value:raise RuntimeError(f'missing {key}')
         os.environ[key]=value
-    workers=2 if args.recovery or args.mode=='smoke' else 60
-    audits=2 if args.recovery else (8 if args.mode=='smoke' else 60)
+    workers=32 if args.mode=='result20' else 8
+    audits=32 if args.mode=='result20' else 8
     workers=args.workers or workers
     audits=args.audit_workers or audits
     output=ROOT/'runs/babel-dev3-20260907'

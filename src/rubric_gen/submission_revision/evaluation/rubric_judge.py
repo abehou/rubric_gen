@@ -13,7 +13,12 @@ import os
 import shutil
 import tempfile
 import threading
-from dataclasses import dataclass, fields, replace
+from contextvars import ContextVar
+
+_GENERATION_PATH = ContextVar("rubric_generation_path", default=None)
+from dataclasses import dataclass, fields, replace, asdict
+import time
+from rubric_gen.runtime.failures import failure_category, retry_after
 from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
@@ -532,7 +537,20 @@ def grade_rubric_score(
         provider=spec.provider,
     )
     payload = rubric_score_payload(rubric_text, review_text, answer_text)
-    generation = _generate_response(spec, payload=payload, schema=schema)
+    generation_path = _GENERATION_PATH.get()
+    request = {'execution': spec.as_json(), 'payload': payload, 'schema': schema}
+    if generation_path is not None and generation_path.exists():
+        saved = RubricScoreJudge._read_json(generation_path)
+        if saved['request'] != request:
+            raise RuntimeError('saved full-rubric terminal response request changed')
+        generation = FullRubricGeneration(**saved['generation'])
+    else:
+        generation = _generate_response(spec, payload=payload, schema=schema)
+        if generation_path is not None:
+            data = {field.name: getattr(generation, field.name) for field in fields(FullRubricGeneration)}
+            data['usage'] = generation.usage_record()['raw_usage']
+            # Save the terminal raw response/ID before decoding or publication.
+            write_json_atomic(generation_path, {'request': request, 'generation': data})
     text = generation.text
     if spec.provider == "anthropic":
         text = indexed_rubric.decode_output(text, len(rubric_levels))
@@ -576,12 +594,15 @@ def _composite_sha256(paths: tuple[Path, ...]) -> str:
 class RubricScoreJudge:
     """Score immutable snapshots without changing the sealed revision judge."""
 
-    def __init__(self, config: SubmissionJudgeConfig, rubric: FrozenRubric) -> None:
+    def __init__(self, config: SubmissionJudgeConfig, rubric: FrozenRubric,
+                 *, review_cache=None, review_lock=None) -> None:
         self.config = config
         self.rubric = rubric
         self.experiment_dir = Path(config.experiment_dir).resolve()
         self.task_dir = Path(config.task_dir).resolve()
         self._review_delegate = FrozenRubricJudge(config, rubric)
+        self._review_cache = review_cache if review_cache is not None else {}
+        self._review_lock = review_lock if review_lock is not None else threading.Lock()
 
     def scoring_identity(self) -> dict[str, object]:
         model = self.config.judge_model
@@ -618,7 +639,12 @@ class RubricScoreJudge:
         }
 
     def review_inputs(self, submission_dir: Path) -> tuple[str, str]:
-        return self._review_delegate.review_inputs(submission_dir)
+        key = (submission_dir.resolve(), self.task_dir, self.config.benchmark,
+               self.config.review, self.config.max_review_chars)
+        with self._review_lock:
+            if key not in self._review_cache:
+                self._review_cache[key] = self._review_delegate.review_inputs(submission_dir)
+            return self._review_cache[key]
 
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         root = self._evaluation_root(submission_dir, attempt_id)
@@ -652,25 +678,74 @@ class RubricScoreJudge:
             grading_engine=str(identity["grading_engine"]),
             engine_release=str(RUBRIC_SCORE_ENGINE_IDENTITY["engine"]),
         )
-        last_error: Exception | None = None
-        records: FullRubricArtifactRecords | None = None
-        for provider_attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
+        response_path = root.parent / f"{attempt_id}.response.json"
+        response_identity = {"scoring_identity": identity, "review_input_sha256": sha256_text(review_text),
+                             "answer_input_sha256": sha256_text(answer_text)}
+        records = None
+        if response_path.exists():
+            saved = self._read_json(response_path)
+            if saved['identity'] != response_identity:
+                raise RuntimeError('saved full-rubric response identity changed')
+            records = FullRubricArtifactRecords(**saved['records'])
+        last_error = None
+        # The operation budget persists across invocations. A saved intent without
+        # a terminal result records unknown remote completion and consumes a slot.
+        attempts_root = root.parent / f"{attempt_id}.attempts"
+        attempts_root.mkdir(parents=True, exist_ok=True)
+        if attempts_root.is_symlink():
+            raise RuntimeError('full-rubric attempt directory is a symlink')
+        old_failures = len(tuple(root.parent.glob('failed-attempt-*.json')))
+        for provider_attempt in range(1, JUDGE_MAX_ATTEMPTS + 1) if records is None else ():
+            attempt_path = attempts_root / f"attempt-{provider_attempt:03d}.json"
+            generation_path = attempts_root / f"attempt-{provider_attempt:03d}.response.json"
+            if attempt_path.exists():
+                saved = self._read_json(attempt_path)
+                if saved['identity'] != response_identity:
+                    raise RuntimeError('full-rubric attempt identity changed')
+                if saved.get('records') is not None:
+                    records = FullRubricArtifactRecords(**saved['records'])
+                    break
+                if saved.get('failure_category') in {'authentication', 'billing', 'configuration', 'structural'}:
+                    raise RuntimeError(f"saved full-rubric failure requires repair: {saved.get('error')}")
+                if not generation_path.exists() or saved.get('failure_category') is not None:
+                    continue
+            if provider_attempt <= old_failures:
+                continue
+            saved = {'identity': response_identity, 'attempt': provider_attempt,
+                     'remote_completion': 'unknown'}
+            write_json_atomic(attempt_path, saved)
+            token = _GENERATION_PATH.set(generation_path)
             try:
                 records = grade_rubric_score(
-                    rubric_text=self.rubric.text,
-                    review_text=review_text,
-                    answer_text=answer_text,
-                    requested_model=model,
-                    seed=seed,
+                    rubric_text=self.rubric.text, review_text=review_text,
+                    answer_text=answer_text, requested_model=model, seed=seed,
                 )
-                break
             except Exception as exc:
                 last_error = exc
+                category = failure_category(exc)
+                # Schema repairs retain the existing judge budget. Programming
+                # errors and source mismatches are not provider retry signals.
+                if isinstance(exc, FullRubricJudgeError):
+                    category = 'invalid_response'
+                saved.update(failure_category=category, error=f'{type(exc).__name__}: {exc}')
+                write_json_atomic(attempt_path, saved)
                 self._write_failure(root.parent, provider_attempt, exc)
+                if category not in {'transient_provider', 'transient_connection', 'invalid_response'}:
+                    raise
+                if provider_attempt < JUDGE_MAX_ATTEMPTS:
+                    time.sleep(retry_after(exc, provider_attempt))
+            else:
+                # Publication failures must never re-enter generation retries.
+                saved.update(remote_completion='terminal', records=asdict(records))
+                write_json_atomic(attempt_path, saved)
+                write_json_atomic(response_path, {'identity': response_identity, 'records': asdict(records)})
+                break
+            finally:
+                _GENERATION_PATH.reset(token)
         if records is None:
             raise RuntimeError(
-                "rubric-score rubric judge failed after "
-                f"{JUDGE_MAX_ATTEMPTS} attempts: {last_error}"
+                f"rubric-score rubric judge failed after {JUDGE_MAX_ATTEMPTS} attempts: "
+                f"{last_error or 'saved attempt budget exhausted'}"
             ) from last_error
         self._publish(
             root=root,
@@ -824,8 +899,7 @@ class RubricScoreJudge:
     @staticmethod
     def _write_failure(parent: Path, attempt: int, error: Exception) -> None:
         parent.mkdir(parents=True, exist_ok=True)
-        # Resume grants the same bounded attempt budget, but must retain earlier
-        # failures. Reuse the evaluation lock and atomic publication mechanism.
+        # Persist the effective budget across resume; do not replace evidence.
         with _evaluation_lock(parent):
             while os.path.lexists(parent / f"failed-attempt-{attempt:03d}.json"):
                 attempt += 1

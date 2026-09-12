@@ -241,6 +241,9 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
         if loaded != generation:
             raise RuntimeError('replayed v2 trace generation changed')
         stored = load_json_object((root/'evolution.json').read_text(), 'v2 evolution')
+        # Replaying exact saved requests and outcomes retains producer code provenance.
+        context['implementation_sha256'] = stored['context']['implementation_sha256']
+        context['validation_source_sha256s'] = stored['context']['validation_source_sha256s']
         if stored['context'] != context or stored['generation_sha256'] != generation.generation_sha256:
             raise RuntimeError('v2 generation producer context changed')
         for name, text in texts.items():

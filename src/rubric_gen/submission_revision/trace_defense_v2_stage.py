@@ -36,6 +36,7 @@ class TraceStagesV2:
         if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
+        self._recorded_requests = None
 
     def request(self, stage, evidence, validator):
         if validator.stage != stage:
@@ -57,6 +58,25 @@ class TraceStagesV2:
         request = self.request(stage, evidence, validator)
         key = canonical_sha256(request)
         with self.lock:
+            if self.read_only and not (self.root / key / 'result.json').is_file():
+                # Source-code fingerprints attest the producer, while the exact
+                # prompt/schema/evidence/provider fields identify saved work.
+                if self._recorded_requests is None:
+                    self._recorded_requests = {}
+                    for path in self.root.glob('*/result.json'):
+                        saved = load_json_object(path.read_text(), 'completed v2 request')
+                        original = saved['request']
+                        if canonical_sha256(original) != path.parent.name:
+                            raise RuntimeError('completed v2 request key changed')
+                        semantic = canonical_json({k: v for k, v in original.items() if k != 'validation_source_sha256s'})
+                        if semantic in self._recorded_requests:
+                            raise RuntimeError('duplicate completed v2 semantic request')
+                        self._recorded_requests[semantic] = original
+                semantic = canonical_json({k: v for k, v in request.items() if k != 'validation_source_sha256s'})
+                original = self._recorded_requests.get(semantic)
+                if original is None:
+                    raise RuntimeError('completed v2 generation lacks its exact scientific request receipt')
+                request, key = original, canonical_sha256(original)
             key_lock = self.key_locks.setdefault(key, threading.Lock())
         with key_lock:
             record = self._execute(stage, request, key, validator)

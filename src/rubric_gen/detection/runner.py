@@ -8,6 +8,8 @@ import hashlib
 import json
 import time
 from collections import deque
+from contextlib import nullcontext
+from threading import Lock
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Callable
@@ -43,11 +45,11 @@ from rubric_gen.detection.targets import detection_target
 from rubric_gen.runtime.llm import (
     GenerationResult,
     StructuredRequest,
-    count_input_tokens,
     estimate_input_tokens,
     generate_structured,
     request_parameters_for_model,
 )
+from rubric_gen.runtime.capacity import cached_input_tokens
 from rubric_gen.runtime.pricing import (
     HOSTED_PRICES_PER_MILLION,
     OPENAI_LONG_CONTEXT_THRESHOLD,
@@ -59,8 +61,12 @@ from rubric_gen.runtime.pricing import (
 from rubric_gen.runtime.progress import TerminalProgress
 
 
-def scoring_implementation_sha256() -> str:
-    root = Path(__file__).parent
+# Independent windows share pyplot's process-global figure/font state.
+_PLOT_LOCK = Lock()
+
+
+def scoring_implementation_sha256(source_root: Path | None = None) -> str:
+    root = source_root / "src/rubric_gen/detection" if source_root else Path(__file__).parent
     digest = hashlib.sha256()
     for name in (
             "costs.py",
@@ -92,19 +98,24 @@ class DetectionRunner:
         self, config: DetectionConfig,
         *, generate_response: Callable[[str, StructuredRequest], GenerationResult] = generate_structured,
         count_tokens: Callable[[str, StructuredRequest], int] | None = None,
+        resume_code_root: Path | None = None,
     ) -> None:
         self.config = config
+        self.resume_code_root = resume_code_root
         target = detection_target(config.detection)
         self.generate_response = generate_response
         self.count_tokens = (
             count_tokens
             if count_tokens is not None
             else (
-                count_input_tokens
+                cached_input_tokens
                 if generate_response is generate_structured
                 else estimate_input_tokens
             )
         )
+        self._payloads = {}
+        self._payload_locks = {}
+        self._payload_lock = Lock()
         self._spent_usd = 0.0
         self._spent_by_model: dict[str, float] = {}
         self.run_settings = {
@@ -167,9 +178,25 @@ class DetectionRunner:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"invalid run settings: {path}") from exc
             if existing != expected:
-                raise ValueError(
-                    "existing run settings do not exactly match the requested run"
-                )
+                compared = {k: v for k, v in expected.items() if k != 'scoring_implementation_sha256'}
+                saved = {k: v for k, v in existing.items() if k != 'scoring_implementation_sha256'}
+                origin = self.resume_code_root
+                if compared != saved or origin is None or scoring_implementation_sha256(origin) != existing.get('scoring_implementation_sha256'):
+                    raise ValueError("existing run settings do not exactly match the requested run")
+                # The original deployment must still supply its exact recorded
+                # implementation. Only execution/publication owners changed;
+                # all request, prompt, chunk, parsing and aggregation modules
+                # must remain byte-identical. Preserve the original run record.
+                current = Path(__file__).parents[3]
+                scientific = ('detection/costs.py', 'detection/jobs.py', 'detection/metrics.py',
+                              'detection/planning.py', 'detection/config.py', 'detection/prompts.py',
+                              'detection/sources.py', 'detection/targets.py', 'runtime/llm.py',
+                              'runtime/integrations/gemini.py')
+                for name in scientific:
+                    relative = Path('src/rubric_gen') / name
+                    if (origin / relative).read_bytes() != (current / relative).read_bytes():
+                        raise ValueError(f"direct resume scientific implementation changed: {name}")
+                self.run_settings = existing
             return
         if self.config.resume:
             raise ValueError("resumed run has no run.json")
@@ -179,16 +206,18 @@ class DetectionRunner:
         return self.config.source.prompt(case, self.config.detection)
 
     def _count_preparation_tokens(self, model: str, request: StructuredRequest) -> int:
-        from anthropic import APIConnectionError as AnthropicConnectionError
-        from openai import APIConnectionError as OpenAIConnectionError
+        from rubric_gen.runtime.failures import failure_category, retry_after
+        from rubric_gen.runtime.capacity import emit
 
         for attempt in range(3):
             try:
                 return self.count_tokens(model, request)
-            except (AnthropicConnectionError, OpenAIConnectionError):
-                if attempt == 2:
+            except Exception as error:
+                if not failure_category(error).startswith('transient_') or attempt == 2:
                     raise
-                time.sleep(2 ** attempt)
+                delay = retry_after(error, attempt + 1)
+                emit('retry_wait', operation='token-count', category=failure_category(error), wait_seconds=delay)
+                time.sleep(delay)
         raise AssertionError("unreachable token-count retry state")
 
     def _prepare_job(
@@ -218,71 +247,182 @@ class DetectionRunner:
             aggregation=plan.aggregation,
         )
 
+    def _prepare_source_job(self, case, model):
+        from rubric_gen.runtime.capacity import emit
+        cached = getattr(self, '_resume_jobs', {}).get((case.case_id, model))
+        if cached is not None:
+            return cached
+        started = time.monotonic()
+        with self._payload_lock:
+            lock = self._payload_locks.setdefault(case.path, Lock())
+        with lock:
+            if case.path not in self._payloads:
+                self._payloads[case.path] = self._payload(case)
+            payload = self._payloads[case.path]
+        loaded = time.monotonic()
+        job = self._prepare_job(case, model, payload)
+        emit("audit_prepared", case_id=case.case_id, model=model,
+             source_seconds=loaded-started, plan_seconds=time.monotonic()-loaded)
+        return job
+
+    def prepare_resume(self) -> bool:
+        """Replay saved RH plans against prepared immutable sources, without HTTP.
+
+        Original measured token counts and the recorded chunk limit belong to
+        that exact saved plan. Reuse requires the same run, producer, source
+        statistics, request cardinality and validated raw verdict. Missing jobs
+        still use normal preparation and provider admission.
+        """
+        self._resume_jobs = {}
+        self._completed_records = None
+        if not self.config.resume or self.config.detection != 'rh':
+            return False
+        from rubric_gen.detection.prompts import _reward_hacking_requests
+        standard = self._standard_runner()
+        records = []
+        for case in self.config.source.cases:
+            for model in self.config.models:
+                path = self.config.output_dir / 'cases' / case.case_id / model.replace('/', '_') / 'score.json'
+                if not path.is_file() or path.is_symlink():
+                    continue
+                try:
+                    saved = json.loads(path.read_text())
+                    stats = saved['compact_evidence']
+                    tokens = tuple(saved['identity']['input_tokens'])
+                    limit = stats['chunk_character_limit']
+                    if type(limit) is not int or limit < 1 or any(type(t) is not int or not 0 < t <= min(self.config.max_input_tokens, MALT_REWARD_HACKING_MAX_INPUT_TOKENS) for t in tokens):
+                        raise ValueError('invalid saved token-count plan')
+                except (KeyError, TypeError, ValueError) as error:
+                    raise ValueError(f'invalid saved direct preparation: {path}') from error
+                with self._payload_lock:
+                    if case.path not in self._payloads:
+                        self._payloads[case.path] = self._payload(case)
+                    payload = self._payloads[case.path]
+                if any(stats.get(k) != v for k,v in payload.stats.items()):
+                    raise ValueError(f'saved direct input evidence differs from its prepared producer: {path}')
+                requests = _reward_hacking_requests(payload, evidence_chars=limit,
+                                                     max_output_tokens=self.config.max_output_tokens)
+                if len(requests) != len(tokens) or len(requests) != stats['planned_calls']:
+                    raise ValueError(f'saved direct chunk plan differs: {path}')
+                job = PreparedJob(case, model, requests, tokens, stats, 'max_score')
+                if not standard._valid_score(saved, standard._identity(job)):
+                    raise ValueError(f'saved direct judgment requires local repair: {path}')
+                self._resume_jobs[case.case_id, model] = job
+                records.append(saved)
+        if len(records) == len(self.config.source.cases)*len(self.config.models):
+            self._completed_records = records
+        return self._completed_records is not None
+
     def _prepare_jobs(self) -> PreparedPanel:
-        cases = sorted(self.config.source.cases, key=lambda case: case.sort_key)
-        total = len(cases) * len(self.config.models)
-        jobs: list[PreparedJob | None] = [None] * total
-        failures: list[PreparationFailure | None] = [None] * total
-        with TerminalProgress(
-            total=total,
-            description="Audit preparation",
-            unit="job",
-        ) as progress:
-            with ThreadPoolExecutor(
-                max_workers=self.config.max_concurrency
-            ) as pool:
-                pending: dict[
-                    Future[PreparedJob], tuple[int, AuditCase, str]
-                ] = {}
-                index = 0
-                for case in cases:
-                    progress.set_status(f"loading {case.case_id}")
-                    payload = self._payload(case)
-                    for model in self.config.models:
-                        progress.set_status(f"planning {case.case_id} for {model}")
-                        future = pool.submit(
-                            self._prepare_job,
-                            case,
-                            model,
-                            payload,
-                        )
-                        pending[future] = (index, case, model)
-                        index += 1
-                remaining = set(pending)
-                while remaining:
-                    done, remaining = wait(
-                        remaining,
-                        return_when=FIRST_COMPLETED,
-                    )
+        # Keep the standalone planning interface bounded as well as the pipeline.
+        jobs, failures = [], []
+        work = iter((case, model) for case in sorted(self.config.source.cases, key=lambda c: c.sort_key)
+                    for model in self.config.models)
+        with TerminalProgress(total=len(self.config.source.cases)*len(self.config.models),
+                              description="Audit source loading and planning", unit="job") as progress:
+            with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
+                active = {}
+                def refill():
+                    while len(active) < self.config.max_concurrency:
+                        item = next(work, None)
+                        if item is None:
+                            break
+                        active[pool.submit(self._prepare_source_job, *item)] = item
+                refill()
+                while active:
+                    done, _ = wait(active, return_when=FIRST_COMPLETED)
                     for future in done:
-                        job_index, case, model = pending[future]
+                        case, model = active.pop(future)
                         try:
-                            jobs[job_index] = future.result()
+                            jobs.append(future.result())
                         except Exception as exc:
-                            failures[job_index] = PreparationFailure(
-                                case=case,
-                                model=model,
-                                error_type=type(exc).__name__,
-                                error=str(exc),
-                            )
+                            failures.append(PreparationFailure(case, model, type(exc).__name__, str(exc)))
+                        progress.set_status(f"prepared {case.case_id} for {model}")
                         progress.update()
-        return PreparedPanel(
-            jobs=tuple(job for job in jobs if job is not None),
-            failures=tuple(failure for failure in failures if failure is not None),
-        )
+                    refill()
+        jobs.sort(key=lambda job: (job.case.sort_key, self.config.models.index(job.model)))
+        failures.sort(key=lambda job: (job.case.sort_key, self.config.models.index(job.model)))
+        return PreparedPanel(tuple(jobs), tuple(failures))
+
+    def _run_pipeline(self, standard, executor):
+        """Feed ready requests while other sources are loading, within one pool."""
+        work = iter((case, model) for case in sorted(self.config.source.cases, key=lambda c: c.sort_key)
+                    for model in self.config.models)
+        active, ready, groups, records = {}, deque(), set(), []
+        exhausted = False
+        def refill():
+            nonlocal exhausted
+            for _ in range(len(ready)):
+                job = ready.popleft()
+                group = standard.cache_group(job)
+                if len(active) < self.config.max_concurrency and group not in groups:
+                    groups.add(group)
+                    active[executor.submit(standard.execute, job)] = ('generation', job)
+                else:
+                    ready.append(job)
+            while not exhausted and len(active) + len(ready) < self.config.max_concurrency:
+                item = next(work, None)
+                if item is None:
+                    exhausted = True
+                    break
+                case, model = item
+                active[executor.submit(self._prepare_source_job, case, model, model=model)] = ('prepare', item)
+        with TerminalProgress(total=len(self.config.source.cases)*len(self.config.models),
+                              description="Audit source/plan/generation", unit="judgment") as progress:
+            refill()
+            while active or ready:
+                done, _ = wait(active, return_when=FIRST_COMPLETED)
+                for future in done:
+                    phase, item = active.pop(future)
+                    if phase == 'generation':
+                        groups.remove(standard.cache_group(item))
+                    try:
+                        value = future.result()
+                        if phase == 'prepare':
+                            ready.append(value)
+                        else:
+                            records.append(value)
+                            progress.update()
+                    except Exception as exc:
+                        case, model = item if phase == 'prepare' else (item.case, item.model)
+                        records.append(PreparationFailure(case, model, type(exc).__name__, str(exc)).record())
+                        progress.update()
+                    progress.set_status(f"{phase}: {len(active)} active, {len(ready)} ready")
+                refill()
+        return records
 
     @limited("audit-stage", kind="audit", returns_exit_code=True)
     def run(self) -> int:
+        return self.run_prepared()
+
+    def run_prepared(self, prepared=None, executor=None) -> int:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self._write_or_validate_run_settings()
         standard = self._standard_runner()
-        prepared = self._prepare_jobs()
-        jobs = prepared.jobs
-        preparation_failures = [
-            failure.record()
-            for failure in prepared.failures
-        ]
-        records = self._run_standard(standard, jobs, preparation_failures)
+        completed = getattr(self, '_completed_records', None)
+        if completed is not None:
+            path = self.config.output_dir / 'summary.json'
+            if path.is_file():
+                summary = json.loads(path.read_text())
+                normalize = lambda rows: sorted(json.dumps({**r, 'status': 'completed'}, sort_keys=True) for r in rows)
+                if (summary.get('run_settings') == self.run_settings
+                        and normalize(summary.get('records', [])) == normalize(completed)
+                        and (self.config.output_dir / 'detection-rates.json').is_file()
+                        and (self.config.output_dir / 'detection-rates.png').is_file()):
+                    print(f'Reused {len(completed)} direct judgments; no token-count or generation calls', flush=True)
+                    return 0
+            for record in completed:
+                standard._record_cost(record)
+            self._set_costs(standard.outcome)
+            return self._finish(completed)
+        if prepared is None:
+            from rubric_gen.runtime.audit_execution import AuditExecutor
+            with (nullcontext(executor) if executor is not None else
+                  AuditExecutor(self.config.max_concurrency, self.config.models)) as pool:
+                records = self._run_pipeline(standard, pool)
+        else:
+            records = self._run_standard(standard, prepared.jobs,
+                                        [f.record() for f in prepared.failures], executor)
         self._set_costs(standard.outcome)
         return self._finish(records)
 
@@ -304,12 +444,14 @@ class DetectionRunner:
         standard: DetectionJobRunner,
         jobs: tuple[PreparedJob, ...],
         preparation_failures: list[dict[str, object]],
+        executor=None,
     ) -> list[dict[str, object]]:
         records = preparation_failures
         with TerminalProgress(
             total=len(jobs), description="Reward-hacking model panel", unit="judgment"
         ) as progress:
-            with ThreadPoolExecutor(max_workers=self.config.max_concurrency) as pool:
+            with (nullcontext(executor) if executor is not None else
+                  ThreadPoolExecutor(max_workers=self.config.max_concurrency)) as pool:
                 grouped: dict[tuple[str, str], deque[PreparedJob]] = {}
                 for job in jobs:
                     grouped.setdefault(
@@ -385,5 +527,6 @@ class DetectionRunner:
         rates["completed_results"] = successful
         rates["missing_results"] = len(records) - successful
         write_json_atomic(self.config.output_dir / "detection-rates.json", rates)
-        plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
+        with _PLOT_LOCK:
+            plot_detection_rates(rates, self.config.output_dir / "detection-rates.png")
         return int(successful != len(records))

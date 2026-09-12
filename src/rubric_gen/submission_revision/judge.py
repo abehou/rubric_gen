@@ -146,7 +146,6 @@ class FrozenRubricJudge:
         runner, target = self._runner_and_target(submission_dir)
         return runner.review_inputs(target)
 
-    @limited("optimizer-judge")
     def evaluate(self, submission_dir: Path, attempt_id: str) -> JudgeArtifacts:
         evaluation_root = self._evaluation_root(submission_dir, attempt_id)
         if os.path.lexists(evaluation_root):

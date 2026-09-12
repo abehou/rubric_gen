@@ -22,13 +22,28 @@ def validate_completed_revision(
     experiment: Experiment,
     seed_run_dir: Path,
     paraphrase_run_dir: Path,
+    *, source=None,
 ) -> None:
+    if source is not None:
+        if source.directory != experiment_dir.resolve() or source.assignment != assignment:
+            raise ValueError('completed revision differs from its resolved assignment source')
+        if source.producer_directory != source.directory:
+            from .artifacts import read_json_object
+            if (source.manifest != read_json_object(source.producer_directory / 'manifest.json', 'producer manifest')
+                    or source.state != read_json_object(source.producer_directory / 'state.json', 'producer state')):
+                raise ValueError('imported scientific manifest/state differs from its producer')
+            # Replay sealed producer receipts at their documented paths. Consumer
+            # evidence is independently checked before each audit dispatch.
+            experiment_dir = source.producer_directory
+        experiment = source.producer
+        seed_run_dir = Path(experiment.dag['seed']['output_dir'])
+        paraphrase_run_dir = Path(experiment.dag['paraphrase']['output_dir'])
     context = build_validation_context(
         experiment_dir,
         assignment,
         experiment,
         seed_run_dir,
-        paraphrase_run_dir,
+        paraphrase_run_dir, source=source,
     )
     validate_manifest(context)
     validate_state(context)

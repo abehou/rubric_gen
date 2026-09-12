@@ -6,6 +6,7 @@ import hashlib
 import errno
 import json
 import os
+import secrets
 import shutil
 import stat
 import tempfile
@@ -337,6 +338,29 @@ def remove_live_tree(root: Path, experiment_dir: Path) -> None:
     validate_live_root(root, experiment_dir)
     _force_remove_directory(root)
 
+
+
+def retire_completed_live_tree(root: Path, experiment_dir: Path) -> None:
+    """Retire only this closed session's disposable tree after durable completion."""
+    if not os.path.lexists(root):
+        return
+    validate_live_root(root, experiment_dir)
+    started = time.monotonic()
+    try:
+        _force_remove_directory(root)
+    except OSError as exc:
+        if exc.errno not in {errno.ENOTEMPTY, errno.EBUSY}:
+            raise
+        # The session is closed and scientific output is already sealed. The
+        # old live path must cease to exist before publishing removed=True.
+        destination = root.with_name(root.name + '.cleanup-' + secrets.token_hex(8))
+        root.rename(destination)
+        from rubric_gen.artifacts.serialization import write_json_atomic
+        write_json_atomic(experiment_dir / 'cleanup.json', {
+            'status': 'quarantined', 'path': str(destination), 'original_path': str(root),
+            'error_type': type(exc).__name__, 'errno': exc.errno,
+            'elapsed_seconds': time.monotonic() - started,
+        })
 
 def remove_created_live_tree(root: Path) -> None:
     """Remove a freshly created live root before its sentinel is durable."""

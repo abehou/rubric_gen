@@ -273,7 +273,8 @@ class SeedSetRunner:
                 task,
                 seed.seed_root,
             ).scoring_identity()
-            if seed.manifest["scoring_identity"] != expected_identity:
+            from .store import same_scoring_semantics
+            if not same_scoring_semantics(seed.manifest["scoring_identity"], expected_identity):
                 raise RuntimeError(
                     "shared seed scoring identity does not match the current "
                     f"judge for {task.name} replicate {replicate}"

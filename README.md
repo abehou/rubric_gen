@@ -29,8 +29,11 @@ provider work runs on compute nodes. The shared aggregate limit is 60 across
 studies and components, with one audit study at a time; older Mac limits do not
 apply. Current CPU jobs use account-free `preempt` / `preempt_cpu_qos` because the
 live cluster has no `cpu` partition. Recheck cluster availability before changing
-that profile. New experiment jobs request 4 CPUs (one task), retaining shared
-API concurrency 60 and 256 GiB RAM; historical resource requests remain in their launch receipts.
+that profile. Dev3 profiles use 4 or 8 assignment workers with matching CPUs; Results20 uses
+32 CPUs and 32 workers. Retain 256 GiB RAM. The shared provider cap stays 60;
+an assignment worker is distinct from a provider reservation. See the
+[runtime cleanup report](docs/reports/2026-09-11/runtime-reliability/runtime-throughput-cleanup.md)
+for measurements and the patched launch/resume commands.
 
 Install the project:
 
@@ -56,7 +59,8 @@ pools and must not contain this token.
 ```bash
 uv run rubric-gen run \
   --experiment experiments/biomnibench-dev3.yaml \
-  --max-concurrency 60 \
+  --max-concurrency 8 \
+  --assignment-workers 8 \
   --resume
 ```
 
@@ -66,7 +70,8 @@ and sealed paraphrases. It replaces revision and detection outputs.
 Run one stage when needed:
 
 All six `rubric-gen` workflow commands default to `--max-concurrency 60`.
-An explicit value overrides this per-stage worker limit; it does not guarantee
+`run` and `revise` additionally accept `--assignment-workers` to set independent
+assignment concurrency. An explicit value overrides this per-stage worker limit; it does not guarantee
 60 simultaneous provider calls or a fixed runtime.
 
 ```bash

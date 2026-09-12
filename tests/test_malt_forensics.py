@@ -378,16 +378,18 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     )
     (experiment / "manifest.json").write_text(json.dumps({
         "kind": "rubric-gen-submission-revision-experiment",
-        "experiment_id": "test-experiment",
+        "experiment_id": "detection-experiment",
         "execution_order": 1,
         "assignment_id": assignment.assignment_id,
-        "task_id": "da-1-1",
+        **{k:v for k,v in assignment.record_identity().items() if k != "experiment_dir"},
+        "benchmark": "biomnibench-da", "task_dir": str(tasks / "da-1-1"),
     }))
+    (experiment / "state.json").write_text('{}')
     (study / "study.json").write_text(json.dumps({
         "kind": "rubric-gen-randomized-revision-study",
         "status": "completed",
         "experiment_path": str(tmp_path / "experiment.yaml"),
-        "experiment_id": "test-experiment",
+        "experiment_id": "detection-experiment",
         "seed_run_dir": str(tmp_path / "seeds"),
         "paraphrase_run_dir": str(tmp_path / "paraphrases"),
         "pretreatment_rubric_root": str(study / "pretreatment-rubrics"),
@@ -401,6 +403,11 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     class FakeExperiment:
         experiment_id = "detection-experiment"
         execution_conditions = None
+        protocol = {}
+        benchmark = "biomnibench-da"
+        dag = {k: {"output_dir": str(tmp_path / v)} for k, v in
+               (("seed", "seeds"), ("paraphrase", "paraphrases"))}
+        def task_dir(self, task_id): return tasks / task_id
         path = (tmp_path / "experiment.yaml").resolve()
         tasks_dir = tasks
         outcome_audit = outcome_audit_protocol(
@@ -414,7 +421,7 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
         assignments = (assignment,)
 
     class FakeRunner:
-        def __init__(self, config):
+        def __init__(self, config, **kwargs):
             observed["config"] = config
 
         def run(self) -> int:
@@ -423,6 +430,13 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     monkeypatch.setattr(
         direct_audit_module, "DetectionRunner", FakeRunner
     )
+    from types import SimpleNamespace
+    from rubric_gen.submission_revision.evaluation import evidence
+    monkeypatch.setattr(evidence, "load_revision_evidence_snapshot", lambda *a: SimpleNamespace(
+        submission_ids=("submission-000", "submission-001"), latest_submission=experiment, state={}))
+    monkeypatch.setattr(evidence, "_trajectory_segments", lambda *a: ())
+    monkeypatch.setattr(evidence, "_no_change_turn", lambda *a: None)
+    (experiment / "trajectory.stream.jsonl").write_text('{}\n')
     assert run_direct_detection(DirectDetectionConfig(
         experiment=FakeExperiment(),
         study_dir=study,
@@ -439,14 +453,14 @@ def test_biomni_batch_routes_to_unscored_direct_ensemble(
     )
     assert config.source.provenance == {
         "kind": "submission-revision-trajectories",
-        "experiment_ids": ["test-experiment"],
+        "experiment_ids": ["detection-experiment"],
         "tasks_dir": str(tasks.resolve()),
         "window": "full_trajectory",
     }
     assert config.detection == detection
     assert config.resume is False
     assert "--mc-" not in config.output_dir.name
-    assert "--experiment-detection-experiment--source-test-experiment" in (
+    assert "--experiment-detection-experiment--source-detection-experiment" in (
         config.output_dir.name
     )
     assert not list((tmp_path / "out").rglob("metrics.json"))

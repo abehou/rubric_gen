@@ -605,3 +605,15 @@
 ## 2026-09-12 — Delivery replay and evidence interpretation
 
 - 01:52 EDT: The v3.1 proactive-only projection is currently dispatched for both v3 and v3.1, which can change old v3 replay; restrict it to its introduced version at the next safe code boundary and test both paths. Saved package-absence results are valid, but the public task permits internet installation while the execution manifest disables command networking; preserve that distinction when interpreting the unchanged outcome judgments.
+
+## 2026-09-11 — Shared runtime throughput cleanup
+
+- 08:28 EDT: Isolated implementation from fe1c87d; direct sources use a cohort-wide producer whitelist in the local adapter, and the recovery launcher imposes two assignment workers. Shared resolution and audit ownership changes are being tested without editing active sources.
+
+## 2026-09-11 — Runtime cleanup implementation
+
+- 09:43 EDT: Resolved shared consumer/source ambiguity with per-assignment producer binding and full-ledger execution-scope selection; all audit families use the prepared resolution. Direct resume replays its raw verdict and refuses a fresh generation when an existing completed score needs provenance/publication repair.
+- 09:43 EDT: One audit coordinator owns the output/global lease and a bounded provider-fair request executor; standalone stages retain normal admission. Single-study serialization remains intentional while older active owners use the original thread-local lease implementation.
+- 10:15 EDT: Fixed ordinary revision resume retaining an explicitly selected assignment subset, and completed audit replay avoiding global generation admission and token recounting. Final status now samples terminal completion and reports owned reservations, waiting phase, failure category/action and worker-limit provenance; the isolated live source remains frozen at 5c15bbc.
+- 10:28 EDT: Fixed assignment-only scope acceptance when no condition filter exists, matching StudyRunner's completed_scope status. Future consumer assembly now captures the existing recovery-ledger digest before replacing the ledger; historical repair scripts and receipts remain unchanged.
+- 10:41 EDT: A queued-work shutdown reproduction completed only two of 18 accepted tasks before callbacks hit a closed executor; the owner now drains accepted work before shutdown. Direct preparation/admission share the existing exact token-count cache, and concurrent windows serialize only pyplot publication; 72 runtime/detection checks and four focused concurrency checks pass.

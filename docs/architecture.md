@@ -79,6 +79,16 @@ Submission revision control also uses explicit ownership.
 
 Randomized study execution and validation use separate owners.
 
+`source_resolution.py` combines the full ledger and `execution_scope.py` selection
+with each assignment's documented producer config and import receipt. Evaluation,
+direct evidence, completed resume, and coverage readers use that result. Imported
+producer IDs and historical evidence remain intact; relocation is resolved when
+reading. `runtime/audit_execution.py` owns the audit output lock and one shared
+request executor. The suite coordinator prepares every family, then passes that
+executor to internal stage methods; standalone stage methods acquire normal audit
+ownership. `evaluation/resume.py` validates known semantic responses and locally
+republishes missing summaries while retaining original implementation provenance.
+
 - `study.py` owns concurrent assignment execution and its ledger.
 - `study_layout.py` owns safe assignment paths.
 - `study_validation.py` coordinates completed-revision validation.

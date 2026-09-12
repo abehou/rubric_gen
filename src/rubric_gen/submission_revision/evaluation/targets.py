@@ -6,6 +6,8 @@ import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from numbers import Real
 from pathlib import Path
+from dataclasses import replace
+from rubric_gen.submission_revision.source_resolution import StudySources, RevisionSource, resolve_study_sources
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.runtime.progress import TerminalProgress
@@ -35,77 +37,16 @@ from rubric_gen.submission_revision.execution_scope import terminal_records
 from rubric_gen.submission_revision.trace_defense_registry import validate_version
 
 
-def _consumer_import_identity(experiment_dir: Path, default_experiment_id: str,
-                              default_version: str | None) -> tuple[str, str | None]:
-    """Use producer identity only when an explicit validated import receipt exists."""
-    receipt_path = experiment_dir / "consumer-import.json"
-    if not receipt_path.is_file():
-        return default_experiment_id, default_version
-    receipt = read_json_object(receipt_path, "consumer import receipt")
-    required = {
-        "kind", "producer_experiment_id", "producer_trace_version",
-        "consumer_experiment_id", "consumer_trace_version", "producer_manifest_sha256",
-    }
-    if set(receipt) != required or receipt.get("kind") != "v2_to_v21_assignment_import":
-        raise RuntimeError(f"invalid consumer import receipt: {receipt_path}")
-    if receipt["consumer_experiment_id"] != default_experiment_id or receipt["consumer_trace_version"] != default_version:
-        raise RuntimeError(f"consumer import receipt targets another snapshot: {receipt_path}")
-    producer_version = receipt["producer_trace_version"]
-    validate_version(producer_version)
-    if not isinstance(receipt["producer_experiment_id"], str) or not receipt["producer_experiment_id"]:
-        raise RuntimeError(f"invalid producer experiment identity: {receipt_path}")
-    if not isinstance(receipt["producer_manifest_sha256"], str) or len(receipt["producer_manifest_sha256"]) != 64:
-        raise RuntimeError(f"invalid producer manifest binding: {receipt_path}")
-    if sha256_file(experiment_dir / "manifest.json") != receipt["producer_manifest_sha256"]:
-        raise RuntimeError(f"producer manifest changed after import: {receipt_path}")
-    return receipt["producer_experiment_id"], producer_version
-
 def load_evaluation_targets(
     config: EvaluationConfig,
+    sources: StudySources | None = None,
 ) -> tuple[EvaluationTarget, ...]:
-    study_root = config.study_dir.resolve()
-    study = read_json_object(study_root / "study.json", "study manifest")
-    study_experiment_id = study.get("experiment_id")
-    if (
-        study.get("kind") != "rubric-gen-randomized-revision-study"
-        or study.get("status") not in {"completed", "failed", "completed_scope", "failed_scope"}
-        or type(study_experiment_id) is not str
-        or not study_experiment_id
-        or study.get("experiment_path") != str(config.experiment.path)
-        or type(study.get("seed_run_dir")) is not str
-        or study.get("paraphrase_run_dir") != str(config.paraphrase_dir.resolve())
-        or study.get("pretreatment_rubric_root")
-        != str(study_root / "pretreatment-rubrics")
-        or not isinstance(study.get("records"), list)
-    ):
-        raise RuntimeError("revision evaluation requires a terminal source study")
-    raw_records = study["records"]
-    if any(not isinstance(record, dict) for record in raw_records):
-        raise RuntimeError("evaluation source study records are invalid")
-    records = {str(record.get("assignment_id")): record for record in raw_records}
-    configured_assignments = config.experiment.assignments
-    assignment_ids = {
-        assignment.assignment_id for assignment in configured_assignments
-    }
-    if len(records) != len(raw_records) or set(records) != assignment_ids:
-        raise RuntimeError("evaluation source study ledger differs from the experiment")
-    selected_records = terminal_records(config.experiment, study)
-    selected_ids = {r["assignment_id"] for r in selected_records}
-    if any(
-        record.get("status") not in {"completed", "failed", "invalid"}
-        for record in selected_records
-    ):
-        raise RuntimeError(
-            "revision evaluation requires every source assignment to be terminal"
-        )
-    assignments = tuple(
-        assignment
-        for assignment in configured_assignments
-        if assignment.assignment_id in selected_ids
-        and records[assignment.assignment_id].get("status") == "completed"
-    )
-    if not assignments:
-        raise RuntimeError("revision evaluation has no completed assignments")
+    sources = sources or resolve_study_sources(config.study_dir, config.experiment)
+    study_root = sources.root
+    study_experiment_id = config.experiment.experiment_id
+    records = {r["assignment_id"]: r for r in sources.ledger["records"]}
+    assignments = tuple(source.assignment for source in sources.revisions)
+    by_id = {source.assignment.assignment_id: source for source in sources.revisions}
     selection_keys = {assignment.task_id for assignment in assignments}
     selections = {
         task_id: paraphrase_validation.resolve_paraphrase_selection(
@@ -141,6 +82,7 @@ def load_evaluation_targets(
                     assignment,
                     record,
                     selections[selection_key],
+                    by_id[assignment_id],
                 )
                 futures[future] = (index, assignment_id)
             for future in as_completed(futures):
@@ -160,6 +102,7 @@ def _load_evaluation_target(
     assignment: ExperimentAssignment,
     record: dict[str, object],
     selection: ParaphraseSelection,
+    source: RevisionSource | None = None,
 ) -> EvaluationTarget:
     assignment_id = assignment.assignment_id
     experiment_dir = resolve_study_experiment(
@@ -167,19 +110,12 @@ def _load_evaluation_target(
         record,
         assignment,
     )
-    protocol = getattr(config.experiment, "protocol", {})
-    default_version = protocol.get("red_team_trace_version") if isinstance(protocol, dict) else None
-    effective_id, effective_version = _consumer_import_identity(
-        experiment_dir, study_experiment_id, default_version
+    producer = source.producer if source is not None else config.experiment
+    producer_config = replace(config, experiment=producer)
+    state = _load_terminal_revision_state(
+        experiment_dir, assignment, producer_config, selection, producer.experiment_id,
+        loaded=(source.manifest, source.state) if source is not None else None,
     )
-    if effective_id == study_experiment_id and effective_version == default_version:
-        state = _load_terminal_revision_state(
-            experiment_dir, assignment, config, selection, effective_id
-        )
-    else:
-        state = _load_terminal_revision_state(
-            experiment_dir, assignment, config, selection, effective_id, effective_version
-        )
     submission_ids = state["submission_ids"]
     scores = state["scores"]
     fixed_original_scores = state["fixed_original_scores"]
@@ -266,6 +202,7 @@ def _load_terminal_revision_state(
     selection: ParaphraseSelection,
     study_experiment_id: str,
     trace_version: str | None = None,
+    loaded: tuple[dict, dict] | None = None,
 ) -> dict[str, object]:
     """Load terminal revision metadata without scanning submission contents."""
 
@@ -273,11 +210,11 @@ def _load_terminal_revision_state(
         raise RuntimeError(
             f"revision is not a regular directory: {experiment_dir}"
         )
-    manifest = read_json_object(
-        experiment_dir / "manifest.json",
-        "revision manifest",
-    )
-    state = read_json_object(experiment_dir / "state.json", "revision state")
+    if loaded is None:
+        manifest = read_json_object(experiment_dir / "manifest.json", "revision manifest")
+        state = read_json_object(experiment_dir / "state.json", "revision state")
+    else:
+        manifest, state = loaded
     experiment = config.experiment
     protocol = experiment.protocol
     if trace_version is None:
