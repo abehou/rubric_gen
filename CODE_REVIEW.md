@@ -638,3 +638,5 @@
 ## 2026-09-12 — Public User-review boundary
 
 - 08:23 EDT: Closed locator output and explicit public request allowlists prevent evaluator prose/rubric/private IDs from crossing into P1/P2 public review. Exact-request stage receipts preserve completed calls across interruption; provider-free tests cover replay and source bounds, while public reasoning accuracy remains an empirical question.
+
+- 08:40 EDT: Real P1/P2 records satisfy the structural boundary and exact native replay, with zero source/schema failures; this does not validate public interpretations. The verifier falsely accepted prose claiming variable repair and suppressed displayed executable defects, so neither candidate is advanced or silently repaired.

@@ -1,0 +1,137 @@
+{
+  "job": "10414101",
+  "execution_commit": "e0b996a2e4e71a6db9d90936993d17a724bbb9f5",
+  "runtime_policy": {
+    "aggregate_concurrency": 60,
+    "audit_studies": 1,
+    "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+    "version": 1
+  },
+  "wall_seconds": 144.15759474801598,
+  "variants": {
+    "P1": {
+      "checkpoints": 12,
+      "completed": 12,
+      "stages": 45,
+      "stage_types": {
+        "locator": 12,
+        "render": 33
+      },
+      "attempts": 45,
+      "attempt_status": {
+        "valid_result": 45
+      },
+      "retries": 0,
+      "first_attempt_valid": 45,
+      "locator_decisions": {
+        "candidate_issue": 12
+      },
+      "issue_types": {
+        "missing_task_requirement": 10,
+        "method_validity": 5,
+        "inconsistent_public_outputs": 4,
+        "recomputation_needed": 6,
+        "scope_or_population_check": 2,
+        "implementation_check": 3,
+        "documentation_or_reproducibility": 2,
+        "unsupported_claim": 1
+      },
+      "verifier_decisions": {},
+      "renderer_decisions": {
+        "observed_defect": 22,
+        "no_issue": 8,
+        "verification_request": 3
+      },
+      "concerns": 25,
+      "checkpoint_decisions": {
+        "revise": 10,
+        "accept": 2
+      },
+      "sum_stage_wall_seconds": 101.3964735759655,
+      "input_tokens": 704287,
+      "output_tokens": 5970,
+      "cached_input_tokens": 0
+    },
+    "P2": {
+      "checkpoints": 12,
+      "completed": 12,
+      "stages": 63,
+      "stage_types": {
+        "locator": 12,
+        "verify": 34,
+        "render": 17
+      },
+      "attempts": 63,
+      "attempt_status": {
+        "valid_result": 63
+      },
+      "retries": 0,
+      "first_attempt_valid": 63,
+      "locator_decisions": {
+        "candidate_issue": 12
+      },
+      "issue_types": {
+        "missing_task_requirement": 9,
+        "method_validity": 6,
+        "implementation_check": 7,
+        "inconsistent_public_outputs": 3,
+        "recomputation_needed": 5,
+        "documentation_or_reproducibility": 4
+      },
+      "verifier_decisions": {
+        "supported_defect": 17,
+        "unsupported": 17
+      },
+      "renderer_decisions": {
+        "observed_defect": 12,
+        "verification_request": 5
+      },
+      "concerns": 17,
+      "checkpoint_decisions": {
+        "revise": 6,
+        "accept": 6
+      },
+      "sum_stage_wall_seconds": 141.93894314905629,
+      "input_tokens": 925658,
+      "output_tokens": 9666,
+      "cached_input_tokens": 0
+    }
+  },
+  "cost_by_stage": {
+    "P1/locator": {
+      "calls": 12,
+      "input_tokens": 211280,
+      "output_tokens": 1757,
+      "cached_input_tokens": 0,
+      "wall_seconds": 25.67239212896675
+    },
+    "P1/render": {
+      "calls": 33,
+      "input_tokens": 493007,
+      "output_tokens": 4213,
+      "cached_input_tokens": 0,
+      "wall_seconds": 75.72408144699875
+    },
+    "P2/locator": {
+      "calls": 12,
+      "input_tokens": 211280,
+      "output_tokens": 1862,
+      "cached_input_tokens": 0,
+      "wall_seconds": 26.22424560104264
+    },
+    "P2/verify": {
+      "calls": 34,
+      "input_tokens": 516383,
+      "output_tokens": 5332,
+      "cached_input_tokens": 0,
+      "wall_seconds": 80.08439448708668
+    },
+    "P2/render": {
+      "calls": 17,
+      "input_tokens": 197995,
+      "output_tokens": 2472,
+      "cached_input_tokens": 0,
+      "wall_seconds": 35.63030306092696
+    }
+  }
+}

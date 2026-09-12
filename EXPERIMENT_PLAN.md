@@ -1390,3 +1390,5 @@ While package-context10353356 remains the primary baseline experiment,run six da
 ## 2026-09-12 — Public-evidence firewall, bounded P1/P2
 
 Private locator may select public references but cannot transmit evaluator prose. Test P1 public renderer and P2 independent public verifier plus renderer on the exact prior twelve diagnostic checkpoints, then only passing candidates on canonical dev3 (nine each) against the saved v2.1 control. Preserve closed D×G and v3 histories; keep separate v2.1 reminder/learner, no Result20 or extra variants; stop after this comparison.
+
+- 08:40 EDT: P1/P2 bounded comparison is complete with no winner: both failed substantive public-feedback checks. The conditional canonical expansion is not authorized by these failed results; stop without P3, Result20, or other feedback arms.

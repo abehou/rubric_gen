@@ -1,0 +1,24 @@
+{
+  "P1": {
+    "decision": "blocked",
+    "primary": "repeated false public-code allegations, including diagnostics overwrite"
+  },
+  "P2": {
+    "decision": "blocked",
+    "primary": "loss of two genuine executable corrections at sensitivity checkpoint, plus false public assertions"
+  },
+  "confirmed_checkpoint_flags": {
+    "P1": {
+      "D": 3,
+      "C": 1
+    },
+    "P2": {
+      "B": 1,
+      "D": 2,
+      "E": 1
+    }
+  },
+  "new_canonical_assignments": 0,
+  "new_outcome_judgments": 0,
+  "note": "Flags overlap; enriched checkpoints do not estimate prevalence. No outcome auditor was rerun or overruled."
+}

@@ -2257,3 +2257,5 @@
 ## 2026-09-12 — Public-evidence firewall
 
 - 08:23 EDT: P1/P2 replace raw private-to-User prose with a structural locator and public-only review; P2 adds independent public verification. The exact prior twelve checkpoints are fixed, separate v2.1 reminders/learner are unchanged, and only candidates passing substantive feedback review may advance to canonical dev3.
+
+- 08:40 EDT: Frozen e0b996a job 10414101 completed all 24 P1/P2 checks (108 first-attempt-valid calls); no known private-name leak survived, but repeated public-code errors block P1 and suppression of real executable defects blocks P2. No canonical trajectories/audits launched; final provider-free replay 10414123 validated all 24/108 unchanged and the complete no-winner report is published under trace-user-public-evidence-firewall.

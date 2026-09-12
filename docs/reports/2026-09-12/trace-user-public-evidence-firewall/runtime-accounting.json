@@ -1,0 +1,18 @@
+{
+  "scientific_job": "10414101",
+  "state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed_seconds": 145,
+  "allocated_cpus": 2,
+  "total_cpu_seconds": 5.143,
+  "max_rss_KiB": 210752,
+  "provider_workers": 2,
+  "aggregate_provider_limit": 60,
+  "capacity_root": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+  "final_replay_cpus": 1,
+  "unit_test_cpus": 2,
+  "new_canonical_trajectories": 0,
+  "new_outcome_audits": 0,
+  "dollar_cost": null,
+  "dollar_cost_reason": "Provider receipts expose tokens but not billed dollars; no pricing assumption substituted."
+}

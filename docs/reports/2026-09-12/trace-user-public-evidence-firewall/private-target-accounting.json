@@ -1,0 +1,54 @@
+[
+  {
+    "cell": "P1",
+    "entity": "CXCL13",
+    "public_occurrences": {
+      "task": 0,
+      "artifact": 0,
+      "history": 0
+    },
+    "private_occurrences": 4,
+    "new_solver_feedback_occurrences": 0,
+    "selected_dynamic_check": false,
+    "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/private_target_counts/result.json"
+  },
+  {
+    "cell": "P1",
+    "entity": "NOS3",
+    "public_occurrences": {
+      "task": 0,
+      "artifact": 0,
+      "history": 0
+    },
+    "private_occurrences": 4,
+    "new_solver_feedback_occurrences": 0,
+    "selected_dynamic_check": false,
+    "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/private_target_counts/result.json"
+  },
+  {
+    "cell": "P2",
+    "entity": "CXCL13",
+    "public_occurrences": {
+      "task": 0,
+      "artifact": 0,
+      "history": 0
+    },
+    "private_occurrences": 4,
+    "new_solver_feedback_occurrences": 0,
+    "selected_dynamic_check": false,
+    "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/private_target_counts/result.json"
+  },
+  {
+    "cell": "P2",
+    "entity": "NOS3",
+    "public_occurrences": {
+      "task": 0,
+      "artifact": 0,
+      "history": 0
+    },
+    "private_occurrences": 4,
+    "new_solver_feedback_occurrences": 0,
+    "selected_dynamic_check": false,
+    "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/private_target_counts/result.json"
+  }
+]

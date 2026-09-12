@@ -19,3 +19,5 @@ Dated reports outside that checkpoint are internal historical development/proven
 ## 2026-09-12
 
 - [Bounded User delivery × grounding diagnostics](2026-09-12/trace-user-parallel-diagnostics/README.md): three fixed challengers each complete 12 feedback-only checks, but all repeat private-answer guidance and are blocked before canonical expansion. Includes the exact selector discrepancy, complete response/source review, reusable 9-assignment control with 336 judgments, and the no-winner decision.
+
+- [User public-evidence firewall P1/P2](2026-09-12/trace-user-public-evidence-firewall/README.md): 24/24 fixed checkpoints and 108/108 calls complete; named-answer leakage is absent in the decisive fixture, but false public claims and lost executable corrections block both candidates. No canonical trajectories or outcome audits launched.

@@ -1,0 +1,177 @@
+{
+  "archive_copy": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/feedback-results.json",
+  "checkpoints": 24,
+  "job": "10414123",
+  "provider_calls": 0,
+  "rows": [
+    {
+      "case": "private_target_counts",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/private_target_counts/result.json"
+    },
+    {
+      "case": "different_populations",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/different_populations/result.json"
+    },
+    {
+      "case": "coefficient_coding_sign",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/coefficient_coding_sign/result.json"
+    },
+    {
+      "case": "unavailable_remedy",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/unavailable_remedy/result.json"
+    },
+    {
+      "case": "repeated_count_concern",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 2,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/repeated_count_concern/result.json"
+    },
+    {
+      "case": "corrective_learned_check",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/corrective_learned_check/result.json"
+    },
+    {
+      "case": "proactive_label_substantive_check",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 2,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/proactive_label_substantive_check/result.json"
+    },
+    {
+      "case": "proactive_only_request",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 2,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/proactive_only_request/result.json"
+    },
+    {
+      "case": "unmet_base_requirement",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/unmet_base_requirement/result.json"
+    },
+    {
+      "case": "cohort_scope_ambiguity",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/cohort_scope_ambiguity/result.json"
+    },
+    {
+      "case": "sensitivity_verification",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/sensitivity_verification/result.json"
+    },
+    {
+      "case": "partial_analysis_method",
+      "cell": "P1",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P1/partial_analysis_method/result.json"
+    },
+    {
+      "case": "private_target_counts",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 5,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/private_target_counts/result.json"
+    },
+    {
+      "case": "different_populations",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/different_populations/result.json"
+    },
+    {
+      "case": "coefficient_coding_sign",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 6,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/coefficient_coding_sign/result.json"
+    },
+    {
+      "case": "unavailable_remedy",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 6,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/unavailable_remedy/result.json"
+    },
+    {
+      "case": "repeated_count_concern",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/repeated_count_concern/result.json"
+    },
+    {
+      "case": "corrective_learned_check",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 2,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/corrective_learned_check/result.json"
+    },
+    {
+      "case": "proactive_label_substantive_check",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/proactive_label_substantive_check/result.json"
+    },
+    {
+      "case": "proactive_only_request",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 2,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/proactive_only_request/result.json"
+    },
+    {
+      "case": "unmet_base_requirement",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 6,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/unmet_base_requirement/result.json"
+    },
+    {
+      "case": "cohort_scope_ambiguity",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 6,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/cohort_scope_ambiguity/result.json"
+    },
+    {
+      "case": "sensitivity_verification",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 3,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/sensitivity_verification/result.json"
+    },
+    {
+      "case": "partial_analysis_method",
+      "cell": "P2",
+      "native_replay": "unchanged",
+      "public_stage_allowlists_validated": 6,
+      "result_path": "/data/user_data/aydanh/rubric_gen/runs/trace-user-public-evidence-firewall-20260912/feedback-checks/P2/partial_analysis_method/result.json"
+    }
+  ],
+  "stage_count": 108
+}
