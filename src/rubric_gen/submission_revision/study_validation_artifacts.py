@@ -821,10 +821,17 @@ def _project_feedback(
         focused_dynamic_check=(v3_delivery[0]["focused_dynamic_check"] if v3_trace and v3_delivery and v3_delivery[0] else None),
         base_requirement_status=(v3_base_status if v3_trace else None),
     )
+    effective_user_feedback = user_feedback
+    if v3_trace:
+        from .user_delivery_v3 import suppress_proactive_only_revision
+        effective_user_feedback = suppress_proactive_only_revision(
+            v3_delivery[0] if v3_delivery else None,
+            user_feedback,
+        )
     projected = project_rubric_simulated_user_feedback(
         generation,
         rubric_artifacts[0],
-        user_feedback,
+        effective_user_feedback,
         task_instruction=task_instruction,
         first_revision=first_revision,
         reference_score=float(reference_score),
@@ -842,7 +849,7 @@ def _project_feedback(
             skipped=v3_delivery[1],
             ordinary_prompt=projected.prompt,
             allow_generation=False,
-            user_feedback=user_feedback,
+            user_feedback=effective_user_feedback,
         )
     return projected
 

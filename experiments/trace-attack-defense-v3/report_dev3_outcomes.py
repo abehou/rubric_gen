@@ -236,6 +236,7 @@ def main():
     parser.add_argument("cohort", choices=("stress", "canonical"))
     parser.add_argument("--v21-config-dir", default=None)
     parser.add_argument("--v3-config-dir", default=None)
+    parser.add_argument("--candidate-flavor", choices=("v3", "v31"), default="v3")
     args = parser.parse_args()
     if not __import__("os").environ.get("SLURM_JOB_ID"):
         raise RuntimeError("dev3 outcome reconstruction must run on Slurm compute storage")
@@ -247,6 +248,8 @@ def main():
         v21_dir = BUNDLE / "control-v21-compatible"
     if args.v3_config_dir:
         v3_dir = Path(args.v3_config_dir)
+    elif args.candidate_flavor == "v31":
+        v3_dir = BUNDLE / "stress-v31"
     elif args.cohort == "stress":
         v3_dir = BUNDLE / "stress"
     else:
@@ -255,7 +258,8 @@ def main():
     v21_rows, v3_rows, coverages = [], [], {}
     for task in tasks:
         v21_path = v21_dir / (f"v21-control-{task}.yaml" if args.cohort == "stress" else f"{task}.yaml")
-        v3_path = v3_dir / (f"v3-candidate-{task}.yaml" if args.cohort == "stress" else f"{task}.yaml")
+        candidate_prefix = "v31-candidate" if args.candidate_flavor == "v31" else "v3-candidate"
+        v3_path = v3_dir / (f"{candidate_prefix}-{task}.yaml" if args.cohort == "stress" else f"{task}.yaml")
         _, coverage, rows = reconstruct(v21_path)
         coverages[f"v21:{task}"] = coverage
         v21_rows.extend(rows)
@@ -263,11 +267,13 @@ def main():
         coverages[f"v3:{task}"] = coverage
         v3_rows.extend(rows)
     pair_rows, paired_summary = paired(v3_rows, v21_rows)
-    out_dir = ROOT / "docs" / "reports" / "2026-09-11" / "trace-attack-defense-v3" / f"{args.cohort}-outcomes"
+    suffix = "" if args.candidate_flavor == "v3" else f"-{args.candidate_flavor}"
+    out_dir = ROOT / "docs" / "reports" / "2026-09-11" / "trace-attack-defense-v3" / f"{args.cohort}-outcomes{suffix}"
     out_dir.mkdir(parents=True, exist_ok=True)
     payload = {
         "provider_calls": 0,
         "cohort": args.cohort,
+        "candidate_flavor": args.candidate_flavor,
         "tasks": list(tasks),
         "panel": list(PANEL),
         "v21": summarize(v21_rows),
@@ -281,9 +287,9 @@ def main():
         for row in pair_rows
     ])
     (out_dir / "README.md").write_text(
-        f"# {args.cohort} dev3 outcomes\n\n"
+        f"# {args.cohort} {args.candidate_flavor} dev3 outcomes\n\n"
         "This is a provider-free reconstruction from sealed revision/audit artifacts. "
-        "The paired table compares attack_defense_v3 minus attack_defense_v2.1 for the same task, replicate and auditor. "
+        f"The paired table compares attack_defense_{args.candidate_flavor} minus attack_defense_v2.1 for the same task, replicate and auditor. "
         "It does not select a candidate or claim causal mediation.\n\n"
         f"Assignments per arm: {payload['v21']['assignments']}; auditor rows per arm: {payload['v21']['auditor_rows']}.\n"
     )
