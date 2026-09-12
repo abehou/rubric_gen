@@ -55,7 +55,7 @@ def main() -> None:
     if args.flavor == "control-v21-compatible":
         config_dir = BUNDLE / "control-v21-compatible"
     elif args.flavor == "v31-candidate":
-        config_dir = BUNDLE / "stress-v31"
+        config_dir = BUNDLE / ("canonical-v31" if args.cohort == "canonical" else "stress-v31")
     else:
         config_dir = BUNDLE / "stress"
     rows = []
