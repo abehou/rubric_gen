@@ -54,8 +54,8 @@
     "2026-09-12T18:27:31-04:00",
     "2026-09-12T19:27:31-04:00"
   ],
-  "next_action": "Wait for scale seed resumes and checker 10416777; then native Results30 da-1-3 resume and Results45 task-shard revisions, preserving completed work.",
-  "updated_at": "2026-09-12T15:55:00-04:00",
+  "next_action": "Await native seed-integrity retry 10417222; if all blocks pass, resume Results30 da-1-3 and dispatch Results45 revisions only.",
+  "updated_at": "2026-09-12T16:22:00-04:00",
   "inventory_job_state": "COMPLETED",
   "inventory_job_exit": "0:0",
   "inventory_job_elapsed_seconds": 5,
@@ -2213,7 +2213,15 @@
         "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912"
       }
     ],
-    "provider_budget": "existing shared60/audit1; no new capacity root"
+    "provider_budget": "existing shared60/audit1; no new capacity root",
+    "scale_seed_integrity": {
+      "initial_job": "10417152",
+      "initial_state": "OUT_OF_MEMORY",
+      "retry_job": "10417222",
+      "scope": "provider-free native resolve_seed validation for q6/q7 config directories",
+      "provider_calls": 0,
+      "note": "16G diagnostic OOM preserved; retry uses 128G, no scientific changes"
+    }
   },
   "resume_reconciliation": {
     "observed_at": "2026-09-12T13:34:00-04:00",
@@ -2341,6 +2349,10 @@
       ],
       "scope": "native seed --resume; complete replicate blocks preserved"
     },
-    "scale_seed_state_check_after_missing_only": "10416777"
+    "scale_seed_state_check_after_missing_only": "10416777",
+    "native_seed_integrity_check_initial": "10417152",
+    "native_seed_integrity_check_initial_state": "OUT_OF_MEMORY 0:125 after 00:03:29 at 16G; no provider calls or output mutation",
+    "native_seed_integrity_check_retry": "10417222",
+    "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator"
   }
 }
