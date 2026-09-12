@@ -1,3 +1,7 @@
+## 2026-09-12 — PaperBench v8 residual delimiter diagnosis
+
+- 11:45 EDT: Static v8 recovery10414690 ended900 Sol/897 Opus after133 successes,158 attempts and22 retries; all3 residual ftrl judgments have complete single-line saved-response candidates passing canonical diagnostic parsing, but remain unpublished pending native replay support. Semi/Score Results20 owner10414738 has started; [terminal handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
+
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
 - 11:34 EDT: Native census found0 reusable/0 running/360 missing Full/User non-static Results20 assignments; queued their normal revision/audit workflow behind corrected dev3 validation and shared pretreatment completion. Static recovery10414690 passed preparation, acquired the global audit lease after380.773s and is executing only missing Opus work from its900 Sol/764 Opus validated starting coverage; [Queue5 handoff](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).

@@ -1,3 +1,9 @@
+## 2026-09-12 11:45 EDT — V8 bulk recovery terminal update
+
+Job10414690 reached **Sol900/900 and Opus897/900**, with detector/holistic stages complete. It added133 valid Opus judgments using158 attempts/22 retries; three120-criterion ftrl judgments exhausted all attempts on newline validation. Each has a saved complete pipe-delimited response candidate that passes the existing canonical validator after lossless diagnostic delimiter conversion; none has been published because native v8 saved-response replay is not yet supported.
+
+Do not retry unchanged bulk recovery or increase attempts. Preserve all897 valid Opus judgments and add focused tested native replay support for the complete candidates; reject the four incomplete attempts. Exact keys, nine-attempt classification, runtime and read-only receipts are in the [Queue5 terminal handoff](../paperbench-nontrace-results20/README.md#static-recovery-terminal-result-and-exact-residual-diagnosis) and [compact evidence](../paperbench-nontrace-results20/static-opus-v8-recovery-tail.json). Final Results20 metrics remain withheld at897/900.
+
 # Opus rubric response validation — v8 live validation and native recovery
 
 **Both v8 production smokes passed. Current scientific coverage: 120/120 valid revisions, Sol 900/900, Opus 764/900.** The two proven v5 saved responses were published with zero provider calls, followed by successful one-call 306/872 judgments. Exactly 136 Opus rubric judgments still need new responses; native missing-only recovery **10414690** is submitted. Detector and holistic stages remain complete. Final metrics remain withheld. Queue 2 dev3 revision jobs continue independently.

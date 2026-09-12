@@ -1,12 +1,14 @@
 {
-  "recorded_at": "2026-09-12 11:34 EDT",
+  "recorded_at": "2026-09-12 11:45 EDT",
   "queue": 5,
   "complete_scientific_result": false,
   "results20_mission": {
     "target": 960,
     "reusable_valid": 120,
-    "running_assignments": 0,
-    "queued_missing": 840
+    "running_assignments": 32,
+    "new_completed_pending_scope_validation": 1,
+    "queued_or_pending_assignments": 807,
+    "queued_missing_at_dispatch": 840
   },
   "full_user": {
     "target": 480,
@@ -149,33 +151,27 @@
     "successful_smoke_calls": 2,
     "missing_opus_at_admission": 136,
     "recovery_job": 10414690,
-    "phase": "execution",
+    "phase": "incomplete",
     "preparation_seconds": 180.44800933706574,
     "lease_wait_seconds": 380.77253014198504,
-    "execution_seconds_so_far": 153.31452655792236,
-    "new_recovery_provider_calls_so_far": null,
-    "rubric_work_items_processed_including_reuse": 1549,
-    "terminal_coverage_pending": true,
-    "request_queue": {
-      "active_by_provider": {
-        "anthropic": 31,
-        "openai": 0
-      },
-      "event": "audit_queue",
-      "host": "babel-m9-20",
-      "invocation_id": "10414690-558912",
-      "job_id": "10414690",
-      "pid": 558921,
-      "ready_by_provider": {
-        "anthropic": 353,
-        "openai": 0
-      },
-      "request_worker_limit": 32,
-      "stopped_providers": {},
-      "time": 1789227233.5285387
+    "terminal_coverage_pending": false,
+    "current_failure": {
+      "category": "invalid_response",
+      "error": "3 exhausted120-criterion line-count validations;5 complete single-line saved-response candidates across3 judgments"
     },
-    "current_failure": null,
-    "telemetry": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912/runs/runtime-10414690-hwp1jgv3/status.json"
+    "telemetry": "/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-opus-cardinality-20260912/runs/runtime-10414690-hwp1jgv3/status.json",
+    "job_state": "FAILED",
+    "exit_code": 1,
+    "sol_rubric_valid": 900,
+    "opus_rubric_valid": 897,
+    "remaining_unpublished": 3,
+    "execution_seconds": 285.74178259796463,
+    "slurm_wall_seconds": 851,
+    "provider_attempts": 158,
+    "retry_attempts": 22,
+    "newly_valid_opus": 133,
+    "complete_saved_response_candidates": 3,
+    "residual_evidence": "static-opus-v8-recovery-tail.json"
   },
   "semi_score_dev3": {
     "completed": 72,
@@ -202,9 +198,9 @@
       "results20_queued": 0,
       "results20_revision_owner": null,
       "results20_audit_owner": 10414690,
-      "results20_audit_status": "native_missing_only_recovery_executing",
+      "results20_audit_status": "incomplete_897_of_900_opus_across_static_pair",
       "results20_source_commit": "7178f1968594027c7c27960940029363f58f07b3",
-      "blocking_issue": "native recovery executing;136 Opus missing at admission",
+      "blocking_issue": "Three exhausted v8 delimiter failures; tested native replay extension required before publication",
       "terminal_assignment_failure": null
     },
     {
@@ -284,8 +280,13 @@
       "results20_audit_owner": 10414746,
       "results20_audit_status": "queued_after_revision",
       "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
-      "blocking_issue": "CPU quota or dependency",
-      "terminal_assignment_failure": null
+      "blocking_issue": "Native Results20 revision owner running",
+      "terminal_assignment_failure": null,
+      "results20_live_statuses": {
+        "running": 17,
+        "completed": 1,
+        "pending": 42
+      }
     },
     {
       "condition": "semi-offline-rubric",
@@ -364,8 +365,12 @@
       "results20_audit_owner": 10414746,
       "results20_audit_status": "queued_after_revision",
       "results20_source_commit": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
-      "blocking_issue": "CPU quota or dependency",
-      "terminal_assignment_failure": null
+      "blocking_issue": "Native Results20 revision owner running",
+      "terminal_assignment_failure": null,
+      "results20_live_statuses": {
+        "running": 15,
+        "pending": 45
+      }
     },
     {
       "condition": "score-only-offline-rubric",
@@ -442,9 +447,9 @@
       "results20_queued": 0,
       "results20_revision_owner": null,
       "results20_audit_owner": 10414690,
-      "results20_audit_status": "native_missing_only_recovery_executing",
+      "results20_audit_status": "incomplete_897_of_900_opus_across_static_pair",
       "results20_source_commit": "7178f1968594027c7c27960940029363f58f07b3",
-      "blocking_issue": "native recovery executing;136 Opus missing at admission",
+      "blocking_issue": "Three exhausted v8 delimiter failures; tested native replay extension required before publication",
       "terminal_assignment_failure": null
     },
     {
@@ -512,5 +517,6 @@
   "provider_cap": 60,
   "global_audit_owners": 1,
   "code_changes": false,
-  "peer_review": "No blocking findings; six disjoint conditions, unchanged science, exact native producer binding."
+  "peer_review": "No blocking findings; six disjoint conditions, unchanged science, exact native producer binding.",
+  "scheduler_note": "Per-job scheduler list above is the original verified submission snapshot;10414690 is now FAILED1:0 and10414738 is now RUNNING. Other dependency owners remain queued."
 }
