@@ -31,3 +31,9 @@ The validation receipt is `runs/paperbench-nontrace-audit-closure-20260912/nativ
 ## Publication
 
 Publication must use a pinned commit containing this repair and the normal native `detect --resume` path against the unchanged static storage overlay. This report precedes publication; final coverage and the exact execution commit belong in the final scientific report and shared non-trace inventory. The three replay records must be marked as saved-response reuse with zero provider calls. Existing global audit ownership remains in force. No CPU-profile code is part of this repair.
+
+## Terminal execution
+
+Pinned repair `8226495fe88937cc613c02dd70b5253e58873e7f` was committed and pushed before native publication. Job10415061 completed successfully: exactly3 saved responses published, zero provider calls, Sol900/900 and Opus900/900, and all12,360 protected prior files byte-identical. Preparation216.206s, global lease admission286.021s, native execution121.660s, full preservation/publication workflow650.703s. Finalizer10415098 then passed all required coverage and produced the [complete final baseline report](selected-neutral-heldout-rigorous-results20-final.md).
+
+The code also passed686 tests after selective integration in current core. Reporting uses existing native scoring-semantic compatibility and preserves all evidence/provenance checks;23 focused reporting tests and9 pinned-runtime tests passed. No CPU-profile code or live provider protocol changed.

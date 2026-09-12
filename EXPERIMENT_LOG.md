@@ -1,3 +1,7 @@
+## 2026-09-12 — Final corrected PaperBench static Results20 complete
+
+- 12:27 EDT: Native local replay10415061 and finalizer10415098 closed900/900 Sol and900/900 Opus with120 valid revisions, zero new providers and no changed protected files. Final S−H is Full+0.9389 (task-cluster95%CI−1.5423 to3.5317), User+0.4466 (−0.7481 to1.6489); [final report](docs/reports/2026-09-12/paperbench-static/selected-neutral-heldout-rigorous-results20-final.md), with the remaining14 non-trace conditions retaining existing owners.
+
 ## 2026-09-12 — PaperBench audit closure
 
 - 12:21 EDT: Queue6 native static closure10415061 reuses900 Sol/897 Opus and publishes only3 complete saved responses with zero provider work; preparation216.206s and global lease admission286.021s are measured separately. Existing non-trace revision/audit owners remain intact; [repair evidence](docs/reports/2026-09-12/paperbench-static/opus-saved-response-replay.md).
