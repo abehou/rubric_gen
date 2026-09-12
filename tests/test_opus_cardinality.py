@@ -99,12 +99,14 @@ def test_explicit_v5_replay_accepts_only_identical_redundant_blocks(count):
         wire.replay_saved_v5_output(json.dumps(missing), count)
 
 
-def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, sol=0, old_contract=wire.V5_STRUCTURED_OUTPUT):
-    assert missing == 0 or old_contract == wire.V5_STRUCTURED_OUTPUT
+def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, sol=0,
+                   old_contract=wire.V5_STRUCTURED_OUTPUT, missing_criterion_count=65,
+                   saved_v8_attempts=None):
+    assert missing == 0 or old_contract in {wire.V5_STRUCTURED_OUTPUT, wire.STRUCTURED_OUTPUT}
     target = _target(tmp_path)
     (tmp_path / 'instruction.md').write_text('Implement the task.')
     small = tmp_path / 'small.txt'; small.write_text(_many_criterion_rubric(1))
-    large = tmp_path / 'large.txt'; large.write_text(_many_criterion_rubric(65))
+    large = tmp_path / 'large.txt'; large.write_text(_many_criterion_rubric(missing_criterion_count))
     exp = SimpleNamespace(protocol={}, outcome_audit={'models': ['gpt-5.6-sol', 'claude-opus-5'],
         'rubric_score_max_calls': 10000, 'rubric_score_max_request_bytes': 10**12,
         'rubric_score_max_output_tokens': 10**12})
@@ -161,18 +163,31 @@ def _fixture_panel(tmp_path, monkeypatch, *, valid=760, missing=140, salvage=2, 
         else:
             attempts = root.parent / f'{attempt_id}.attempts'; attempts.mkdir(parents=True)
             for number in range(1, 4):
-                response = _wire(['0|evidence'] * spec.criterion_count)
-                duplicate = deepcopy(response['criteria']['full_blocks'][0])
-                if not (i < valid + salvage and number == 2):
-                    duplicate['values']['left']['left']['left']['left']['left']['left'] = '1|different'
-                response['criteria']['full_blocks'].append(duplicate)
+                if old_contract == wire.V5_STRUCTURED_OUTPUT:
+                    response = _wire(['0|evidence'] * spec.criterion_count)
+                    duplicate = deepcopy(response['criteria']['full_blocks'][0])
+                    if not (i < valid + salvage and number == 2):
+                        duplicate['values']['left']['left']['left']['left']['left']['left'] = '1|different'
+                    response['criteria']['full_blocks'].append(duplicate)
+                else:
+                    complete_attempts = saved_v8_attempts if saved_v8_attempts is not None else [(2,)] * salvage
+                    complete = i < valid + salvage and number in complete_attempts[i - valid]
+                    count = spec.criterion_count if complete else spec.criterion_count - 1
+                    response = _text(['0|evidence | retained pipe'] * count)
+                    # The production tail contains complete one-line pipe rows,
+                    # and incomplete outputs in both pipe and newline forms.
+                    if complete or (i - valid + number) % 2 == 0:
+                        response['criteria_text'] = response['criteria_text'].replace('\n', '|')
                 raw = {'request': {'execution': spec.as_json(),
                                   'payload': judge_module.rubric_score_payload(judge.rubric.text, review, 'answer'),
-                                  'schema': wire.output_schema(spec.criterion_count, contract=wire.V5_STRUCTURED_OUTPUT)},
+                                  'schema': wire.output_schema(spec.criterion_count, contract=old_contract)},
                        'generation': {**generation.__dict__, 'text': json.dumps(response)}}
                 (attempts / f'attempt-{number:03d}.response.json').write_text(json.dumps(raw))
                 error = {'identity': identity, 'attempt': number, 'remote_completion': 'unknown',
-                         'failure_category': 'invalid_response', 'error': 'FullRubricJudgeError: count-safe block count does not exactly match the rubric'}
+                         'failure_category': 'invalid_response', 'error': (
+                             'FullRubricJudgeError: count-safe block count does not exactly match the rubric'
+                             if old_contract == wire.V5_STRUCTURED_OUTPUT else
+                             f'FullRubricJudgeError: rubric criteria_text must contain exactly {spec.criterion_count} criterion lines')}
                 (attempts / f'attempt-{number:03d}.json').write_text(json.dumps(error))
                 (root.parent / f'failed-attempt-{number:03d}.json').write_text(json.dumps(error))
     manifest = {'kind': 'fixture', 'implementation_identity': {'evaluation_sha256': 'b' * 64},
@@ -201,7 +216,7 @@ def test_native_resume_760_valid_140_exhausted_preserves_records_and_attempts(tm
     runner.preflight()
     prepared = runner._prepared
     assert len(runner._reused_records) == 763
-    assert len(runner._saved_v5_replays) == salvage
+    assert len(runner._saved_response_replays) == salvage
     assert len([j for j in prepared.unique_jobs if j.key not in runner._reused_records]) == 140
     assert calls == []  # Native preparation has no provider work or publication.
     prior = json.loads((runner.root / 'manifest.json').read_text())
@@ -215,7 +230,7 @@ def test_native_resume_760_valid_140_exhausted_preserves_records_and_attempts(tm
     assert set(calls) == {f'evidence {i}' for i in range(760 + salvage, 900)}
     assert all((p.read_bytes(), p.stat().st_mtime_ns) == data for p, data in before.items())
     for job in prepared.unique_jobs:
-        if job.key in runner._saved_v5_replays:
+        if job.key in runner._saved_response_replays:
             record = json.loads((runner.root / 'records' / f'{job.key}.json').read_text())
             assert record['grading_identity'] == job.grading_identity
             assert record['engine_execution']['structured_output_contract'] == wire.V5_STRUCTURED_OUTPUT
@@ -225,7 +240,7 @@ def test_native_resume_760_valid_140_exhausted_preserves_records_and_attempts(tm
     # Another native resume validates both representations and buys nothing.
     runner._prepared = None
     runner.preflight()
-    assert len(runner._reused_records) == 903 and not runner._saved_v5_replays
+    assert len(runner._reused_records) == 903 and not runner._saved_response_replays
     for job in runner._prepared.unique_jobs:
         runner._run_job(job)
     assert len(calls) == 140 - salvage
@@ -246,8 +261,9 @@ def test_old_valid_record_rejects_changed_scientific_execution(tmp_path, monkeyp
 
 
 @pytest.mark.parametrize('field', ['payload', 'schema', 'max_output_tokens_per_call', 'system_prompt_sha256'])
-def test_local_replay_requires_exact_saved_request(tmp_path, monkeypatch, field):
-    runner, planned, old = _fixture_panel(tmp_path, monkeypatch, valid=0, missing=1, salvage=1)
+@pytest.mark.parametrize('contract', [wire.V5_STRUCTURED_OUTPUT, wire.STRUCTURED_OUTPUT])
+def test_local_replay_requires_exact_saved_request(tmp_path, monkeypatch, field, contract):
+    runner, planned, old = _fixture_panel(tmp_path, monkeypatch, valid=0, missing=1, salvage=1, old_contract=contract)
     raw_path = next((runner.root / 'artifacts' / old[0].key).rglob('attempt-002.response.json'))
     raw = json.loads(raw_path.read_text())
     if field in {'payload', 'schema'}:
