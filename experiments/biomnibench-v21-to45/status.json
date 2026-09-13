@@ -14,7 +14,7 @@
     "native_seed_integrity_check_retry": "10417222",
     "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator",
     "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
-    "observed_at": "2026-09-13T05:19:11.892983-04:00",
+    "observed_at": "2026-09-13T05:22:35.285450-04:00",
     "obsolete_cache_cleanup_final": "10422142",
     "obsolete_cache_cleanup_final_state": "PENDING afterany 10422088 read-only residual inspection; exact two obsolete cache directories only",
     "obsolete_cache_cleanup_six_state": "10421655 FAILED rmdir after exact cleanup; target had residual entry, diagnostic/retry required",
@@ -233,7 +233,17 @@
     "results45_scale_audit": "10422302",
     "results45_scale_audit_state": "PENDING afterany:10422300 and afterok repaired q7 validator/revision jobs; native detect --resume over fifteen Results45 tasks",
     "results45_scale_report": "10422304",
-    "results45_scale_report_state": "PENDING afterany:10422302; provider-free report"
+    "results45_scale_report_state": "PENDING afterany:10422302; provider-free report",
+    "queue3_missing_cell_reports": {
+      "full-fixed": "10422316",
+      "full-trace": "10422317",
+      "semi-trace": "10422318",
+      "score_only-trace": "10422319",
+      "user_simulator-fixed": "10422320"
+    },
+    "queue3_missing_cell_reports_state": "PENDING afterany:10422293; provider-free disjoint cell reports",
+    "queue3_final_compare_report": "10422322",
+    "queue3_final_compare_report_state": "PENDING afterany:10422316-10422320; provider-free comparison"
   },
   "heldout_decision": {
     "at": "2026-09-12T12:39:00-04:00",
