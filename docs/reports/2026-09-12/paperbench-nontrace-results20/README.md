@@ -566,3 +566,9 @@ Learned-rest producer 10421723 remains healthy and running the existing 300-assi
 Fixed Semi/Score audit owner 10421810 remains RUNNING in its native token/provider tail. Telemetry records 1,668 completed rubric-audit operations, 58 Anthropic and 59 OpenAI queue items ready, six bounded incomplete-response/API failures, and no assignment failure. Learned-rest producer 10421723 remains RUNNING with 30 solver turns active, 265 pending, and five exhausted rows; its read-only diagnosis 10422593 remains afterany-gated.
 
 The accepted follow-up owners remain 10422283 (read-only Full/User dev3 validation), 10422649 (Full/User dev3 audit), and 10422655 (six Full/User Results20 conditions). The learned-rest missing-only recovery command is recorded in `current-status.json` and must be used only after 10421723 reaches a terminal state.
+
+## Live checkpoint — 2026-09-13 06:32 EDT
+
+The learned-rest native producer 10421723 is still RUNNING. Its current ledger has 30 active solver turns, 265 pending selected assignments, and five exhausted rows: `adaptive-pruning` semi red-team-artifact replicate 1, `adaptive-pruning` score-only online replicate 3, `ftrl` semi red-team-artifact replicate 3, `robust-clip` semi red-team-artifact replicate 1, and `pinn` score-only red-team-artifact replicate 2. The job has no valid completed assignment yet and has not been replaced.
+
+Fixed Semi/Score audit 10421810 remains RUNNING at 1,675 completed rubric-audit operations with no assignment failure; its native provider tail remains active. Pending owners 10422051, 10422283, 10422593, 10422649, and 10422655 remain dependency-gated. Current Results20 accounting is 300 valid, 5 failed, 30 in flight, and 625 pending or not yet launched across the 960-cell target; the 77 earlier failed attempts are historical attempts superseded by the current native resumes.
