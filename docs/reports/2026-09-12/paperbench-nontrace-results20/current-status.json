@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-13T11:08:44-04:00",
+  "observed_at": "2026-09-13T11:14:43-04:00",
   "status": "native_missing_only_recovery_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
@@ -30,7 +30,7 @@
       "job_id": "10424162",
       "name": "pb-r20-semi-score-learned-rest-resume-recovery",
       "output_owner": "existing semi-score-learned-rest Results20 study namespace",
-      "progress": "300 selected; 6 completed valid; 21 failed; 32 running; 241 pending; live solver/evolution activity",
+      "progress": "300 selected; 6 completed valid; 31 failed; 32 running; 231 pending; live solver/evolution activity",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
       "state": "RUNNING"
     },
@@ -46,7 +46,7 @@
       "job_id": "10424271",
       "name": "pb-r20-full-user-learned-recovery",
       "output_owner": "existing Full/User Results20 study namespace",
-      "progress": "allocation running; native pretreatment phase has 960 pending/dependency-blocked records; no provider calls or assignment writes yet",
+      "progress": "360 selected; 0 completed; 11 running; 349 pending; native revision work active; no failures recorded",
       "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
       "state": "RUNNING"
     },
@@ -125,8 +125,8 @@
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
     "results20_valid_assignments": 306,
-    "results20_failed_assignments": 21,
-    "results20_not_launched_assignments": 601,
+    "results20_failed_assignments": 31,
+    "results20_not_launched_assignments": 580,
     "shared_static_audit": {
       "sol_rubric": "900/900",
       "opus_rubric": "900/900",
@@ -137,8 +137,8 @@
     "reused_results20_assignments": 120,
     "latest_missing_only_failed_attempts": 135,
     "latest_missing_only_valid_completions": 6,
-    "results20_inflight_assignments": 32,
-    "results20_pending_assignments": 601,
+    "results20_inflight_assignments": 43,
+    "results20_pending_assignments": 580,
     "historical_results20_failed_attempts_before_current_resume": 77
   },
   "conditions": [
@@ -837,10 +837,10 @@
       "state": "COMPLETED"
     },
     "job_10424162": {
-      "assignments": "6 completed valid; 21 failed; 32 running; 241 pending of 300 selected",
+      "state": "RUNNING",
+      "assignments": "6 completed valid; 31 failed; 32 running; 231 pending of 300 selected",
       "current_failure": "historical APITimeoutError only; latest evolution-generation and solver-turn operations continue",
       "native_missing_only": true,
-      "state": "RUNNING",
       "valid_assignments_rerun": 0
     },
     "job_10424163": {
@@ -852,9 +852,9 @@
     "job_10424271": {
       "state": "RUNNING",
       "native_missing_only": true,
-      "progress": "960 pending/dependency-blocked during pretreatment; no provider calls or assignment writes",
-      "dependency": "none at Slurm level; native source preparation is still unresolved",
-      "source_namespace": "score-only-offline pretreatment source exists and is completed_scope; source validation/installation remains in progress or blocked"
+      "progress": "360 selected; 0 completed; 11 running; 349 pending; revision work active",
+      "dependency": "none at Slurm level; native pretreatment completed and selected revision scope is active",
+      "source_namespace": "score-only-offline pretreatment source exists and is completed_scope"
     },
     "job_10424672": {
       "state": "PENDING",
@@ -873,6 +873,6 @@
     },
     "no_completed_assignments_rerun": true,
     "no_scientific_settings_changed": true,
-    "recorded_at": "2026-09-13T11:08:44-04:00"
+    "recorded_at": "2026-09-13T11:14:43-04:00"
   }
 }
