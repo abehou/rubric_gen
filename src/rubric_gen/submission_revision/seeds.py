@@ -467,7 +467,12 @@ class SeedSetRunner:
             attempt_root = destination / "elicitation_attempt"
             attempt_root.mkdir()
             shutil.copytree(paths.run_dir, attempt_root / "run")
-            shutil.copytree(paths.workspace_dir, attempt_root / "workspace")
+            # The elicitation workspace is an immutable public-artifact snapshot.
+            # `solution_tree_sha256` already excludes task data and disposable
+            # runtime state; using the same snapshot helper here avoids copying
+            # multi-gigabyte input data into the durable seed receipt while
+            # preserving every hashed/scored file and validation contract.
+            snapshot_solution_workspace(paths.workspace_dir, attempt_root / "workspace")
             persisted_paths = RunPaths(
                 provider=paths.provider,
                 run_dir=attempt_root / "run",

@@ -19,6 +19,7 @@ from rubric_gen.submission_revision.seeds import (
     SeedSetRunner,
     resolve_seed,
 )
+from rubric_gen.submission_revision.artifacts import solution_tree_sha256
 
 
 EXPERIMENT_ID = "test-experiment"
@@ -217,6 +218,17 @@ class InvalidElicitationRunner:
         return exit_code, paths
 
 
+class DataWorkspaceRunner(FakeAgentRunner):
+    """Successful solver that leaves a large input-like tree in its workspace."""
+
+    def run(self, task_dir: Path, *, paths):
+        exit_code, paths = super().run(task_dir, paths=paths)
+        data = paths.workspace_dir / "data"
+        data.mkdir()
+        (data / "input.h5ad").write_bytes(b"input-data\n")
+        return exit_code, paths
+
+
 def _fake_judge(self, task_dir: Path, submission: Path, experiment_dir: Path):
     output = experiment_dir / "artifacts"
     output.mkdir(parents=True)
@@ -352,6 +364,32 @@ def test_invalid_elicitation_attempt_is_saved_but_not_included(
         attempt_root = seed.seed_root / "elicitation_attempt"
         assert (attempt_root / "workspace" / "trace.md").is_file()
         assert (attempt_root / "run" / "status.json").is_file()
+
+
+def test_elicitation_snapshot_omits_disposable_task_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = _task(tmp_path)
+    design = _design(tmp_path, task)
+    output = tmp_path / "seeds"
+    DataWorkspaceRunner.calls = 0
+    monkeypatch.setattr(seeds_module, "AgentRunner", DataWorkspaceRunner)
+    monkeypatch.setattr(SeedSetRunner, "_judge_initial_submission", _fake_judge)
+
+    assert SeedSetRunner(SeedSetConfig(design, output, 1)).run() == 0
+    seed = resolve_seed(
+        output,
+        task,
+        1,
+        seed_generator=SEED_AGENT,
+        prompt_profile="base",
+        benchmark="biomnibench-da",
+    )
+    attempt_workspace = seed.seed_root / "elicitation_attempt" / "workspace"
+    assert not (attempt_workspace / "data").exists()
+    assert seed.manifest["elicitation_attempt"]["workspace_sha256"] == solution_tree_sha256(
+        attempt_workspace
+    )
 
 
 def test_seed_stage_generates_every_configured_replicate(
