@@ -1,0 +1,51 @@
+{
+  "heldout_prompt_for_new_tasks": "47463ca",
+  "observed_at": "2026-09-13T08:10:00-04:00",
+  "old_twenty_task_heldouts_preserved": true,
+  "queue3": {
+    "audit": "10422818 dependency-never-satisfied; no judgment duplicated",
+    "failed_revision_resume": "10422809; all three assignments stopped at saved failed turns on explicit Codex usage-limit response",
+    "missing_cell": "score_only-trace-no-appendix / da-11-1",
+    "provider_limit_reset_reported": "2026-09-19 04:09"
+  },
+  "results30": {
+    "da_1_3": {
+      "archive_job": "10423093 completed; no target removed because manifests present",
+      "four_recovery_targets": "judge_in_progress after s000; valid manifests; no completed score (10423138)",
+      "provider_resume": "held; external Codex usage limit"
+    },
+    "expected_new_assignments": 60,
+    "provider_revision_assignments_completed": 0,
+    "q6_seed_manifests": "10/10 task manifests present (10416169)",
+    "scale_audit": "10422299 held; not started",
+    "tasks_added": 10
+  },
+  "results45": {
+    "da_17_1_rep_003": {
+      "archive_verification": "10422953 completed archive verification",
+      "directory_repair": "10423118 completed; exact target removed; archive preserved",
+      "finalizer": "failed at nested permission error before receipt",
+      "native_regeneration": "not run; provider blocked"
+    },
+    "expected_new_assignments": 90,
+    "provider_revision_assignments_completed": 0,
+    "revision_waves": "10422174-10422196 held; not started",
+    "scale_audit": "10422302 held; not started",
+    "seed_manifests": "44/45 native blocks valid before da-17-1/rep-003 recovery (10416170)",
+    "tasks_added": 15
+  },
+  "resume_after_provider_reset": [
+    "release held q3 da-11-1 native --resume / audit dependency chain only after Codex access is restored",
+    "run held q6 da-1-3 native --resume and validate six assignment shard before releasing 10422299",
+    "run held q7 da-17-1/rep-003 native seed recovery and validator before releasing repaired revision waves",
+    "run existing scale audits/reports/synthesis through their native dependencies"
+  ],
+  "scientific_status": "Results20 and dev3/policy evidence complete as previously reported; Results30/45 new-task revisions and audits remain externally blocked and have no valid expanded outcome estimates.",
+  "scope": "provider-free resumed Results30/Results45 handoff; no scientific outputs regenerated",
+  "source_commit": "1b17827",
+  "storage": {
+    "q6_cache_cleanup": "10423023 completed; removed only 10380169; 10380168 already absent",
+    "q6_cache_inspection": "10422942 completed; active runtime preserved; one obsolete cache absent and one exact cache 1017505307 bytes",
+    "q7_target_permission_repair_receipt": "queue7/q7-seed-target-permission-repair.json; changed only four directory mode bits then removed exact target"
+  }
+}

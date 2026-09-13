@@ -1,7 +1,7 @@
 {
-  "observed_at": "2026-09-12T12:27:38.411258-04:00",
+  "observed_at": "2026-09-12T15:48:08.289262-04:00",
   "mission_started_at": "2026-09-12T09:27:31-04:00",
-  "elapsed_hours": 3.0020586827777778,
+  "elapsed_hours": 6.343691461666666,
   "jobs": [
     {
       "package": "/queue2/jobs/R1-da-3-4",
@@ -510,9 +510,9 @@
       "accounting": {
         "job_id": "10415064",
         "name": "trace-q2-R2-original-source-audit",
-        "state": "RUNNING",
-        "exit_code": "0:0",
-        "elapsed": "00:07:09",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:08:51",
         "cpus": "4",
         "total_cpu": "00:00:00"
       }
@@ -1159,9 +1159,9 @@
       "accounting": {
         "job_id": "10414565",
         "name": "trace-q3-user_simulator-fixed-da-11-1",
-        "state": "RUNNING",
+        "state": "COMPLETED",
         "exit_code": "0:0",
-        "elapsed": "00:38:30",
+        "elapsed": "00:49:01",
         "cpus": "4",
         "total_cpu": "00:00:00"
       }
@@ -1363,10 +1363,10 @@
       "accounting": {
         "job_id": "10414571",
         "name": "trace-q3-score_only-trace-no-appendix-da-11-1",
-        "state": "PENDING",
-        "exit_code": "0:0",
-        "elapsed": "00:00:00",
-        "cpus": "0",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:18:17",
+        "cpus": "4",
         "total_cpu": "00:00:00"
       }
     },
@@ -1539,10 +1539,10 @@
       "accounting": {
         "job_id": "10414577",
         "name": "trace-q3-audit-semi-trace",
-        "state": "PENDING",
-        "exit_code": "0:0",
-        "elapsed": "00:00:00",
-        "cpus": "0",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:18:22",
+        "cpus": "8",
         "total_cpu": "00:00:00"
       }
     },
@@ -1594,7 +1594,7 @@
       "accounting": {
         "job_id": "10414579",
         "name": "trace-q3-audit-score_only-trace",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1649,7 +1649,7 @@
       "accounting": {
         "job_id": "10414581",
         "name": "trace-q3-audit-full-fixed",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1704,7 +1704,7 @@
       "accounting": {
         "job_id": "10414583",
         "name": "trace-q3-audit-user_simulator-fixed",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1759,7 +1759,7 @@
       "accounting": {
         "job_id": "10414585",
         "name": "trace-q3-audit-full-trace",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1786,7 +1786,7 @@
       "accounting": {
         "job_id": "10414593",
         "name": "trace-q3-audit-score_only-trace-no-appendix",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1821,7 +1821,7 @@
       "accounting": {
         "job_id": "10414594",
         "name": "trace-q3-semi-collector",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1856,7 +1856,7 @@
       "accounting": {
         "job_id": "10414595",
         "name": "trace-q3-score_only-collector",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1891,7 +1891,7 @@
       "accounting": {
         "job_id": "10414596",
         "name": "trace-q3-matrix-collector",
-        "state": "PENDING",
+        "state": "CANCELLED by 6011048",
         "exit_code": "0:0",
         "elapsed": "00:00:00",
         "cpus": "0",
@@ -1923,9 +1923,9 @@
       "accounting": {
         "job_id": "10414859",
         "name": "trace-q3-semi-da11-resume",
-        "state": "RUNNING",
+        "state": "COMPLETED",
         "exit_code": "0:0",
-        "elapsed": "00:46:10",
+        "elapsed": "00:53:36",
         "cpus": "4",
         "total_cpu": "00:00:00"
       }
@@ -2077,6 +2077,74 @@
       }
     },
     {
+      "package": "/queue6/seed_jobs/0-resume-2",
+      "job_id": "10416038",
+      "source_job": "10415538",
+      "stage": "seed_recovery",
+      "cpus": 4,
+      "native_workers": 4,
+      "dependency": "afterany:10415714",
+      "scope": "native lane 0 resume; preserve completed blocks; retry documented da-8-1 missing block",
+      "submitted_at": "2026-09-12T14:46:19-04:00",
+      "slurm_state": "COMPLETED",
+      "exit_code": "0:0",
+      "accounting": {
+        "job_id": "10416038",
+        "name": "trace-results30-seeds-retry-2",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:01:11",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue6/seed_jobs/1-resume-1",
+      "job_id": "10415714",
+      "stage": "seed_recovery",
+      "cpus": 4,
+      "native_workers": 4,
+      "scope": "native lane 1 resume; all five task blocks",
+      "slurm_state": "COMPLETED",
+      "exit_code": "0:0",
+      "accounting": {
+        "job_id": "10415714",
+        "name": "trace-results30-seeds-resume-1b",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:56:48",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue6/revision_recovery",
+      "source_job": "10415716",
+      "task": "da-1-3",
+      "job_id": "10416366",
+      "dependency": "afterany:10415717",
+      "scope": "native --resume; six pending assignments only",
+      "failure": {
+        "category": "nfs_storage_write",
+        "exception": "OSError: [Errno 512] Unknown error 512",
+        "stage": "pretreatment rubric cache atomic JSON write",
+        "provider_calls_before_failure": "sealed records retained; no scientific result invalidated"
+      },
+      "source_commit": "e9f476139d6905b13243caa0626a8a009d9b1767",
+      "source": "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2",
+      "status": "RUNNING",
+      "seed_state_check": "10416394",
+      "accounting": {
+        "job_id": "10416366",
+        "name": "trace-r30-da-1-3-resume-nfs",
+        "state": "PREEMPTED",
+        "exit_code": "0:0",
+        "elapsed": "00:22:07",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
       "package": "/queue7/seed_jobs/0",
       "job_id": "10415017",
       "command": [
@@ -2096,9 +2164,9 @@
       "accounting": {
         "job_id": "10415017",
         "name": "trace-results45-seeds-0",
-        "state": "RUNNING",
-        "exit_code": "0:0",
-        "elapsed": "00:16:57",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:45:33",
         "cpus": "4",
         "total_cpu": "00:00:00"
       }
@@ -2123,9 +2191,277 @@
       "accounting": {
         "job_id": "10415018",
         "name": "trace-results45-seeds-1",
-        "state": "RUNNING",
+        "state": "PREEMPTED",
         "exit_code": "0:0",
-        "elapsed": "00:09:44",
+        "elapsed": "00:17:00",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue7/seed_jobs/0-resume-1",
+      "job_id": "10416081",
+      "source_job": "10415531",
+      "stage": "seed_recovery",
+      "cpus": 4,
+      "native_workers": 4,
+      "dependency": "afterany:10415531",
+      "scope": "native lane 0 resume; preserve sealed blocks and retry only missing blocks",
+      "submitted_at": "2026-09-12T15:01:25-04:00",
+      "slurm_state": "PENDING",
+      "accounting": {
+        "job_id": "10416081",
+        "name": "trace-results45-seeds-retry-0",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:06:05",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue7/seed_jobs/1-resume-1",
+      "job_id": "10416082",
+      "source_job": "10415532",
+      "stage": "seed_recovery",
+      "cpus": 4,
+      "native_workers": 4,
+      "dependency": "afterany:10415532",
+      "scope": "native lane 1 resume; preserve sealed blocks and retry only missing blocks",
+      "submitted_at": "2026-09-12T15:01:25-04:00",
+      "slurm_state": "PENDING",
+      "accounting": {
+        "job_id": "10416082",
+        "name": "trace-results45-seeds-retry-1",
+        "state": "CANCELLED by 6011048",
+        "exit_code": "0:0",
+        "elapsed": "00:00:00",
+        "cpus": "0",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue7/retry_correction/corrected_jobs/lane1",
+      "job_id": "10416317",
+      "dependency": "afterany:10415531",
+      "argument": "1",
+      "scope": "native missing-only resume for the lane-1 task set",
+      "accounting": {
+        "job_id": "10416317",
+        "name": "trace-results45-seeds-retry-lane1",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:25:03",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue7/retry_correction/corrected_jobs/lane0",
+      "job_id": "10416318",
+      "dependency": "afterany:10415532",
+      "argument": "0",
+      "scope": "native missing-only resume for the lane-0 task set",
+      "accounting": {
+        "job_id": "10416318",
+        "name": "trace-results45-seeds-retry-lane0",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:02:23",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/0",
+      "job_id": "10415263",
+      "name": "trace-q2-reviewed-R1",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-q2-reviewed-R1",
+        "--dependency=afterany:10414577",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue8/audit.sbatch",
+        "queue2",
+        "R1"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912",
+      "accounting": {
+        "job_id": "10415263",
+        "name": "trace-q2-reviewed-R1",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:03:52",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/1",
+      "job_id": "10415264",
+      "name": "trace-q2-reviewed-R2",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-q2-reviewed-R2",
+        "--dependency=afterany:10415263",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue8/audit.sbatch",
+        "queue2",
+        "R2"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912",
+      "accounting": {
+        "job_id": "10415264",
+        "name": "trace-q2-reviewed-R2",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:12:45",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/2",
+      "job_id": "10415265",
+      "name": "trace-q3-reviewed-missing",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-q3-reviewed-missing",
+        "--dependency=afterany:10415264:10414571",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2/experiments/biomnibench-v21-to45/queue8/audit.sbatch",
+        "queue3",
+        "semi-fixed",
+        "score_only-fixed",
+        "semi-trace",
+        "score_only-trace",
+        "full-fixed",
+        "user_simulator-fixed",
+        "full-trace",
+        "score_only-trace-no-appendix"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912",
+      "accounting": {
+        "job_id": "10415265",
+        "name": "trace-q3-reviewed-missing",
+        "state": "PREEMPTED",
+        "exit_code": "0:0",
+        "elapsed": "00:10:45",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/3",
+      "job_id": "10415266",
+      "name": "trace-q3-reviewed-collector",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-q3-reviewed-collector",
+        "--dependency=afterany:10415265",
+        "--cpus-per-task=1",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912/experiments/biomnibench-v21-to45/queue3/report.sbatch",
+        "all"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-feedback-matrix-queue3-20260912",
+      "accounting": {
+        "job_id": "10415266",
+        "name": "trace-q3-reviewed-collector",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:00:01",
+        "cpus": "2",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/4",
+      "job_id": "10415267",
+      "name": "trace-q2-reviewed-report",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-q2-reviewed-report",
+        "--dependency=afterany:10415264",
+        "--cpus-per-task=1",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912/experiments/biomnibench-v21-to45/queue2/report.sbatch"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-appendix-queue2-20260912",
+      "accounting": {
+        "job_id": "10415267",
+        "name": "trace-q2-reviewed-report",
+        "state": "FAILED",
+        "exit_code": "1:0",
+        "elapsed": "00:00:10",
+        "cpus": "2",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/5",
+      "job_id": "10415268",
+      "name": "trace-results30-heldouts",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-results30-heldouts",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912/experiments/biomnibench-v21-to45/queue8/heldouts.sbatch",
+        "queue6"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912",
+      "accounting": {
+        "job_id": "10415268",
+        "name": "trace-results30-heldouts",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:03:24",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/queue8/jobs/6",
+      "job_id": "10415269",
+      "name": "trace-results45-heldouts",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=trace-results45-heldouts",
+        "--dependency=afterany:10415268",
+        "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912/experiments/biomnibench-v21-to45/queue8/heldouts.sbatch",
+        "queue7"
+      ],
+      "cwd": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-scale-runtime-20260912",
+      "accounting": {
+        "job_id": "10415269",
+        "name": "trace-results45-heldouts",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+        "elapsed": "00:05:04",
+        "cpus": "4",
+        "total_cpu": "00:00:00"
+      }
+    },
+    {
+      "package": "/current_resume/queue3_missing_audit_recovery",
+      "job_id": "10415796",
+      "cells": [
+        "full-fixed",
+        "full-trace",
+        "semi-trace",
+        "score_only-trace",
+        "user_simulator-fixed",
+        "score_only-trace-no-appendix"
+      ],
+      "dependency": "afterany:10415714,10415531,10415532,10415692,10415695,10415696,10415697,10415698,10415700,10415704,10415705,10415716,10415717",
+      "scope": "native queue3 audit resume; complete cells excluded; q3 collector to follow",
+      "accounting": {
+        "job_id": "10415796",
+        "name": "trace-q3-reviewed-recovery-b2",
+        "state": "PREEMPTED",
+        "exit_code": "0:0",
+        "elapsed": "00:06:24",
         "cpus": "4",
         "total_cpu": "00:00:00"
       }
@@ -2171,8 +2507,7 @@
       "queue": "queue3",
       "cell": "semi-trace",
       "expected": 9,
-      "completed": 7,
-      "running": 2,
+      "completed": 9,
       "not_yet_in_ledger": 0
     },
     {
@@ -2193,8 +2528,7 @@
       "queue": "queue3",
       "cell": "user_simulator-fixed",
       "expected": 9,
-      "completed": 8,
-      "running": 1,
+      "completed": 9,
       "not_yet_in_ledger": 0
     },
     {
@@ -2202,36 +2536,75 @@
       "cell": "score_only-trace-no-appendix",
       "expected": 9,
       "completed": 6,
-      "not_yet_in_ledger": 3
+      "failed": 3,
+      "not_yet_in_ledger": 0
     }
   ],
   "seeds": {
     "results30": {
       "expected_blocks": 30,
-      "sealed_blocks": 24,
+      "sealed_blocks": 30,
       "by_task": {
-        "da-19-3": 2,
+        "da-19-3": 3,
         "da-3-5": 3,
-        "da-26-2": 2,
+        "da-26-2": 3,
         "da-20-4": 3,
-        "da-8-1": 2,
-        "da-1-3": 2,
+        "da-8-1": 3,
+        "da-1-3": 3,
         "da-5-1": 3,
-        "da-4-6": 2,
-        "da-26-4": 2,
+        "da-4-6": 3,
+        "da-26-4": 3,
         "da-4-1": 3
       }
     },
     "results45-added15": {
       "expected_blocks": 45,
-      "sealed_blocks": 7,
+      "sealed_blocks": 43,
       "by_task": {
-        "da-24-3": 2,
+        "da-8-2": 3,
+        "da-17-3": 3,
+        "da-9-1": 3,
+        "da-24-3": 3,
+        "da-20-1": 3,
+        "da-4-7": 2,
+        "da-8-3": 3,
+        "da-25-1": 3,
+        "da-17-5": 3,
+        "da-17-1": 2,
         "da-9-7": 3,
-        "da-6-5": 2
+        "da-6-2": 3,
+        "da-19-4": 3,
+        "da-6-5": 3,
+        "da-1-4": 3
       }
     }
   },
   "provider_calls": 0,
-  "heldout_authority": "awaiting user decision on committed rigorous-V2 prompt versus unrecovered historical text"
+  "heldout_authority": "authorized committed rigorous-V2 for new tasks; preserve historical20",
+  "current_persisted_snapshot": {
+    "observed_at": "2026-09-13T08:10:00-04:00",
+    "note": "Historical job list above is retained; this snapshot reflects the resumed scale state.",
+    "bio_jobs": {
+      "q3_revision_resume": "10422809 FAILED provider usage-limit at three saved failed turns",
+      "q3_audit_resume": "10422818 PENDING DependencyNeverSatisfied",
+      "q6_cache_inspector": "10422942 COMPLETED",
+      "q6_cache_cleanup": "10423023 COMPLETED",
+      "q6_da1_3_archive": "10423093 COMPLETED no-op; valid manifests present",
+      "q6_da1_3_inspector": "10423138 COMPLETED; four targets judge_in_progress after s000",
+      "q6_native_resume": "10422169 HELD; provider-limited",
+      "q7_archive_finalizer": "10422953 FAILED after archive verification at nested permission error",
+      "q7_target_repair": "10423118 COMPLETED; exact target removed",
+      "q7_seed": "10422170 HELD; native regeneration pending",
+      "q7_validator": "10422171 HELD",
+      "results30_audit": "10422299 HELD",
+      "results45_audit": "10422302 HELD"
+    },
+    "storage_receipts": {
+      "q6_cache": "q6-exact-cache-cleanup-receipt-v2.json",
+      "q7_target": "q7-seed-target-permission-repair.json",
+      "q6_target": "q6-da1-3-revision-target-inspection.json"
+    },
+    "provider_blocker": "Codex account usage limit reported by saved q3 failed turns; reset 2026-09-19 04:09.",
+    "paperbench": "unrelated owner; untouched."
+  }
 }

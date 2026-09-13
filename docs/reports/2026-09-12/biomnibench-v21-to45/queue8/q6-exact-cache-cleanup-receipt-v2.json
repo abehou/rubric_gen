@@ -1,0 +1,14 @@
+{
+  "active_preserved": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602",
+  "allowlist": [
+    "/data/user_data/aydanh/rubric_gen/cache/environments/a5f86d3f89f6256c-be8151e15cce-10380168",
+    "/data/user_data/aydanh/rubric_gen/cache/environments/a5f86d3f89f6256c-d61735ca9b4a-10380169"
+  ],
+  "already_absent": [
+    "/data/user_data/aydanh/rubric_gen/cache/environments/a5f86d3f89f6256c-be8151e15cce-10380168"
+  ],
+  "metadata_rewrite": false,
+  "removed": [
+    "/data/user_data/aydanh/rubric_gen/cache/environments/a5f86d3f89f6256c-d61735ca9b4a-10380169"
+  ]
+}

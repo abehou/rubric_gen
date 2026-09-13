@@ -1,0 +1,958 @@
+{
+  "provider_calls": 0,
+  "root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c/experiments/da-1-3",
+  "targets": [
+    {
+      "exists": true,
+      "files": [
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-001/judge_input_answer.txt",
+          "size": 944
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-001/judge_input_trace.md",
+          "size": 9789
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-001/record.json",
+          "size": 3773
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-001/stdout.txt",
+          "size": 1054
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-002/judge_input_answer.txt",
+          "size": 944
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-002/judge_input_trace.md",
+          "size": 9789
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-002/record.json",
+          "size": 3773
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/judge-attempts/attempt-002/stdout.txt",
+          "size": 1054
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/judges/trace/da-1-3/judge_input_answer.txt",
+          "size": 944
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/judges/trace/da-1-3/judge_input_trace.md",
+          "size": 9789
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/judges/trace/da-1-3/stdout.txt",
+          "size": 1054
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/status.json",
+          "size": 543
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/trajectory.stream.jsonl",
+          "size": 5432
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/workspace/answer.txt",
+          "size": 944
+        },
+        {
+          "relative": "evaluations/s000/e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70/4ba5258f3a1c5873d0373dc5ecddd073/run/workspace/trace.md",
+          "size": 9789
+        },
+        {
+          "json": {
+            "assignment_id": "da-1-3--rep-001--solver-luna--full-static",
+            "benchmark": "biomnibench-da",
+            "command_network_access": false,
+            "condition_id": "full-static",
+            "data_sha256": "2928ccd98c83d54f0ae146c3f793a4573b89e6d7b2bac31499a33c38fd587ab7",
+            "development_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-001.txt",
+            "development_rubric_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+            "effective_solver_model": null,
+            "elicitation_seed_replicates": 3,
+            "executable": null,
+            "execution_order": 1,
+            "experiment_id": "biomnibench-da-factorial-r10-81712ed5ed7c",
+            "feedback_policy": "full",
+            "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+            "initial_generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "initial_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-000.txt",
+            "initial_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "initial_scoring_identity": {
+              "benchmark": "biomnibench-da",
+              "effective_judge_model": "gpt-5.6-luna",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+              "review_mode": "trace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "e6f4128023dd78afdf3422f783fb5a2fc1c2ea7ba713733be42ed110b41819da",
+              "structured_rubric_sha256": null
+            },
+            "instruction_sha256": "1f3d6be0015cb118289667d3c8fcd44b825e4d0fe19b4bfcaacda7bf918e61fa",
+            "isolation": "codex-custom-permission-profile",
+            "judge_model": "gpt-5.6-luna",
+            "kind": "rubric-gen-submission-revision-experiment",
+            "live_workspace_dir": "/tmp/rubric-gen-live-10421549/submission-revision-live-x5rsqp_8/workspace",
+            "live_workspace_removed": false,
+            "master_rubric_name": "rubric.txt",
+            "master_rubric_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+            "max_review_chars": null,
+            "max_revisions": 10,
+            "min_revisions": 5,
+            "model": "gpt-5.6-luna",
+            "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c/pretreatment-rubrics/da-1-3/c8a41daf60fe8845dcf2603e2479947539ebf0a459ec881b44949e6179dd94cc",
+            "prompt": "base",
+            "prompt_implementation_sha256": "771d1273140f49edee01361f3af94510fb362c07577dfe4706832fdcdb881c3e",
+            "provider": "codex",
+            "reasoning_effort": "low",
+            "red_team_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "replicate": 1,
+            "review": "trace",
+            "rubric_generation_implementation_sha256": "bfc7fed6c58f5f8cca8729e387d79400ed261816bbef057c32308dd5e6485479",
+            "rubric_policy": "fixed",
+            "rubric_proposer_max_retries": 5,
+            "rubric_proposer_model": "gpt-5.6-luna",
+            "seed_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "seed_run_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds",
+            "seed_sha256": "3c0aa3b14d682f6320658a6d6eb8806dd200c40caca08e38600244927ee801c4",
+            "service_tier": null,
+            "session_id": null,
+            "solver_id": "luna",
+            "submission_count": 1,
+            "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-1-3",
+            "task_id": "da-1-3",
+            "turn_timeout_seconds": 7200,
+            "web_search": false
+          },
+          "json_valid": true,
+          "relative": "manifest.json",
+          "size": 3924
+        },
+        {
+          "relative": "rubric-generations/generation-0000/criteria.json",
+          "size": 3
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 0,
+            "generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "policy": "fixed",
+            "proposer_call_budget": 0,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0000/manifest.json",
+          "size": 484
+        },
+        {
+          "relative": "rubric-generations/generation-0000/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "state.json",
+          "size": 318
+        },
+        {
+          "relative": "submissions/s000/snapshot.json",
+          "size": 233
+        },
+        {
+          "relative": "submissions/s000/status.json",
+          "size": 441
+        },
+        {
+          "relative": "submissions/s000/trajectory.stream.jsonl",
+          "size": 5432
+        },
+        {
+          "relative": "submissions/s000/workspace/answer.txt",
+          "size": 944
+        },
+        {
+          "relative": "submissions/s000/workspace/trace.md",
+          "size": 9789
+        }
+      ],
+      "path": "rep-001/luna/full-static",
+      "state": {
+        "effective_solver_model": null,
+        "fixed_original_scores": [],
+        "judge_attempts": {
+          "s000": "4ba5258f3a1c5873d0373dc5ecddd073"
+        },
+        "next_prompt": "",
+        "next_turn_index": 1,
+        "phase": "judge_in_progress",
+        "scores": [],
+        "session_id": null,
+        "stop_reason": null,
+        "submission_ids": [
+          "s000"
+        ]
+      }
+    },
+    {
+      "exists": true,
+      "files": [
+        {
+          "json": {
+            "assignment_id": "da-1-3--rep-001--solver-luna--full-red-team-trace",
+            "benchmark": "biomnibench-da",
+            "command_network_access": false,
+            "condition_id": "full-red-team-trace",
+            "data_sha256": "2928ccd98c83d54f0ae146c3f793a4573b89e6d7b2bac31499a33c38fd587ab7",
+            "development_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-001.txt",
+            "development_rubric_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+            "effective_solver_model": null,
+            "elicitation_seed_replicates": 3,
+            "executable": null,
+            "execution_order": 2,
+            "experiment_id": "biomnibench-da-factorial-r10-81712ed5ed7c",
+            "feedback_policy": "full",
+            "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+            "initial_generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "initial_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-000.txt",
+            "initial_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "initial_scoring_identity": {
+              "benchmark": "biomnibench-da",
+              "effective_judge_model": "gpt-5.6-luna",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+              "review_mode": "trace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "e6f4128023dd78afdf3422f783fb5a2fc1c2ea7ba713733be42ed110b41819da",
+              "structured_rubric_sha256": null
+            },
+            "instruction_sha256": "1f3d6be0015cb118289667d3c8fcd44b825e4d0fe19b4bfcaacda7bf918e61fa",
+            "isolation": "codex-custom-permission-profile",
+            "judge_model": "gpt-5.6-luna",
+            "kind": "rubric-gen-submission-revision-experiment",
+            "live_workspace_dir": "/tmp/rubric-gen-live-10421549/submission-revision-live-s1roz1ox/workspace",
+            "live_workspace_removed": false,
+            "master_rubric_name": "rubric.txt",
+            "master_rubric_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+            "max_review_chars": null,
+            "max_revisions": 10,
+            "min_revisions": 5,
+            "model": "gpt-5.6-luna",
+            "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c/pretreatment-rubrics/da-1-3/c8a41daf60fe8845dcf2603e2479947539ebf0a459ec881b44949e6179dd94cc",
+            "prompt": "base",
+            "prompt_implementation_sha256": "771d1273140f49edee01361f3af94510fb362c07577dfe4706832fdcdb881c3e",
+            "provider": "codex",
+            "reasoning_effort": "low",
+            "red_team_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "red_team_trace_version": "attack_defense_v2.1",
+            "replicate": 1,
+            "review": "trace",
+            "rubric_generation_implementation_sha256": "ad98b887816e02763877343784d756608332d875edc0758f899b7b00894319a8",
+            "rubric_policy": "red_team_trace",
+            "rubric_proposer_max_retries": 5,
+            "rubric_proposer_model": "gpt-5.6-luna",
+            "seed_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "seed_run_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds",
+            "seed_sha256": "3c0aa3b14d682f6320658a6d6eb8806dd200c40caca08e38600244927ee801c4",
+            "service_tier": null,
+            "session_id": null,
+            "solver_id": "luna",
+            "source_schedule": "pre_revision_v1",
+            "submission_count": 1,
+            "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-1-3",
+            "task_id": "da-1-3",
+            "trace_defense_prompt_hashes": {
+              "anticipatory": "9eab22286a1d4ebea89e103da4bc1d1802f2179b3917dcbbf0b78dd198f45ec5",
+              "application": "8d54ab6a667cd99bf1cf9c2b01cf1cac977f11ed0569012a56059a6f679d7240",
+              "attack": "3af663e725751e3c0a1261123678ce4cdc93158a3780d89f97f8a26ad9cc17e0",
+              "compilation": "34df2f3d457de09f32c6e3a6cf1ceb5be9b0e12e9a75b26184c7869f0c957b53",
+              "corrective": "2859f290c7cbf7757483ac9a8dfeec22c6607031fc5ff343288c730ff32bdfff",
+              "diagnosis": "0aa883355ac674e2d120120efce74f6f7755b2fc245b53e845523be427df7c67",
+              "locator_repair": "7aba948d6f99862fe6a60b57b1ea497407c5615bbb91e4156d9f703ee1bbda17",
+              "quality": "6fb35579cecff6f73c3c17d334dc488d81db6e5f5e519356113c3dbea65e1450",
+              "rubric_view": "3eb43ef13f78ffa6fd21e6f91e7a2dfcf382f32cff917ad97663974127f0e8ff",
+              "semantic": "2e43d1908317e6a835d187db3ca1b75d64126fa7b410040c727881aac397c834"
+            },
+            "turn_timeout_seconds": 7200,
+            "web_search": false
+          },
+          "json_valid": true,
+          "relative": "manifest.json",
+          "size": 4938
+        },
+        {
+          "relative": "rubric-generations/generation-0000/criteria.json",
+          "size": 3
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 0,
+            "generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "policy": "red_team_trace",
+            "proposer_call_budget": 0,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0000/manifest.json",
+          "size": 493
+        },
+        {
+          "relative": "rubric-generations/generation-0000/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "rubric-generations/generation-0001/aggregate-margins.json",
+          "size": 244
+        },
+        {
+          "relative": "rubric-generations/generation-0001/artifact-history.json",
+          "size": 35545
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criteria.json",
+          "size": 3
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criterion-proposal.json",
+          "size": 907
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criterion-validation.json",
+          "size": 1868
+        },
+        {
+          "relative": "rubric-generations/generation-0001/evolution.json",
+          "size": 6248
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "aggregate-margins.json": "0d75514bfac8fa66e140796793596d74772d31dba415760fd4afc12819fbd983",
+              "artifact-history.json": "1e83fccd4c3388ef10b303692c2f6763bb02d58625aae3f23e1247ffae81f2de",
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "criterion-proposal.json": "c1923c095fe697e1b482202408b464d308b820a4d439b5a3f77247e0c28bc1d0",
+              "criterion-validation.json": "268e50e878e2b42c79acce1126fdc8643973f63b97be3e2bb8e85336b9c1abb6",
+              "evolution.json": "c344d41cff6990bfcf890701f1e8c733eeb7833c20cb3e537ad60c4d785139fd",
+              "pairwise-assessment-active-rubric.json": "c170afc796099ff6e6ea8fad2c161426e7f37a5d2e5ca99b53793d5974a49eb3",
+              "pairwise-assessment-development-rubric.json": "78f816ade46010296669d02f84171106ce681d04e36ed193fa65e6eaea118831",
+              "pairwise-assessment-rubric-free.json": "dd2a6c780495705559a3816de04c96691035582290aa1ea4f79a814fb9b3fbd7",
+              "pairwise-comparisons.json": "51d3d577374cc73b4871a00a5eca62a664e6950133e19b5642ccb1f1f19f4c06",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 1,
+            "generation_sha256": "b3eab27d8371e3a6d4155f530448340cfcfb0e34d2a0e033e3105fd10737985a",
+            "policy": "red_team_trace",
+            "proposer_call_budget": 72,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0001/manifest.json",
+          "size": 1425
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-active-rubric.json",
+          "size": 3051
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-development-rubric.json",
+          "size": 3595
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-rubric-free.json",
+          "size": 2363
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-comparisons.json",
+          "size": 6974
+        },
+        {
+          "relative": "rubric-generations/generation-0001/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "state.json",
+          "size": 318
+        },
+        {
+          "relative": "submissions/s000/snapshot.json",
+          "size": 233
+        },
+        {
+          "relative": "submissions/s000/status.json",
+          "size": 449
+        },
+        {
+          "relative": "submissions/s000/trajectory.stream.jsonl",
+          "size": 5432
+        },
+        {
+          "relative": "submissions/s000/workspace/answer.txt",
+          "size": 944
+        },
+        {
+          "relative": "submissions/s000/workspace/trace.md",
+          "size": 9789
+        }
+      ],
+      "path": "rep-001/luna/full-red-team-trace",
+      "state": {
+        "effective_solver_model": null,
+        "fixed_original_scores": [],
+        "judge_attempts": {
+          "s000": "e5e01979a2f5db32def97ed30550aa95"
+        },
+        "next_prompt": "",
+        "next_turn_index": 1,
+        "phase": "judge_in_progress",
+        "scores": [],
+        "session_id": null,
+        "stop_reason": null,
+        "submission_ids": [
+          "s000"
+        ]
+      }
+    },
+    {
+      "exists": true,
+      "files": [
+        {
+          "json": {
+            "assignment_id": "da-1-3--rep-002--solver-luna--full-red-team-trace",
+            "benchmark": "biomnibench-da",
+            "command_network_access": false,
+            "condition_id": "full-red-team-trace",
+            "data_sha256": "2928ccd98c83d54f0ae146c3f793a4573b89e6d7b2bac31499a33c38fd587ab7",
+            "development_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-001.txt",
+            "development_rubric_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+            "effective_solver_model": null,
+            "elicitation_seed_replicates": 3,
+            "executable": null,
+            "execution_order": 3,
+            "experiment_id": "biomnibench-da-factorial-r10-81712ed5ed7c",
+            "feedback_policy": "full",
+            "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+            "initial_generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "initial_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-000.txt",
+            "initial_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "initial_scoring_identity": {
+              "benchmark": "biomnibench-da",
+              "effective_judge_model": "gpt-5.6-luna",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+              "review_mode": "trace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "e6f4128023dd78afdf3422f783fb5a2fc1c2ea7ba713733be42ed110b41819da",
+              "structured_rubric_sha256": null
+            },
+            "instruction_sha256": "1f3d6be0015cb118289667d3c8fcd44b825e4d0fe19b4bfcaacda7bf918e61fa",
+            "isolation": "codex-custom-permission-profile",
+            "judge_model": "gpt-5.6-luna",
+            "kind": "rubric-gen-submission-revision-experiment",
+            "live_workspace_dir": "/tmp/rubric-gen-live-10421549/submission-revision-live-8b2q49ee/workspace",
+            "live_workspace_removed": false,
+            "master_rubric_name": "rubric.txt",
+            "master_rubric_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+            "max_review_chars": null,
+            "max_revisions": 10,
+            "min_revisions": 5,
+            "model": "gpt-5.6-luna",
+            "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c/pretreatment-rubrics/da-1-3/c8a41daf60fe8845dcf2603e2479947539ebf0a459ec881b44949e6179dd94cc",
+            "prompt": "base",
+            "prompt_implementation_sha256": "771d1273140f49edee01361f3af94510fb362c07577dfe4706832fdcdb881c3e",
+            "provider": "codex",
+            "reasoning_effort": "low",
+            "red_team_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "red_team_trace_version": "attack_defense_v2.1",
+            "replicate": 2,
+            "review": "trace",
+            "rubric_generation_implementation_sha256": "ad98b887816e02763877343784d756608332d875edc0758f899b7b00894319a8",
+            "rubric_policy": "red_team_trace",
+            "rubric_proposer_max_retries": 5,
+            "rubric_proposer_model": "gpt-5.6-luna",
+            "seed_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "seed_run_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds",
+            "seed_sha256": "c7b895e9bbe34653bc3b2bf59af45bc83ac7c4e02f96db0210d7f2ed6c161d05",
+            "service_tier": null,
+            "session_id": null,
+            "solver_id": "luna",
+            "source_schedule": "pre_revision_v1",
+            "submission_count": 1,
+            "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-1-3",
+            "task_id": "da-1-3",
+            "trace_defense_prompt_hashes": {
+              "anticipatory": "9eab22286a1d4ebea89e103da4bc1d1802f2179b3917dcbbf0b78dd198f45ec5",
+              "application": "8d54ab6a667cd99bf1cf9c2b01cf1cac977f11ed0569012a56059a6f679d7240",
+              "attack": "3af663e725751e3c0a1261123678ce4cdc93158a3780d89f97f8a26ad9cc17e0",
+              "compilation": "34df2f3d457de09f32c6e3a6cf1ceb5be9b0e12e9a75b26184c7869f0c957b53",
+              "corrective": "2859f290c7cbf7757483ac9a8dfeec22c6607031fc5ff343288c730ff32bdfff",
+              "diagnosis": "0aa883355ac674e2d120120efce74f6f7755b2fc245b53e845523be427df7c67",
+              "locator_repair": "7aba948d6f99862fe6a60b57b1ea497407c5615bbb91e4156d9f703ee1bbda17",
+              "quality": "6fb35579cecff6f73c3c17d334dc488d81db6e5f5e519356113c3dbea65e1450",
+              "rubric_view": "3eb43ef13f78ffa6fd21e6f91e7a2dfcf382f32cff917ad97663974127f0e8ff",
+              "semantic": "2e43d1908317e6a835d187db3ca1b75d64126fa7b410040c727881aac397c834"
+            },
+            "turn_timeout_seconds": 7200,
+            "web_search": false
+          },
+          "json_valid": true,
+          "relative": "manifest.json",
+          "size": 4938
+        },
+        {
+          "relative": "rubric-generations/generation-0000/criteria.json",
+          "size": 3
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 0,
+            "generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "policy": "red_team_trace",
+            "proposer_call_budget": 0,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0000/manifest.json",
+          "size": 493
+        },
+        {
+          "relative": "rubric-generations/generation-0000/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "rubric-generations/generation-0001/aggregate-margins.json",
+          "size": 244
+        },
+        {
+          "relative": "rubric-generations/generation-0001/artifact-history.json",
+          "size": 35545
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criteria.json",
+          "size": 3
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criterion-proposal.json",
+          "size": 907
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criterion-validation.json",
+          "size": 1868
+        },
+        {
+          "relative": "rubric-generations/generation-0001/evolution.json",
+          "size": 6248
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "aggregate-margins.json": "0d75514bfac8fa66e140796793596d74772d31dba415760fd4afc12819fbd983",
+              "artifact-history.json": "1e83fccd4c3388ef10b303692c2f6763bb02d58625aae3f23e1247ffae81f2de",
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "criterion-proposal.json": "c1923c095fe697e1b482202408b464d308b820a4d439b5a3f77247e0c28bc1d0",
+              "criterion-validation.json": "268e50e878e2b42c79acce1126fdc8643973f63b97be3e2bb8e85336b9c1abb6",
+              "evolution.json": "c344d41cff6990bfcf890701f1e8c733eeb7833c20cb3e537ad60c4d785139fd",
+              "pairwise-assessment-active-rubric.json": "c170afc796099ff6e6ea8fad2c161426e7f37a5d2e5ca99b53793d5974a49eb3",
+              "pairwise-assessment-development-rubric.json": "78f816ade46010296669d02f84171106ce681d04e36ed193fa65e6eaea118831",
+              "pairwise-assessment-rubric-free.json": "dd2a6c780495705559a3816de04c96691035582290aa1ea4f79a814fb9b3fbd7",
+              "pairwise-comparisons.json": "51d3d577374cc73b4871a00a5eca62a664e6950133e19b5642ccb1f1f19f4c06",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 1,
+            "generation_sha256": "b3eab27d8371e3a6d4155f530448340cfcfb0e34d2a0e033e3105fd10737985a",
+            "policy": "red_team_trace",
+            "proposer_call_budget": 72,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0001/manifest.json",
+          "size": 1425
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-active-rubric.json",
+          "size": 3051
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-development-rubric.json",
+          "size": 3595
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-rubric-free.json",
+          "size": 2363
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-comparisons.json",
+          "size": 6974
+        },
+        {
+          "relative": "rubric-generations/generation-0001/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "state.json",
+          "size": 318
+        },
+        {
+          "relative": "submissions/s000/snapshot.json",
+          "size": 233
+        },
+        {
+          "relative": "submissions/s000/status.json",
+          "size": 449
+        },
+        {
+          "relative": "submissions/s000/trajectory.stream.jsonl",
+          "size": 3948
+        },
+        {
+          "relative": "submissions/s000/workspace/answer.txt",
+          "size": 609
+        },
+        {
+          "relative": "submissions/s000/workspace/trace.md",
+          "size": 8947
+        }
+      ],
+      "path": "rep-002/luna/full-red-team-trace",
+      "state": {
+        "effective_solver_model": null,
+        "fixed_original_scores": [],
+        "judge_attempts": {
+          "s000": "ef92b5dcac1ae2d66455d4881334f203"
+        },
+        "next_prompt": "",
+        "next_turn_index": 1,
+        "phase": "judge_in_progress",
+        "scores": [],
+        "session_id": null,
+        "stop_reason": null,
+        "submission_ids": [
+          "s000"
+        ]
+      }
+    },
+    {
+      "exists": true,
+      "files": [
+        {
+          "json": {
+            "assignment_id": "da-1-3--rep-003--solver-luna--full-red-team-trace",
+            "benchmark": "biomnibench-da",
+            "command_network_access": false,
+            "condition_id": "full-red-team-trace",
+            "data_sha256": "2928ccd98c83d54f0ae146c3f793a4573b89e6d7b2bac31499a33c38fd587ab7",
+            "development_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-001.txt",
+            "development_rubric_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+            "effective_solver_model": null,
+            "elicitation_seed_replicates": 3,
+            "executable": null,
+            "execution_order": 4,
+            "experiment_id": "biomnibench-da-factorial-r10-81712ed5ed7c",
+            "feedback_policy": "full",
+            "feedback_reference_protocol": "selected-base-plus-active-penalties-v1",
+            "initial_generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "initial_rubric_path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases/tasks/da-1-3/variant-000.txt",
+            "initial_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "initial_scoring_identity": {
+              "benchmark": "biomnibench-da",
+              "effective_judge_model": "gpt-5.6-luna",
+              "grading_engine": "full-rubric-structured",
+              "manifest_sha256": null,
+              "max_review_chars": null,
+              "rendered_rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+              "review_mode": "trace",
+              "rubric_id": null,
+              "rubric_set_id": null,
+              "rubric_source": "rubric-path",
+              "scoring_implementation_sha256": "e6f4128023dd78afdf3422f783fb5a2fc1c2ea7ba713733be42ed110b41819da",
+              "structured_rubric_sha256": null
+            },
+            "instruction_sha256": "1f3d6be0015cb118289667d3c8fcd44b825e4d0fe19b4bfcaacda7bf918e61fa",
+            "isolation": "codex-custom-permission-profile",
+            "judge_model": "gpt-5.6-luna",
+            "kind": "rubric-gen-submission-revision-experiment",
+            "live_workspace_dir": "/tmp/rubric-gen-live-10421549/submission-revision-live-ey6q7bsc/workspace",
+            "live_workspace_removed": false,
+            "master_rubric_name": "rubric.txt",
+            "master_rubric_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+            "max_review_chars": null,
+            "max_revisions": 10,
+            "min_revisions": 5,
+            "model": "gpt-5.6-luna",
+            "pretreatment_rubric_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c/pretreatment-rubrics/da-1-3/c8a41daf60fe8845dcf2603e2479947539ebf0a459ec881b44949e6179dd94cc",
+            "prompt": "base",
+            "prompt_implementation_sha256": "771d1273140f49edee01361f3af94510fb362c07577dfe4706832fdcdb881c3e",
+            "provider": "codex",
+            "reasoning_effort": "low",
+            "red_team_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "red_team_trace_version": "attack_defense_v2.1",
+            "replicate": 3,
+            "review": "trace",
+            "rubric_generation_implementation_sha256": "ad98b887816e02763877343784d756608332d875edc0758f899b7b00894319a8",
+            "rubric_policy": "red_team_trace",
+            "rubric_proposer_max_retries": 5,
+            "rubric_proposer_model": "gpt-5.6-luna",
+            "seed_generator": {
+              "executable": null,
+              "model": "gpt-5.6-luna",
+              "provider": "codex",
+              "reasoning_effort": "low",
+              "retries": 1,
+              "service_tier": null,
+              "timeout_seconds": 7200
+            },
+            "seed_run_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds",
+            "seed_sha256": "648cfcc2601213c767cca12ad099ea8bd171df4456a3278356e182b09fc4129c",
+            "service_tier": null,
+            "session_id": null,
+            "solver_id": "luna",
+            "source_schedule": "pre_revision_v1",
+            "submission_count": 1,
+            "task_dir": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6/da-1-3",
+            "task_id": "da-1-3",
+            "trace_defense_prompt_hashes": {
+              "anticipatory": "9eab22286a1d4ebea89e103da4bc1d1802f2179b3917dcbbf0b78dd198f45ec5",
+              "application": "8d54ab6a667cd99bf1cf9c2b01cf1cac977f11ed0569012a56059a6f679d7240",
+              "attack": "3af663e725751e3c0a1261123678ce4cdc93158a3780d89f97f8a26ad9cc17e0",
+              "compilation": "34df2f3d457de09f32c6e3a6cf1ceb5be9b0e12e9a75b26184c7869f0c957b53",
+              "corrective": "2859f290c7cbf7757483ac9a8dfeec22c6607031fc5ff343288c730ff32bdfff",
+              "diagnosis": "0aa883355ac674e2d120120efce74f6f7755b2fc245b53e845523be427df7c67",
+              "locator_repair": "7aba948d6f99862fe6a60b57b1ea497407c5615bbb91e4156d9f703ee1bbda17",
+              "quality": "6fb35579cecff6f73c3c17d334dc488d81db6e5f5e519356113c3dbea65e1450",
+              "rubric_view": "3eb43ef13f78ffa6fd21e6f91e7a2dfcf382f32cff917ad97663974127f0e8ff",
+              "semantic": "2e43d1908317e6a835d187db3ca1b75d64126fa7b410040c727881aac397c834"
+            },
+            "turn_timeout_seconds": 7200,
+            "web_search": false
+          },
+          "json_valid": true,
+          "relative": "manifest.json",
+          "size": 4938
+        },
+        {
+          "relative": "rubric-generations/generation-0000/criteria.json",
+          "size": 3
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 0,
+            "generation_sha256": "75d0481f76dfd5bcf43f6a7edee449305ae86c6fd2452958cc9d8723dad09da5",
+            "policy": "red_team_trace",
+            "proposer_call_budget": 0,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0000/manifest.json",
+          "size": 493
+        },
+        {
+          "relative": "rubric-generations/generation-0000/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "rubric-generations/generation-0001/aggregate-margins.json",
+          "size": 244
+        },
+        {
+          "relative": "rubric-generations/generation-0001/artifact-history.json",
+          "size": 35545
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criteria.json",
+          "size": 3
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criterion-proposal.json",
+          "size": 907
+        },
+        {
+          "relative": "rubric-generations/generation-0001/criterion-validation.json",
+          "size": 1868
+        },
+        {
+          "relative": "rubric-generations/generation-0001/evolution.json",
+          "size": 6248
+        },
+        {
+          "json": {
+            "file_sha256s": {
+              "aggregate-margins.json": "0d75514bfac8fa66e140796793596d74772d31dba415760fd4afc12819fbd983",
+              "artifact-history.json": "1e83fccd4c3388ef10b303692c2f6763bb02d58625aae3f23e1247ffae81f2de",
+              "criteria.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+              "criterion-proposal.json": "c1923c095fe697e1b482202408b464d308b820a4d439b5a3f77247e0c28bc1d0",
+              "criterion-validation.json": "268e50e878e2b42c79acce1126fdc8643973f63b97be3e2bb8e85336b9c1abb6",
+              "evolution.json": "c344d41cff6990bfcf890701f1e8c733eeb7833c20cb3e537ad60c4d785139fd",
+              "pairwise-assessment-active-rubric.json": "c170afc796099ff6e6ea8fad2c161426e7f37a5d2e5ca99b53793d5974a49eb3",
+              "pairwise-assessment-development-rubric.json": "78f816ade46010296669d02f84171106ce681d04e36ed193fa65e6eaea118831",
+              "pairwise-assessment-rubric-free.json": "dd2a6c780495705559a3816de04c96691035582290aa1ea4f79a814fb9b3fbd7",
+              "pairwise-comparisons.json": "51d3d577374cc73b4871a00a5eca62a664e6950133e19b5642ccb1f1f19f4c06",
+              "rubric.txt": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70"
+            },
+            "generation_round": 1,
+            "generation_sha256": "b3eab27d8371e3a6d4155f530448340cfcfb0e34d2a0e033e3105fd10737985a",
+            "policy": "red_team_trace",
+            "proposer_call_budget": 72,
+            "rubric_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+            "source_checkpoint": null
+          },
+          "json_valid": true,
+          "relative": "rubric-generations/generation-0001/manifest.json",
+          "size": 1425
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-active-rubric.json",
+          "size": 3051
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-development-rubric.json",
+          "size": 3595
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-assessment-rubric-free.json",
+          "size": 2363
+        },
+        {
+          "relative": "rubric-generations/generation-0001/pairwise-comparisons.json",
+          "size": 6974
+        },
+        {
+          "relative": "rubric-generations/generation-0001/rubric.txt",
+          "size": 14471
+        },
+        {
+          "relative": "state.json",
+          "size": 318
+        },
+        {
+          "relative": "submissions/s000/snapshot.json",
+          "size": 233
+        },
+        {
+          "relative": "submissions/s000/status.json",
+          "size": 449
+        },
+        {
+          "relative": "submissions/s000/trajectory.stream.jsonl",
+          "size": 5151
+        },
+        {
+          "relative": "submissions/s000/workspace/answer.txt",
+          "size": 729
+        },
+        {
+          "relative": "submissions/s000/workspace/trace.md",
+          "size": 6787
+        }
+      ],
+      "path": "rep-003/luna/full-red-team-trace",
+      "state": {
+        "effective_solver_model": null,
+        "fixed_original_scores": [],
+        "judge_attempts": {
+          "s000": "c34d58bcc032c602a32eae70a258c277"
+        },
+        "next_prompt": "",
+        "next_turn_index": 1,
+        "phase": "judge_in_progress",
+        "scores": [],
+        "session_id": null,
+        "stop_reason": null,
+        "submission_ids": [
+          "s000"
+        ]
+      }
+    }
+  ]
+}
