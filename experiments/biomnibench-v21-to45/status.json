@@ -13,14 +13,14 @@
     "native_seed_integrity_check_results45_state": "COMPLETED; 44/45 native resolve_seed blocks valid; da-17-1 rep-003 only missing",
     "native_seed_integrity_check_retry": "10417222",
     "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator",
-    "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
+    "note": "Results30 revision recovery, Results45 seed/revision lanes, q3 recovery and collectors remain held behind the external provider-limit boundary. No completed assignment was resubmitted.",
     "observed_at": "2026-09-13T08:09:49-04:00",
     "q3_da11_state_inspector": "10422940 COMPLETED; all three saved failures are Codex usage-limit exits at failed solver turns; no provider calls in retry",
     "q3_da11_assignment_inspector": "10422956 COMPLETED; rep001/rep003 failed at turn 3 and rep002 at turn 4, with s000 through last sealed score preserved",
     "q3_da11_values_inspection": "10422974 COMPLETED; explicit trajectory error says usage limit until 2026-09-19 04:09",
     "q3_provider_blocker": "Codex provider account usage limit; the three da-11-1 failed turns explicitly report the account limit through 2026-09-19 04:09; native resume has no provider slots and no model substitution is authorized.",
     "q7_seed_inspector": "10422941 COMPLETED; archive has all nine listed files, target lacks only submission/trajectory.stream.jsonl and has no manifest/initial_judgment",
-    "q7_archive_finalizer_v2": "10422953 RUNNING; exact archive verification and failed-target removal, no scientific input overwrite",
+    "q7_archive_finalizer_v2": "10422953 FAILED after exact archive verification; nested directory removal hit PermissionError; no scientific input overwrite; superseded by permission repair 10423118",
     "q6_cache_inspector": "10422942 COMPLETED; active runtime preserved; first obsolete cache absent and second exact cache was 1,017,505,307 bytes.",
     "q6_cache_cleanup_direct": "10423023 COMPLETED; removed only exact obsolete cache 10380169, 10380168 already absent; active runtime preserved; receipt exact-cache-cleanup-receipt-v2.json.",
     "obsolete_cache_cleanup_final": "10422142",
@@ -2646,5 +2646,5 @@
   "starting_commit": "6f51cff7699053ff7c901395999c8bbd960eac7c",
   "state": "results30_revisions_results45_seed_recovery",
   "timezone": "America/New_York",
-  "updated_at": "2026-09-13T02:45:00-04:00"
+  "updated_at": "2026-09-13T08:10:00-04:00"
 }
