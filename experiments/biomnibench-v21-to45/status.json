@@ -14,7 +14,10 @@
     "native_seed_integrity_check_retry": "10417222",
     "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator",
     "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
-    "observed_at": "2026-09-13T04:24:00-04:00",
+    "observed_at": "2026-09-13T04:35:00-04:00",
+    "obsolete_cache_cleanup_final": "10422142",
+    "obsolete_cache_cleanup_final_state": "PENDING afterany 10422088 read-only residual inspection; exact two obsolete cache directories only",
+    "obsolete_cache_cleanup_six_state": "10421655 FAILED rmdir after exact cleanup; target had residual entry, diagnostic/retry required",
     "old_twenty_heldouts_changed": false,
     "provider_free_inventory_jobs": {
       "results30_corrected": "10415666",
@@ -22,15 +25,21 @@
       "results45_corrected": "10415675",
       "results45_initial_pending_wrapper": "10415644"
     },
+    "queue3_compare_report": "10421811",
     "queue3_corrected_audit": "10415408",
     "queue3_corrected_collector": "10415525",
     "queue3_missing_audit_collector": "10415949",
     "queue3_missing_audit_recovery": "10421719",
+    "queue3_missing_report": "10421801",
+    "queue3_noappendix_audit_first_recovery": "10421719 FAILED after completing da-3-4 and da-18-1; da-11-1 had no completed assignments and remains preserved",
+    "queue3_noappendix_da11_revision_recovery": "10422080 PENDING QOSMaxCpuPerUserLimit; native --resume for the three upstream provider-exit failures only",
+    "recovery_patch_commit": "b5cbe7e",
+    "recovery_patch_scope": "mechanical exact-path cleanup only; q7 archive path corrected; no scientific inputs or completed assignments changed",
+    "results30_archive_partial_revision": "10421689",
+    "results30_da_1_3_recovery_inspect": "10421606",
     "results30_da_1_3_revision_final": "10417289",
     "results30_da_1_3_revision_recovery": "10421690",
     "results30_da_1_3_revision_recovery_state": "PENDING dependency; exact four manifestless assignments only after archive 10421689; two completed assignments preserved; prior NFS failures retained",
-    "results30_da_1_3_recovery_inspect": "10421606",
-    "results30_archive_partial_revision": "10421689",
     "results30_missing_only_resume_lanes": {
       "dependency": "afterany:10416366:10416038 (lane0), afterany:10416366:10415714 (lane1)",
       "lane0": "10416686",
@@ -70,6 +79,10 @@
       "lane1_retry_state": "COMPLETED 0:0; all five lane-1 task seed blocks returned exit 0",
       "scope": "native seed --resume; complete blocks preserved; lane1 retries only missing da-1-3/rep-001 and da-4-6/rep-002"
     },
+    "results45_archive_attempt4_state": "10421649 FAILED at exact target removal with PermissionError on failed workspace; partial attempt4 archive preserved",
+    "results45_archive_failed_seed": "10421649",
+    "results45_archive_finalizer": "10422141",
+    "results45_archive_finalizer_state": "PENDING afterany 10422063 read-only target inspection; exact da-17-1/rep-003 only",
     "results45_missing_only_resume_lanes": {
       "dependency": "afterany:10416318 (lane0), afterany:10416317 (lane1)",
       "lane0": "10416688",
@@ -85,65 +98,58 @@
       ],
       "scope": "native seed --resume; complete replicate blocks preserved"
     },
+    "results45_permission_inspection": "10422063 PENDING QOSMaxCpuPerUserLimit; read-only exact target/attempt4 inspection",
     "results45_provider_free_inventory_after_retries": "10416170",
+    "results45_revision_wave1": {
+      "dependency": "afterok:10421683",
+      "jobs": {
+        "da-17-3": "10421739",
+        "da-24-3": "10421738",
+        "da-6-5": "10421737",
+        "da-9-7": "10421740"
+      },
+      "scope": "first four previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
+    "results45_revision_wave2": {
+      "dependency": "afterok:10421683 and afterany:10421737-10421740",
+      "jobs": {
+        "da-1-4": "10421817",
+        "da-17-1": "10421814",
+        "da-17-5": "10421815",
+        "da-8-3": "10421816"
+      },
+      "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
+    "results45_revision_wave3": {
+      "dependency": "afterok:10421683 and afterany:10421814-10421817",
+      "jobs": {
+        "da-20-1": "10421823",
+        "da-4-7": "10421825",
+        "da-8-2": "10421824",
+        "da-9-1": "10421822"
+      },
+      "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
+    "results45_revision_wave4": {
+      "dependency": "afterok:10421683 and afterany:10421822-10421825",
+      "jobs": {
+        "da-19-4": "10421829",
+        "da-25-1": "10421831",
+        "da-6-2": "10421830"
+      },
+      "scope": "final three previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
     "results45_seed_jobs": [
       "10415531",
       "10415532"
     ],
     "results45_seed_state_check": "10416323",
+    "results45_seed_validation_after_recovery": "10421683",
     "results45_single_seed_recovery": "10421673",
     "results45_single_seed_recovery_state": "PENDING dependency; guarded native recovery for da-17-1 replicate 3 only after archive 10421649 and cleanup 10421656",
-    "results45_archive_failed_seed": "10421649",
-    "results45_seed_validation_after_recovery": "10421683",
-    "results45_revision_wave1": {
-      "jobs": {
-        "da-6-5": "10421737",
-        "da-24-3": "10421738",
-        "da-17-3": "10421739",
-        "da-9-7": "10421740"
-      },
-      "dependency": "afterok:10421683",
-      "scope": "first four previously unlaunched Results45 task revisions; native dev3-4 resume"
-    },
-    "results45_revision_wave2": {
-      "jobs": {
-        "da-17-1": "10421814",
-        "da-17-5": "10421815",
-        "da-8-3": "10421816",
-        "da-1-4": "10421817"
-      },
-      "dependency": "afterok:10421683 and afterany:10421737-10421740",
-      "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
-    },
-    "results45_revision_wave3": {
-      "jobs": {
-        "da-9-1": "10421822",
-        "da-20-1": "10421823",
-        "da-8-2": "10421824",
-        "da-4-7": "10421825"
-      },
-      "dependency": "afterok:10421683 and afterany:10421814-10421817",
-      "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
-    },
-    "results45_revision_wave4": {
-      "jobs": {
-        "da-19-4": "10421829",
-        "da-6-2": "10421830",
-        "da-25-1": "10421831"
-      },
-      "dependency": "afterok:10421683 and afterany:10421822-10421825",
-      "scope": "final three previously unlaunched Results45 task revisions; native dev3-4 resume"
-    },
-    "queue3_missing_report": "10421801",
-    "queue3_compare_report": "10421811",
+    "scale_audit_wrapper_commit": "c94daee; not dispatched until q6/q7 revision coverage validates",
     "scale_seed_state_check_after_missing_only": "10416777",
-    "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check.",
-    "queue3_noappendix_da11_revision_recovery": "10422080 PENDING QOSMaxCpuPerUserLimit; native --resume for the three upstream provider-exit failures only",
-    "queue3_noappendix_audit_first_recovery": "10421719 FAILED after completing da-3-4 and da-18-1; da-11-1 had no completed assignments and remains preserved",
-    "results45_archive_attempt4_state": "10421649 FAILED at exact target removal with PermissionError on failed workspace; partial attempt4 archive preserved",
-    "results45_permission_inspection": "10422063 PENDING QOSMaxCpuPerUserLimit; read-only exact target/attempt4 inspection",
-    "obsolete_cache_cleanup_six_state": "10421655 FAILED rmdir after exact cleanup; target had residual entry, diagnostic/retry required",
-    "scale_audit_wrapper_commit": "c94daee; not dispatched until q6/q7 revision coverage validates"
+    "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check."
   },
   "heldout_decision": {
     "at": "2026-09-12T12:39:00-04:00",
@@ -158,7 +164,7 @@
   "inventory_job_exit": "0:0",
   "inventory_job_state": "COMPLETED",
   "mission_started_at": "2026-09-12T09:27:31-04:00",
-  "next_action": "Wait for capacity; complete q6/q7 guarded seed/revision recovery and q3 missing score_only-trace-no-appendix audit, then dispatch remaining missing revisions and native audits.",
+  "next_action": "Complete read-only q7/cache inspections and exact finalizers when capacity opens; then native missing-only q7 seed/q6 revision/q3 revision recoveries, audits, and scale reports.",
   "provider_calls": null,
   "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls.",
   "queue2": {

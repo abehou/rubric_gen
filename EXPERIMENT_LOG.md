@@ -2355,3 +2355,7 @@
 ## 2026-09-13 — Resumed scale recovery
 
 - 04:22 EDT: After Results20 capacity opened, Results30 inspection 10421606 completed; q7 archive 10421649 preserved its exact manifestless failure evidence but hit a permission error removing the failed workspace, and cache cleanup 10421655 found an undeletable residual entry. Queue3 recovery 10421719 completed the two available tasks but retained all three da-11-1 provider-exit failures; native da-11-1 revision resume 10422080 is queued. No completed assignment was resubmitted.
+
+## 2026-09-13 — Exact recovery finalizers queued
+
+- 04:35 EDT: Mechanical recovery patch `b5cbe7e` corrects the q7 archive owner path and adds exact allowlisted permission repair for the manifestless `da-17-1/rep-003` seed target and two obsolete runtime caches after concrete PermissionError/rmdir failures. Finalizers 10422141 and 10422142 wait behind read-only inspectors 10422063 and 10422088; no provider calls or scientific inputs changed.
