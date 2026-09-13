@@ -1,6 +1,6 @@
 {
-  "observed_at": "2026-09-13T11:26:12-04:00",
-  "status": "native_missing_only_recovery_active",
+  "observed_at": "2026-09-13T19:48:04-04:00",
+  "status": "storage_triage_blocked_no_safe_reclaimable_capacity",
   "mission": "PaperBench non-trace Results20",
   "scope": {
     "conditions_expected": 16,
@@ -19,7 +19,7 @@
     ]
   },
   "git": {
-    "origin_aydan_red_team_head_observed": "1b17827f17d1cc268ee94bb689044e483430d093",
+    "origin_aydan_red_team_head_observed": "2d5faef2877a6deb02dd0614e476dd028f55f265",
     "inventory_worktree_head": "a8f06b9a67c57e4da0cf46aeac60accd194210fe",
     "results20_worktree_head": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
     "dev3_worktree_head": "4f67a3b8daca4a545d9c0a67578b283296e63823",
@@ -30,9 +30,9 @@
       "job_id": "10424162",
       "name": "pb-r20-semi-score-learned-rest-resume-recovery",
       "output_owner": "existing semi-score-learned-rest Results20 study namespace",
-      "progress": "300 selected; 6 completed valid; 35 failed; 28 running; 231 pending; last successful operation was evolution-generation; shared NFS capacity constrained",
+      "progress": "Terminal FAILED; 6 completed valid, 62 failed, 231 pending, and 1 interrupted persisted assignment of 300; existing valid rows and failure evidence preserved; native missing-only resume deferred until NFS capacity is restored.",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
-      "state": "RUNNING"
+      "state": "FAILED"
     },
     {
       "job_id": "10424163",
@@ -46,9 +46,9 @@
       "job_id": "10424271",
       "name": "pb-r20-full-user-learned-recovery",
       "output_owner": "existing Full/User Results20 study namespace",
-      "progress": "360 selected; 0 completed; 32 running; 328 pending; no failures recorded; shared NFS capacity constrained",
+      "progress": "Terminal PREEMPTED after QOSMaxCpuPerUserLimit; 28 failed, 309 pending, and 23 interrupted persisted assignments of 360; existing namespace and evidence preserved; native missing-only resume deferred until NFS capacity is restored.",
       "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
-      "state": "RUNNING"
+      "state": "PREEMPTED"
     },
     {
       "job_id": "10424410",
@@ -94,15 +94,15 @@
       "job_id": "10424672",
       "name": "pb-r20-audit-semi-score-fixed-recovery-v2",
       "output_owner": "same semi-score-fixed audit namespace; native missing-only replacement for 10424163",
-      "progress": "queued on CPU quota; preserves 10424163 direct outputs and valid rubric judgments",
+      "progress": "Active native missing-only Semi/Score fixed audit on babel-m9-28; direct stages complete and rubric_score remains in progress; preserved during storage triage.",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
-      "state": "PENDING"
+      "state": "RUNNING"
     },
     {
       "job_id": "10424681",
       "name": "pb-r20-audit-score-only-offline-recovery-v2",
       "output_owner": "same score-only-offline audit namespace; native missing-only replacement",
-      "progress": "afterok 10424672; queued dependency replacement for failed chain 10424410",
+      "progress": "Pending afterok:10424672; same score-only-offline audit namespace; no duplicate owner.",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
       "state": "PENDING"
     },
@@ -110,7 +110,7 @@
       "job_id": "10424684",
       "name": "pb-dev3-audit-full-user-learned-recovery-v2",
       "output_owner": "same Full/User dev3 audit namespace; native missing-only replacement",
-      "progress": "afterok 10424681; queued dependency replacement for failed chain 10424419",
+      "progress": "Pending afterok:10424681; same Full/User dev3 audit namespace; no duplicate owner.",
       "source": "4f67a3b8daca4a545d9c0a67578b283296e63823",
       "state": "PENDING"
     }
@@ -125,8 +125,8 @@
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
     "results20_valid_assignments": 306,
-    "results20_failed_assignments": 35,
-    "results20_not_launched_assignments": 559,
+    "results20_failed_assignments": 90,
+    "results20_not_launched_assignments": 540,
     "shared_static_audit": {
       "sol_rubric": "900/900",
       "opus_rubric": "900/900",
@@ -137,9 +137,10 @@
     "reused_results20_assignments": 120,
     "latest_missing_only_failed_attempts": 135,
     "latest_missing_only_valid_completions": 6,
-    "results20_inflight_assignments": 60,
-    "results20_pending_assignments": 559,
-    "historical_results20_failed_attempts_before_current_resume": 77
+    "results20_inflight_assignments": 24,
+    "results20_pending_assignments": 540,
+    "historical_results20_failed_attempts_before_current_resume": 77,
+    "results20_unresolved_assignments": 564
   },
   "conditions": [
     {
@@ -880,5 +881,78 @@
     "impact": "new NFS writes may fail; 10424162 has OSError failures; preserve running owners and do not delete outputs",
     "action": "read-only diagnosis recorded; no cleanup, cancellation, or new provider owner submitted"
   },
-  "safe_resume_commands_note": "Do not submit a command while its current owner or queued replacement is still present; use only after the recorded owner is terminal and storage capacity is restored."
+  "safe_resume_commands_note": "Do not submit a command while its current owner or queued replacement is still present; use only after the recorded owner is terminal and storage capacity is restored.",
+  "storage_triage": {
+    "observed_at": "2026-09-13T19:48:04-04:00",
+    "filesystem": "/data/user_data/aydanh",
+    "measurement_node": "babel-m9-28",
+    "before_cleanup": {
+      "available_bytes_reported": "15M",
+      "available_inodes_reported": "30K",
+      "space_use": "100%",
+      "inode_use": "100%"
+    },
+    "after_cleanup": {
+      "available_bytes_reported": "15M",
+      "available_inodes_reported": "31K",
+      "space_use": "100%",
+      "inode_use": "100%"
+    },
+    "historical_cross_node_baseline": {
+      "recorded_at": "2026-09-13T11:26:12-04:00",
+      "available_bytes_reported": "approximately 29-32 MB",
+      "available_inodes_reported": "approximately 57K"
+    },
+    "deleted_paths": [
+      {
+        "path": "/data/user_data/aydanh/rubric_gen/tmp/confirmation",
+        "reported_disk_usage_before": "1024 B",
+        "files_before": 0,
+        "inodes_reclaimed": 1,
+        "reason": "verified empty temporary directory; no job/config reference found"
+      },
+      {
+        "path": "/data/user_data/aydanh/tmp/torchinductor_aydanh",
+        "reported_disk_usage_before": "1024 B",
+        "files_before": 0,
+        "inodes_reclaimed": 1,
+        "reason": "verified empty temporary cache directory; no job/config reference found"
+      }
+    ],
+    "reclaimed": {
+      "data_bytes": 0,
+      "reported_directory_blocks": 2048,
+      "inodes": 2
+    },
+    "inventory_limit": "Recursive byte/inode walks against the full NFS were stopped after du/find entered rpc_wait_bit_killable; current per-subtree totals cannot be established safely while the filesystem is full.",
+    "protected_subtrees": [
+      "/data/user_data/aydanh/rubric_gen/runs",
+      "/data/user_data/aydanh/rubric_gen/cache",
+      "/data/user_data/aydanh/rubric_gen/pools",
+      "/data/user_data/aydanh/rubric_gen/data",
+      "/data/user_data/aydanh/rubric_gen/caches/matplotlib-baseline-freeze",
+      "/data/user_data/aydanh/tmp/vllm_probe_8327405",
+      "/data/user_data/aydanh/hf_cache",
+      "/data/user_data/aydanh/hf_home",
+      "/data/user_data/aydanh/pip_cache",
+      "/data/user_data/aydanh/uv_cache",
+      "/data/user_data/aydanh/torchinductor_cache",
+      "/data/user_data/aydanh/triton_cache",
+      "/data/user_data/aydanh/vllm_cache",
+      "/data/user_data/aydanh/models",
+      "/data/user_data/aydanh/checkpoints"
+    ],
+    "active_jobs_preserved": [
+      "10424672",
+      "10424681",
+      "10424684"
+    ],
+    "terminal_jobs_preserved": [
+      "10424162",
+      "10424271"
+    ],
+    "dependency_chain": "10424672 remains running; 10424681 remains afterok:10424672; 10424684 remains afterok:10424681; no chain was resubmitted or altered.",
+    "resume_decision": "deferred until defensible NFS headroom is restored; no scientific/provider work was resumed",
+    "remaining_blocker": "Filesystem remains at 100% space and inode use with only about 15M and 31K free on the measured node; no safe cleanup candidate large enough to restore operating headroom was proven."
+  }
 }
