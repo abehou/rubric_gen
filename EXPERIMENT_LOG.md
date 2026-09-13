@@ -2385,3 +2385,17 @@ Queued provider-free synthesis 10422359 after Queue3 final compare and Results30
 
 ## 2026-09-13 05:29 EDT — Scale-chain reconciliation
 Reconciled Slurm and persisted ledgers after session resume. PaperBench owners 10421723 (solver work) and 10421810 (120/120 assignments, audit queue draining) are the only active jobs and remain under their owner; every BioMNIBench inspector, recovery, audit and report job is still dependency/QOS-held. The existing CPU profile remains defensible: producer/seed/revision owners request four CPUs for four native workers, audit/report/finalizer stages request four/one CPUs respectively, and no live request was changed.
+
+## 2026-09-13 07:02 EDT — Queue3 NFS recovery
+Queue3 no-appendix da-11-1 recovery 10422080 failed before provider work with an NFS `OSError: [Errno 512]` while importing `jsonschema_specifications`; its exact logs and failed state are preserved. A single native `--resume` retry 10422809 was submitted, and the unsatisfiable pending audit 10422200 was held/canceled and replaced by audit 10422818 after the retry; downstream reports remain held until the recovered audit completes.
+
+## 2026-09-13 07:23 EDT — Exact finalizer recovery
+The read-only inspectors 10422063/10422088 failed before execution because their submitted here-docs contained literal `\\n`; no data was changed. Exact q7 archive and allowlisted-cache finalizers 10422141/10422142 then timed out at 30 minutes while reading NFS and produced no completion receipts. The same scripts are retried as 10422912/10422913 with a two-hour allowance; only their dependent missing-only chains are held.
+
+## 2026-09-13 08:10 EDT — Provider-limited scale handoff
+
+Native q3 resume `10422809` reached the three saved `da-11-1` failed-turn checkpoints and each returned the Codex account usage-limit error (reset reported for 2026-09-19 04:09); no further scientific provider call or model substitution is authorized. The four q6 `da-1-3` recovery targets remain `judge_in_progress` after `s000` with valid manifests and no completed score, while q7’s exact `da-17-1/rep-003` archive was verified and its directory-mode repair `10423118` removed only that failed target; native seed regeneration remains pending.
+
+## 2026-09-13 08:10 EDT — Exact storage cleanup receipts
+
+The q6 read-only census `10422942` and direct allowlist cleanup `10423023` preserved the active runtime and removed only obsolete cache `10380169` (`10380168` was already absent); q6 archive pass `10423093` made no changes because all four targets had valid manifests. Q7 finalizer `10422953` verified the preserved archive before a nested permission error; targeted directory-mode repair `10423118` then removed the exact target. These are provider-free operational receipts and do not promote archived failures or alter scientific inputs.

@@ -70,3 +70,32 @@ The official nested task membership is fixed before new outcomes: [T20/T30/T45](
 Expectations are **partially met**, supported by Full v2.1 rather than an overall successful bundle. Queue2 is complete; queue3 and the Results30/45 input/revision/audit stages are **incomplete**. The heldout authority blocker is resolved, and all missing work is being resumed through the native owners without resubmitting completed cells. This checkpoint does not end the30/45 mission.
 
 Collaborator update draft:「目前Full v2.1在20题上的主要方向成立，但后期RH窗口和统计不确定性仍需保留；User校准问题尚未解决。R1/R2共18条轨迹已完成，Queue2评审已补齐，Queue3正在按原计划恢复。30/45题按已固定任务集推进，旧20题heldout不变，新题使用已批准的rigorous-V2提示并明确记录生成差异。现在是部分达标，不是全部预期已实现。」
+
+
+## 2026-09-13 08:10 EDT — persisted scale state after recovery attempts
+
+This section supersedes the earlier “running” wording where the current receipts below are more specific. It is a provider-free checkpoint; it does not claim a completed Results30 or Results45 outcome. The original twenty-task records and all successful judgments remain unchanged.
+
+### Results30
+
+The ten-task extension has 60 intended new Full records. The ten native task seed manifests were valid in inventory job `10416169`. The `da-1-3` shard is still incomplete: the four exact failed targets (`rep-001/full-static`, `rep-001/full-red-team-trace`, `rep-002/full-red-team-trace`, and `rep-003/full-red-team-trace`) each contain a valid manifest and one `s000` submission but remain `judge_in_progress` with no completed score (`10423138`, [receipt](queue8/q6-da1-3-revision-target-inspection.json)). The provider-free archive pass `10423093` therefore removed nothing. Its native resume remains held; no Results30 revision or audit judgment has been started for these missing records. Results30 audit `10422299` and report `10422300` remain held.
+
+### Results45
+
+The final-fifteen extension has 90 intended new Full records. Native inventory `10416170` verified 44/45 seed blocks; only `da-17-1/rep-003` was incomplete. Its preserved archive was verified by `10422953`, which then failed only while removing a nested directory with `PermissionError`. The exact directory-mode repair `10423118` changed four directory modes inside that target and removed only the failed target ([receipt](queue8/q7-seed-target-permission-repair.json)); the archive was not promoted to a seed, so native seed regeneration and validation are still required. Repaired revision waves `10422174`–`10422196`, Results45 audit `10422302`, and report `10422304` remain held.
+
+### Queue3 missing cell and provider boundary
+
+The only incomplete Queue3 cell is `score_only-trace-no-appendix` for `da-11-1`. Native resume `10422809` reached all three saved failed-turn checkpoints without buying another provider call. Replicates 1 and 3 stop at turn 3 and replicate 2 at turn 4; the sealed submissions and scores are retained. The failed-turn records report the Codex account usage-limit response, with access reported to reset at `2026-09-19 04:09`. Audit `10422818` is consequently `DependencyNeverSatisfied`; its downstream reports remain held. This is an external provider-capacity blocker, separate from scientific nulls, audit disagreements, the earlier NFS failure, and the controller memory-allocation incident. No model substitution, task replacement, or repeated unfavorable draw was used.
+
+### Storage and CPU accounting
+
+The q6 read-only cache census `10422942` found the active `trace-repair-10381602` environment intact, one allowlisted obsolete cache already absent, and the second allowlisted cache at 1,017,505,307 bytes. Direct cleanup `10423023` removed only that second obsolete cache ([receipt](queue8/q6-exact-cache-cleanup-receipt-v2.json)); it did not chmod or rewrite metadata. The one-CPU q7/q6 storage operations used narrow paths and preserved failed evidence. The q6 archive job `10423093` used one CPU and made no scientific change. The established profile remains four CPUs for four-worker producers/revisions, four for future audit request workers, and one for serial reports/finalizers; no healthy scientific job was resized.
+
+### Current job ownership and resumption
+
+The BioMNIBench jobs currently held are q3 audit `10422818`, q6 local recovery `10422169` and Results30 audit `10422299`, q7 seed/validator `10422170`→`10422171`, q7 repaired revision waves `10422174`–`10422196`, and Results45 audit/report `10422302`→`10422304`. The q7 seed dependency was retargeted to the completed exact repair `10423118`; q6’s old archive dependency remains held because Slurm rejected a replacement dependency after the completed one-shot archive `10423093`, so it must be resubmitted or manually repaired by the native owner after provider access returns. No held job was released into the provider queue.
+
+After the provider limit resets, resume only the native missing work in this order: q3 `--resume` for the three failed `da-11-1` assignments and its held audit; q6 `da-1-3` native resume after validating the four saved targets; q7 native seed regeneration/validator for `da-17-1/rep-003`; then release the already prepared revision waves and scale audits through their native dependencies. The existing report jobs and `10422359` synthesis should run only after their inputs are complete. The exact output roots are `/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30` and `/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15`; access them through Slurm, not login-node existence checks.
+
+The historical Result20 table above remains the last complete scientific scale result. No expanded W/W_train/S/H/A, gap, RH, interval, or final joint-decision values are reported for Results30/45 because their new-task revisions and audits are not complete. The appropriate status is **partially met; Results30/45 incomplete and externally provider-blocked**, with all valid prior work and failure evidence retained.

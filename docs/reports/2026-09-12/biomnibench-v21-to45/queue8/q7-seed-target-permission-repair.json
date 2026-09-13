@@ -1,0 +1,31 @@
+{
+  "archive_verification_job": "10422953",
+  "directory_modes_changed": [
+    {
+      "after": "0o700",
+      "before": "0o500",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds/tasks/da-17-1/rep-003/submission/workspace/artifacts"
+    },
+    {
+      "after": "0o700",
+      "before": "0o500",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds/tasks/da-17-1/rep-003/submission/workspace/.codex"
+    },
+    {
+      "after": "0o700",
+      "before": "0o500",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds/tasks/da-17-1/rep-003/submission/workspace/.agents"
+    },
+    {
+      "after": "0o700",
+      "before": "0o500",
+      "path": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds/tasks/da-17-1/rep-003/submission/workspace"
+    }
+  ],
+  "native_seed_regeneration_required": true,
+  "operation": "q7_failed_seed_target_permission_repair",
+  "removed_exact_target": true,
+  "scientific_inputs_changed": false,
+  "target": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds/tasks/da-17-1/rep-003",
+  "target_already_absent": false
+}

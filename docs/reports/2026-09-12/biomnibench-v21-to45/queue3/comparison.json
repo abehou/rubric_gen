@@ -1,0 +1,23 @@
+{
+  "contrasts": {
+    "full-trace minus full-fixed": {
+      "status": "incomplete; no paired estimate"
+    },
+    "semi-trace minus semi-fixed": {
+      "status": "incomplete; no paired estimate"
+    },
+    "score_only-trace minus score_only-fixed": {
+      "status": "incomplete; no paired estimate"
+    },
+    "user_simulator-trace minus user_simulator-fixed": {
+      "status": "incomplete; no paired estimate"
+    },
+    "score_only-trace-no-appendix minus score_only-trace": {
+      "status": "incomplete; no paired estimate"
+    },
+    "score_only-trace-no-appendix minus score_only-fixed": {
+      "status": "incomplete; no paired estimate"
+    }
+  },
+  "provider_calls": 0
+}
