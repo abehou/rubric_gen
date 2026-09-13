@@ -2367,3 +2367,6 @@
 ## 2026-09-13 — Superseded blocked jobs cleared; q3 audit resubmitted
 
 - 05:05 EDT: Slurm rejected the q3 audit submission at the per-user job-count limit because 22 never-started jobs were permanently dependency-unsatisfiable after the failed first recovery chain. Canceled only those exact blocked IDs (their logs/IDs remain historical), then queued q3 missing-only audit `10422200`, cell report `10422201`, and comparison report `10422202` after native da-11-1 recovery `10422080`; active PaperBench, inspectors, finalizers and repaired scale waves were untouched.
+
+## 2026-09-13 05:15 EDT — PaperBench quota handoff
+PaperBench dev3 job 10421608 completed 54/54 with its saved output and accounting intact; dependent owner 10421723 started immediately and now occupies the released 32 CPUs. BioMNIBench recovery jobs remain queued without duplication; PaperBench jobs were not interrupted.
