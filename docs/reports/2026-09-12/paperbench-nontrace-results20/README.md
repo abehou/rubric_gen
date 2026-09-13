@@ -608,3 +608,10 @@ The native learned-rest replacement `10424162` is healthy: **2 completed valid, 
 The old jobs `10422051`, `10422649`, and `10422655` remain `DependencyNeverSatisfied` evidence and are not competing owners. Score-only-offline audit and Full/User dev3 audit replacements remain deferred until the current global audit owner reaches a terminal state, so only one audit executor can own the shared lease.
 
 Aggregate Results20 accounting is now **302 valid, 21 failed, 32 running, and 605 pending/not yet valid** out of 960. The two terminal conditions remain Full-static and User-simulator-static. All CPU profiles, scientific settings, trace work, and BioMNIBench work remain untouched.
+
+
+## Current queued-audit checkpoint — 2026-09-13T10:47:48-04:00
+
+The Full/User dev3 validator `10424154` passed all six conditions at 9/9 native-valid, so the only Results20 replacement owner is `10424271`, queued after that successful validator. The native Full/User dev3 audit replacement `10424419` is queued behind the Score-only-offline audit replacement `10424410`; both are afterok chained behind the active fixed Semi/Score audit `10424163`, preserving one global audit owner.
+
+The active learned-rest recovery `10424162` has reached **6 completed valid, 21 failed, 32 running, and 241 pending** of 300 selected assignments. It continues to emit successful solver work and has no current failure event. Results20 aggregate accounting is **306 valid, 21 failed, 32 running, and 601 pending/not yet valid** of 960; Full-static and User-simulator-static remain the only terminal conditions.

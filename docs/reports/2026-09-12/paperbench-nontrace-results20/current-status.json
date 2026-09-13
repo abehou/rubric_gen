@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-13T10:32:01-04:00",
+  "observed_at": "2026-09-13T10:47:48-04:00",
   "status": "native_missing_only_recovery_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
@@ -30,7 +30,7 @@
       "job_id": "10424162",
       "name": "pb-r20-semi-score-learned-rest-resume-recovery",
       "state": "RUNNING",
-      "progress": "300 selected; 2 completed valid; 21 failed; 32 running; 245 pending",
+      "progress": "300 selected; 6 completed valid; 21 failed; 32 running; 241 pending",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
       "output_owner": "existing semi-score-learned-rest Results20 study namespace"
     },
@@ -38,7 +38,7 @@
       "job_id": "10424163",
       "name": "pb-r20-audit-semi-score-fixed-recovery",
       "state": "RUNNING",
-      "progress": "120/120 assignments prepared; native audit recovery in preparation/execution; sole global audit owner",
+      "progress": "120/120 prepared; rubric-score recovery active; sole global audit owner",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
       "output_owner": "existing semi-score-fixed audit namespace"
     },
@@ -46,9 +46,25 @@
       "job_id": "10424271",
       "name": "pb-r20-full-user-learned-recovery",
       "state": "PENDING",
-      "progress": "native Results20 --resume after successful validator 10424154; waiting on CPU quota",
+      "progress": "native Results20 --resume after validator 10424154; QOSMaxCpuPerUserLimit",
       "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
       "output_owner": "existing Full/User Results20 study namespace"
+    },
+    {
+      "job_id": "10424410",
+      "name": "pb-r20-audit-score-only-offline-recovery",
+      "state": "PENDING",
+      "progress": "afterok:10424163; serialized native missing-only audit owner",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "output_owner": "existing score-only-offline audit namespace"
+    },
+    {
+      "job_id": "10424419",
+      "name": "pb-dev3-audit-full-user-learned-recovery",
+      "state": "PENDING",
+      "progress": "afterok:10424410; serialized native Full/User dev3 audit owner",
+      "source": "4f67a3b8daca4a545d9c0a67578b283296e63823",
+      "output_owner": "existing Full/User dev3 audit namespace"
     },
     {
       "job_id": "10422051",
@@ -56,7 +72,7 @@
       "state": "PENDING",
       "progress": "DependencyNeverSatisfied after failed 10421810; no execution",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
-      "output_owner": "existing score-only-offline audit namespace"
+      "output_owner": "superseded by 10424410"
     },
     {
       "job_id": "10422649",
@@ -64,7 +80,7 @@
       "state": "PENDING",
       "progress": "DependencyNeverSatisfied after failed 10422283; no execution",
       "source": "4f67a3b8daca4a545d9c0a67578b283296e63823",
-      "output_owner": "existing Full/User dev3 audit namespace"
+      "output_owner": "superseded by 10424419"
     },
     {
       "job_id": "10422655",
@@ -84,9 +100,9 @@
     "dev3_valid_assignments": 90,
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
-    "results20_valid_assignments": 302,
+    "results20_valid_assignments": 306,
     "results20_failed_assignments": 21,
-    "results20_not_launched_assignments": 605,
+    "results20_not_launched_assignments": 601,
     "shared_static_audit": {
       "sol_rubric": "900/900",
       "opus_rubric": "900/900",
@@ -96,9 +112,9 @@
     "new_revision_assignment_slots_submitted": 306,
     "reused_results20_assignments": 120,
     "latest_missing_only_failed_attempts": 135,
-    "latest_missing_only_valid_completions": 2,
+    "latest_missing_only_valid_completions": 6,
     "results20_inflight_assignments": 32,
-    "results20_pending_assignments": 605,
+    "results20_pending_assignments": 601,
     "historical_results20_failed_attempts_before_current_resume": 77
   },
   "conditions": [
@@ -139,7 +155,7 @@
       "rubric_policy": "offline_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid (native validator 10424154)",
-      "dev3_audit": "not launched; old 10422649 dependency-gated",
+      "dev3_audit": "queued afterok:10424410 (job 10424419)",
       "results20_revision": "native --resume owner 10424271 pending on CPU quota",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
@@ -162,10 +178,11 @@
         "10422649",
         "10422655",
         "10424154",
-        "10424271"
+        "10424271",
+        "10424419"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "dev3 validated; 10424271 is the only replacement Results20 owner and is pending on CPU quota; no duplicate owner"
+      "blocker": "dev3 validated; Results20 owner 10424271 pending CPU quota; audit 10424419 serialized after 10424410"
     },
     {
       "condition": "full-online-rubric",
@@ -173,7 +190,7 @@
       "rubric_policy": "online_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid (native validator 10424154)",
-      "dev3_audit": "not launched; old 10422649 dependency-gated",
+      "dev3_audit": "queued afterok:10424410 (job 10424419)",
       "results20_revision": "native --resume owner 10424271 pending on CPU quota",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
@@ -196,10 +213,11 @@
         "10422649",
         "10422655",
         "10424154",
-        "10424271"
+        "10424271",
+        "10424419"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "dev3 validated; 10424271 is the only replacement Results20 owner and is pending on CPU quota; no duplicate owner"
+      "blocker": "dev3 validated; Results20 owner 10424271 pending CPU quota; audit 10424419 serialized after 10424410"
     },
     {
       "condition": "full-red-team-artifact",
@@ -207,7 +225,7 @@
       "rubric_policy": "red_team_artifact",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid (native validator 10424154)",
-      "dev3_audit": "not launched; old 10422649 dependency-gated",
+      "dev3_audit": "queued afterok:10424410 (job 10424419)",
       "results20_revision": "native --resume owner 10424271 pending on CPU quota",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
@@ -230,10 +248,11 @@
         "10422649",
         "10422655",
         "10424154",
-        "10424271"
+        "10424271",
+        "10424419"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "dev3 validated; 10424271 is the only replacement Results20 owner and is pending on CPU quota; no duplicate owner"
+      "blocker": "dev3 validated; Results20 owner 10424271 pending CPU quota; audit 10424419 serialized after 10424410"
     },
     {
       "condition": "semi-static",
@@ -268,7 +287,7 @@
         "10424163"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-fixed-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
-      "blocker": "10424163 is the sole active global audit owner; valid prior outputs preserved"
+      "blocker": "10424163 sole active global audit owner; downstream audits are serialized"
     },
     {
       "condition": "semi-offline-rubric",
@@ -277,7 +296,7 @@
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
       "dev3_audit": "complete (validated dev3 reused)",
-      "results20_revision": "native missing-only 10424162: 2 completed / 21 failed / 32 running / 245 pending aggregate",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -298,7 +317,7 @@
         "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10424162 healthy native recovery; aggregate scope has 2 completed valid assignments and no current failure event; per-condition split pending",
+      "blocker": "10424162 healthy native recovery; per-condition split pending; no completed assignment rerun",
       "valid_assignments": null
     },
     {
@@ -308,7 +327,7 @@
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
       "dev3_audit": "complete (validated dev3 reused)",
-      "results20_revision": "native missing-only 10424162: 2 completed / 21 failed / 32 running / 245 pending aggregate",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -329,7 +348,7 @@
         "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10424162 healthy native recovery; aggregate scope has 2 completed valid assignments and no current failure event; per-condition split pending",
+      "blocker": "10424162 healthy native recovery; per-condition split pending; no completed assignment rerun",
       "valid_assignments": null
     },
     {
@@ -339,7 +358,7 @@
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
       "dev3_audit": "complete (validated dev3 reused)",
-      "results20_revision": "native missing-only 10424162: 2 completed / 21 failed / 32 running / 245 pending aggregate",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -360,7 +379,7 @@
         "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10424162 healthy native recovery; aggregate scope has 2 completed valid assignments and no current failure event; per-condition split pending",
+      "blocker": "10424162 healthy native recovery; per-condition split pending; no completed assignment rerun",
       "valid_assignments": null
     },
     {
@@ -396,7 +415,7 @@
         "10424163"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-fixed-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
-      "blocker": "10424163 is the sole active global audit owner; valid prior outputs preserved"
+      "blocker": "10424163 sole active global audit owner; downstream audits are serialized"
     },
     {
       "condition": "score-only-offline-rubric",
@@ -406,7 +425,7 @@
       "dev3_revision": "9/9 valid",
       "dev3_audit": "failed after direct stages; 3 rubric responses incomplete",
       "results20_revision": "60/60 valid",
-      "results20_audit": "not run; 10422051 is DependencyNeverSatisfied after failed 10421810",
+      "results20_audit": "queued afterok:10424163 (job 10424410); old 10422051 is unsatisfiable evidence",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
@@ -426,10 +445,11 @@
         "10414747",
         "10415465",
         "10421607",
-        "10422051"
+        "10422051",
+        "10424410"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-score-only-offline-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
-      "blocker": "replacement native audit owner will be created after fixed Semi/Score audit recovery is terminal; 60/60 revisions remain valid"
+      "blocker": "10424410 waits for fixed Semi/Score audit recovery; no second audit owner"
     },
     {
       "condition": "score-only-online-rubric",
@@ -438,7 +458,7 @@
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
       "dev3_audit": "complete (validated dev3 reused)",
-      "results20_revision": "native missing-only 10424162: 2 completed / 21 failed / 32 running / 245 pending aggregate",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -459,7 +479,7 @@
         "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10424162 healthy native recovery; aggregate scope has 2 completed valid assignments and no current failure event; per-condition split pending",
+      "blocker": "10424162 healthy native recovery; per-condition split pending; no completed assignment rerun",
       "valid_assignments": null
     },
     {
@@ -469,7 +489,7 @@
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
       "dev3_audit": "complete (validated dev3 reused)",
-      "results20_revision": "native missing-only 10424162: 2 completed / 21 failed / 32 running / 245 pending aggregate",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -490,7 +510,7 @@
         "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10424162 healthy native recovery; aggregate scope has 2 completed valid assignments and no current failure event; per-condition split pending",
+      "blocker": "10424162 healthy native recovery; per-condition split pending; no completed assignment rerun",
       "valid_assignments": null
     },
     {
@@ -530,7 +550,7 @@
       "rubric_policy": "offline_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid (native validator 10424154)",
-      "dev3_audit": "not launched; old 10422649 dependency-gated",
+      "dev3_audit": "queued afterok:10424410 (job 10424419)",
       "results20_revision": "native --resume owner 10424271 pending on CPU quota",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
@@ -553,10 +573,11 @@
         "10422649",
         "10422655",
         "10424154",
-        "10424271"
+        "10424271",
+        "10424419"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "dev3 validated; 10424271 is the only replacement Results20 owner and is pending on CPU quota; no duplicate owner"
+      "blocker": "dev3 validated; Results20 owner 10424271 pending CPU quota; audit 10424419 serialized after 10424410"
     },
     {
       "condition": "user-simulator-online-rubric",
@@ -564,7 +585,7 @@
       "rubric_policy": "online_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid (native validator 10424154)",
-      "dev3_audit": "not launched; old 10422649 dependency-gated",
+      "dev3_audit": "queued afterok:10424410 (job 10424419)",
       "results20_revision": "native --resume owner 10424271 pending on CPU quota",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
@@ -586,10 +607,11 @@
         "10422649",
         "10422655",
         "10424154",
-        "10424271"
+        "10424271",
+        "10424419"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "dev3 validated; 10424271 is the only replacement Results20 owner and is pending on CPU quota; no duplicate owner",
+      "blocker": "dev3 validated; Results20 owner 10424271 pending CPU quota; audit 10424419 serialized after 10424410",
       "valid_assignments": 0
     },
     {
@@ -598,7 +620,7 @@
       "rubric_policy": "red_team_artifact",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid (native validator 10424154)",
-      "dev3_audit": "not launched; old 10422649 dependency-gated",
+      "dev3_audit": "queued afterok:10424410 (job 10424419)",
       "results20_revision": "native --resume owner 10424271 pending on CPU quota",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
@@ -620,10 +642,11 @@
         "10422649",
         "10422655",
         "10424154",
-        "10424271"
+        "10424271",
+        "10424419"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "dev3 validated; 10424271 is the only replacement Results20 owner and is pending on CPU quota; no duplicate owner",
+      "blocker": "dev3 validated; Results20 owner 10424271 pending CPU quota; audit 10424419 serialized after 10424410",
       "valid_assignments": 0
     }
   ],
@@ -693,7 +716,9 @@
     "results20_semi_score_learned_rest": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-learned-rest-resume-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml --resume",
     "dev3_full_user_validator_recovery": "sbatch --parsable --partition=preempt --qos=preempt_cpu_qos --time=00:30:00 --ntasks=1 --cpus-per-task=1 --mem=4G --no-requeue --job-name=pb-dev3-validate-full-user-learned-recovery --output=/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-dev3-20260912/validate-full-user-learned-recovery-%j.out --wrap='PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912/src /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python /home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-dev3-20260912/collect.py full-user-learned'",
     "audit_semi_score_fixed_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-audit-semi-score-fixed-recovery scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
-    "results20_full_user_learned_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-full-user-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424154 --job-name=pb-r20-full-user-learned-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-full-user-learned.yaml --resume"
+    "results20_full_user_learned_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-full-user-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424154 --job-name=pb-r20-full-user-learned-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-full-user-learned.yaml --resume",
+    "audit_score_only_offline_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424163 --job-name=pb-r20-audit-score-only-offline-recovery scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
+    "dev3_audit_full_user_learned_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424410 --job-name=pb-dev3-audit-full-user-learned-recovery scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume"
   },
   "static_metrics": {
     "full_static": {
@@ -744,31 +769,28 @@
     "final_static_report": "../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md"
   },
   "latest_live_checkpoint": {
-    "recorded_at": "2026-09-13T10:32:01-04:00",
+    "recorded_at": "2026-09-13T10:47:48-04:00",
     "auth_sanity": "previous native provider sanity succeeded; no new sanity call made",
     "cpu_resource_audit_touched": false,
     "job_10424154": {
       "state": "COMPLETED",
       "exit_code": 0,
-      "purpose": "read-only Full/User dev3 native validation",
-      "native_valid": "9/9 in each of six conditions",
+      "native_valid": "9/9 in each of six Full/User dev3 conditions",
       "provider_calls": 0,
-      "scientific_writes": 0,
-      "repair_of": "10422283 missing PYTHONPATH"
+      "scientific_writes": 0
     },
     "job_10424162": {
       "state": "RUNNING",
-      "assignments": "2 completed valid; 21 failed; 32 running; 245 pending of 300 selected",
+      "assignments": "6 completed valid; 21 failed; 32 running; 241 pending of 300 selected",
       "native_missing_only": true,
       "valid_assignments_rerun": 0,
       "current_failure": null
     },
     "job_10424163": {
       "state": "RUNNING",
-      "assignments": "120 prepared",
+      "progress": "rubric-score recovery active after 120 assignment preparation",
       "purpose": "sole global missing-only audit owner for Semi/Score fixed",
-      "same_audit_namespace": true,
-      "provider_protocol": "existing fdd5403 pinned runtime"
+      "current_failure": null
     },
     "job_10424271": {
       "state": "PENDING",
@@ -776,11 +798,16 @@
       "purpose": "minimal replacement for failed-dependency Full/User Results20 owner",
       "native_missing_only": true
     },
-    "old_dependency_jobs_preserved": [
-      "10422051",
-      "10422649",
-      "10422655"
-    ],
+    "job_10424410": {
+      "state": "PENDING",
+      "dependency": "afterok:10424163",
+      "purpose": "serialized Score-only-offline audit replacement"
+    },
+    "job_10424419": {
+      "state": "PENDING",
+      "dependency": "afterok:10424410",
+      "purpose": "serialized Full/User dev3 audit replacement"
+    },
     "no_completed_assignments_rerun": true,
     "no_scientific_settings_changed": true
   }
