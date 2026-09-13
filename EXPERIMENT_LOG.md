@@ -2403,3 +2403,7 @@ The q6 read-only census `10422942` and direct allowlist cleanup `10423023` prese
 ## 2026-09-13 11:16 EDT — v2.1 task/paraphrase forensic checkpoint
 
 Provider-free inspection confirmed that v2.1 uses the development rubric in pair comparisons/native margins but passes only the selected rubric to diagnosis, compilation and semantic construction; the smallest supported task/paraphrase-grounded candidate is documented without changing the incumbent. New provider calls and Results30/45 recovery remain externally account-capacity blocked, so no candidate or historical output was rewritten.
+
+## 2026-09-13 11:21 EDT — final persisted-state verification
+
+The latest available `sacct` query still shows all BioMNIBench recovery/audit/report owners pending, with q3 retry `10422809` failed after the saved account-capacity responses; `squeue` was unavailable because the Slurm stream socket returned `Operation not permitted`. PaperBench owners remain separate, and no BioMNIBench assignment or judgment was resubmitted.

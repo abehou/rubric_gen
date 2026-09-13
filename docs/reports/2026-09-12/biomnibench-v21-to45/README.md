@@ -121,3 +121,16 @@ or editing a `trace_defense*.py` module would also change the current all-v2
 implementation fingerprint, so no source or historical receipt was changed
 while that identity issue and provider block remain unresolved. v2.1 remains
 the incumbent; Results30/45 native recovery is still held.
+
+### 2026-09-13 11:21 EDT — state verification after report publication
+
+The latest available `sacct` query confirms no BioMNIBench provider work has
+started since the 08:10 checkpoint: q6 Results30 resume `10422169`, q7 seed
+`10422170` (now `DependencyNeverSatisfied`), q7 validator `10422171`, Results30
+audit `10422299`, Results45 audit/report `10422302`/`10422304`, and Queue3 audit
+`10422818` remain pending. Queue3 missing-cell retry `10422809` is failed with
+exit `1:0` after the saved account-capacity responses. `squeue` itself was
+unavailable in this shell because the Slurm stream socket returned
+`Operation not permitted`; this does not replace the persisted `sacct` states.
+The two running jobs visible in the preceding check are PaperBench-owned and
+were not touched. No assignment or judgment was duplicated.
