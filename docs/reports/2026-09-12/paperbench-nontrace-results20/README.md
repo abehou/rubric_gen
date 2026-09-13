@@ -551,3 +551,30 @@ This is a durable handoff, not a claim that the 16-condition matrix completed:
 6 cells have failed dev3 validation, and 5 cells have validated dev3 inputs but
 no Results20 producer. The final static report remains
 [selected-neutral-heldout-rigorous-results20-final.md](../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md).
+
+
+## Live native-resume checkpoint — 2026-09-13 06:05 EDT
+
+Authentication remains repaired. The fixed Semi/Score Results20 producer 10421605 and Score-only offline producer 10421607 are terminal at 120/120 and 60/60 valid, respectively. Their audit owners are 10421810 (running native tail, no assignment failures) and 10422051 (waiting for 10421810).
+
+The Full/User dev3 producer 10421608 has 54/54 assignment records and awaits read-only native validation 10422283. Full/User dev3 audit 10422649 and the six-condition Results20 producer 10422655 are dependency-gated on that validator. The first 10422655 submission referenced expired completed job 10421607 and was rejected by Slurm; the accepted replacement keeps only the live validation dependency and uses the durable verified 10421607 output on NFS.
+
+Learned-rest producer 10421723 remains healthy and running the existing 300-assignment scope with 31 solver turns active and 265 pending. Four exhausted rows are preserved for read-only diagnosis 10422593 and later native missing-only recovery. No completed assignment is being rerun, and the CPU resource audit remains separate.
+
+## Live checkpoint — 2026-09-13 06:28 EDT
+
+Fixed Semi/Score audit owner 10421810 remains RUNNING in its native token/provider tail. Telemetry records 1,668 completed rubric-audit operations, 58 Anthropic and 59 OpenAI queue items ready, six bounded incomplete-response/API failures, and no assignment failure. Learned-rest producer 10421723 remains RUNNING with 30 solver turns active, 265 pending, and five exhausted rows; its read-only diagnosis 10422593 remains afterany-gated.
+
+The accepted follow-up owners remain 10422283 (read-only Full/User dev3 validation), 10422649 (Full/User dev3 audit), and 10422655 (six Full/User Results20 conditions). The learned-rest missing-only recovery command is recorded in `current-status.json` and must be used only after 10421723 reaches a terminal state.
+
+## Live checkpoint — 2026-09-13 06:32 EDT
+
+The learned-rest native producer 10421723 is still RUNNING. Its current ledger has 30 active solver turns, 265 pending selected assignments, and five exhausted rows: `adaptive-pruning` semi red-team-artifact replicate 1, `adaptive-pruning` score-only online replicate 3, `ftrl` semi red-team-artifact replicate 3, `robust-clip` semi red-team-artifact replicate 1, and `pinn` score-only red-team-artifact replicate 2. The job has no valid completed assignment yet and has not been replaced.
+
+Fixed Semi/Score audit 10421810 remains RUNNING at 1,675 completed rubric-audit operations with no assignment failure; its native provider tail remains active. Pending owners 10422051, 10422283, 10422593, 10422649, and 10422655 remain dependency-gated. Current Results20 accounting is 300 valid, 5 failed, 30 in flight, and 625 pending or not yet launched across the 960-cell target; the 77 earlier failed attempts are historical attempts superseded by the current native resumes.
+
+## Live checkpoint — 2026-09-13 06:34 EDT
+
+The fixed Semi/Score audit owner 10421810 remains RUNNING with 1,677 completed rubric-audit operations, 51 Anthropic and 51 OpenAI queue items ready, and no assignment failure. Learned-rest producer 10421723 remains RUNNING with 29 active solver turns and 265 pending selected assignments. Six exhausted rows are preserved: `adaptive-pruning` semi red-team-artifact replicate 1, `all-in-one` score-only red-team-artifact replicate 3, `adaptive-pruning` score-only online replicate 3, `ftrl` semi red-team-artifact replicate 3, `robust-clip` semi red-team-artifact replicate 1, and `pinn` score-only red-team-artifact replicate 2.
+
+Current Results20 accounting is 300 valid, 6 terminal failures, 29 in flight, and 625 pending or not yet launched. No replacement owner has been submitted while 10421723 is active.
