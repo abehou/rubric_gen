@@ -2382,3 +2382,6 @@ Queued provider-free report refreshes 10422316–10422320 for the five missing Q
 
 ## 2026-09-13 05:24 EDT — Consolidated synthesis queued
 Queued provider-free synthesis 10422359 after Queue3 final compare and Results30/45 scale reports. It only reads sealed records and emits compact reports; no provider calls or assignment reruns.
+
+## 2026-09-13 05:29 EDT — Scale-chain reconciliation
+Reconciled Slurm and persisted ledgers after session resume. PaperBench owners 10421723 (solver work) and 10421810 (120/120 assignments, audit queue draining) are the only active jobs and remain under their owner; every BioMNIBench inspector, recovery, audit and report job is still dependency/QOS-held. The existing CPU profile remains defensible: producer/seed/revision owners request four CPUs for four native workers, audit/report/finalizer stages request four/one CPUs respectively, and no live request was changed.
