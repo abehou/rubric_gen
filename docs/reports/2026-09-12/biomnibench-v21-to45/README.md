@@ -4,6 +4,12 @@
 
 Mission start: **2026-09-12 09:27:31 EDT**. This is an interim checkpoint, not the requested9–10-hour morning checkpoint (18:27–19:27 EDT). Healthy Slurm jobs retain their owners. The [shared status](../../../../../experiments/biomnibench-v21-to45/status.json) and [observed jobs/commands](queue8/observed-status.json) provide continuation state.
 
+## 2026-09-13 resumed scale checkpoint
+
+The resumed owners preserve all completed records and are dispatching only missing work. Results30 `da-1-3` has an inspection/archive/recovery chain (`10421606` → `10421689` → `10421690`) for the four manifestless assignments; its two completed static assignments remain untouched. Results45 `da-17-1/rep-003` has a guarded archive/cleanup/seed/validator chain (`10421649`, `10421655` → `10421656`, `10421673`, `10421683`), and the first four previously unlaunched Results45 revision tasks are queued behind that validator (`10421737`–`10421740`). The one incomplete Queue3 cell, `score_only-trace-no-appendix`, is queued for native missing-only recovery as `10421719`.
+
+At this checkpoint the two PaperBench jobs `10421605` and `10421607` occupy the shared 64-CPU per-user quota, so the BioMNIBench jobs remain scheduler-held; no healthy PaperBench job was changed. The q7 seed retry is using the compact solution-only snapshot patch (`c2bceb2`) after the prior NFS quota failure; the exact dispatch/status receipt is committed as `6dcd763`. Earlier failed attempts and q7 evidence archives remain preserved.
+
 ## Scientific findings
 
 The [canonical nine-case diagnosis](queue2/README.md) explains a real part of weak/strong disagreement: among126 matched criterion/auditor observations,20 favor the weak judge,106 tie, and none favor the strong judge. Missing requested outputs and code-versus-captured-result distinctions dominate da-11-1, which contributes5.17 of the7.50 mean W−S gap. An earlier numeric answer is not proof of correct work. The key withdrawal followed ordinary User feedback without an appended reminder; a universal “fourth reminder causes the regression” explanation is unsupported. Per-turn strong scores were not measured, so no precise time of S decline is inferred.
