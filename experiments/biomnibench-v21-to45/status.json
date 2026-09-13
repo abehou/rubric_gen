@@ -14,7 +14,7 @@
     "native_seed_integrity_check_retry": "10417222",
     "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator",
     "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
-    "observed_at": "2026-09-12T17:05:00-04:00",
+    "observed_at": "2026-09-13T04:24:00-04:00",
     "old_twenty_heldouts_changed": false,
     "provider_free_inventory_jobs": {
       "results30_corrected": "10415666",
@@ -25,19 +25,7 @@
     "queue3_corrected_audit": "10415408",
     "queue3_corrected_collector": "10415525",
     "queue3_missing_audit_collector": "10415949",
-    "queue3_missing_audit_recovery": {
-      "cells": [
-        "full-fixed",
-        "full-trace",
-        "semi-trace",
-        "score_only-trace",
-        "user_simulator-fixed",
-        "score_only-trace-no-appendix"
-      ],
-      "dependency": "afterany:10415714,10415531,10415532,10415692,10415695,10415696,10415697,10415698,10415700,10415704,10415705,10415716,10415717",
-      "job_id": "10415796",
-      "scope": "native queue3 audit resume; complete cells excluded; q3 collector to follow"
-    },
+    "queue3_missing_audit_recovery": "10421719",
     "results30_da_1_3_revision_final": "10417289",
     "results30_da_1_3_revision_recovery": "10421690",
     "results30_da_1_3_revision_recovery_state": "PENDING dependency; exact four manifestless assignments only after archive 10421689; two completed assignments preserved; prior NFS failures retained",
@@ -146,11 +134,16 @@
       "dependency": "afterok:10421683 and afterany:10421822-10421825",
       "scope": "final three previously unlaunched Results45 task revisions; native dev3-4 resume"
     },
-    "queue3_missing_audit_recovery": "10421719",
     "queue3_missing_report": "10421801",
     "queue3_compare_report": "10421811",
     "scale_seed_state_check_after_missing_only": "10416777",
-    "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check."
+    "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check.",
+    "queue3_noappendix_da11_revision_recovery": "10422080 PENDING QOSMaxCpuPerUserLimit; native --resume for the three upstream provider-exit failures only",
+    "queue3_noappendix_audit_first_recovery": "10421719 FAILED after completing da-3-4 and da-18-1; da-11-1 had no completed assignments and remains preserved",
+    "results45_archive_attempt4_state": "10421649 FAILED at exact target removal with PermissionError on failed workspace; partial attempt4 archive preserved",
+    "results45_permission_inspection": "10422063 PENDING QOSMaxCpuPerUserLimit; read-only exact target/attempt4 inspection",
+    "obsolete_cache_cleanup_six_state": "10421655 FAILED rmdir after exact cleanup; target had residual entry, diagnostic/retry required",
+    "scale_audit_wrapper_commit": "c94daee; not dispatched until q6/q7 revision coverage validates"
   },
   "heldout_decision": {
     "at": "2026-09-12T12:39:00-04:00",
