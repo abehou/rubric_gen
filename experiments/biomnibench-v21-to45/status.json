@@ -117,7 +117,38 @@
       "dependency": "afterok:10421683",
       "scope": "first four previously unlaunched Results45 task revisions; native dev3-4 resume"
     },
+    "results45_revision_wave2": {
+      "jobs": {
+        "da-17-1": "10421814",
+        "da-17-5": "10421815",
+        "da-8-3": "10421816",
+        "da-1-4": "10421817"
+      },
+      "dependency": "afterok:10421683 and afterany:10421737-10421740",
+      "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
+    "results45_revision_wave3": {
+      "jobs": {
+        "da-9-1": "10421822",
+        "da-20-1": "10421823",
+        "da-8-2": "10421824",
+        "da-4-7": "10421825"
+      },
+      "dependency": "afterok:10421683 and afterany:10421814-10421817",
+      "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
+    "results45_revision_wave4": {
+      "jobs": {
+        "da-19-4": "10421829",
+        "da-6-2": "10421830",
+        "da-25-1": "10421831"
+      },
+      "dependency": "afterok:10421683 and afterany:10421822-10421825",
+      "scope": "final three previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
     "queue3_missing_audit_recovery": "10421719",
+    "queue3_missing_report": "10421801",
+    "queue3_compare_report": "10421811",
     "scale_seed_state_check_after_missing_only": "10416777",
     "wrapper_failure": "10415640 failed before Python because collect.sbatch was invoked without its second positional argument under set -u; 10415666 is the corrected provider-free check."
   },
