@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-13T06:32:45-04:00",
+  "observed_at": "2026-09-13T06:34:30-04:00",
   "status": "native_resumes_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
@@ -30,14 +30,14 @@
       "job_id": "10421723",
       "name": "pb-r20-semi-score-learned-rest-resume",
       "state": "RUNNING",
-      "progress": "300 selected; 30 running; 265 pending; 5 structural exhausted",
+      "progress": "300 selected; 29 running; 265 pending; 6 structural exhausted",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
     },
     {
       "job_id": "10421810",
       "name": "pb-r20-audit-semi-score-fixed-resume",
       "state": "RUNNING",
-      "progress": "120/120 assignment records prepared; 1668 rubric-audit operations completed; native tail still running; no assignment failures",
+      "progress": "120/120 assignment records prepared; 1677 rubric-audit operations completed; native tail still running; no assignment failures",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
     },
     {
@@ -86,7 +86,7 @@
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
     "results20_valid_assignments": 300,
-    "results20_failed_assignments": 5,
+    "results20_failed_assignments": 6,
     "results20_not_launched_assignments": 625,
     "shared_static_audit": {
       "sol_rubric": "900/900",
@@ -98,7 +98,7 @@
     "reused_results20_assignments": 120,
     "latest_missing_only_failed_attempts": 135,
     "latest_missing_only_valid_completions": 0,
-    "results20_inflight_assignments": 30,
+    "results20_inflight_assignments": 29,
     "results20_pending_assignments": 625,
     "historical_results20_failed_attempts_before_current_resume": 77
   },
@@ -699,7 +699,7 @@
     "final_static_report": "../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md"
   },
   "latest_live_checkpoint": {
-    "recorded_at": "2026-09-13T06:32:45-04:00",
+    "recorded_at": "2026-09-13T06:34:30-04:00",
     "auth_sanity": "native provider call completed after targeted live-workspace credential refresh; no scientific artifact created",
     "credential_refresh_job": "10421584",
     "cpu_resource_audit_touched": false,
@@ -726,9 +726,10 @@
     },
     "job_10421723": {
       "state": "RUNNING",
-      "assignments": "300 selected; 30 running; 265 pending; 5 structural exhausted",
+      "assignments": "300 selected; 29 running; 265 pending; 6 structural exhausted",
       "failure_keys": [
         "adaptive-pruning--rep-001--solver-luna--semi-red-team-artifact",
+        "all-in-one--rep-003--solver-luna--score-only-red-team-artifact",
         "adaptive-pruning--rep-003--solver-luna--score-only-online-rubric",
         "ftrl--rep-003--solver-luna--semi-red-team-artifact",
         "robust-clip--rep-001--solver-luna--semi-red-team-artifact",
@@ -739,11 +740,11 @@
     "job_10421810": {
       "state": "RUNNING",
       "assignments": "120/120 prepared; native audit tail active",
-      "rubric_audit_operations_completed": 1675,
+      "rubric_audit_operations_completed": 1677,
       "assignment_failures": [],
       "ready_by_provider": {
-        "anthropic": 58,
-        "openai": 59
+        "anthropic": 51,
+        "openai": 51
       },
       "failure_types": {
         "APIStatusError": 1,
