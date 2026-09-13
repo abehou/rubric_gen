@@ -578,3 +578,51 @@ Fixed Semi/Score audit 10421810 remains RUNNING at 1,675 completed rubric-audit 
 The fixed Semi/Score audit owner 10421810 remains RUNNING with 1,677 completed rubric-audit operations, 51 Anthropic and 51 OpenAI queue items ready, and no assignment failure. Learned-rest producer 10421723 remains RUNNING with 29 active solver turns and 265 pending selected assignments. Six exhausted rows are preserved: `adaptive-pruning` semi red-team-artifact replicate 1, `all-in-one` score-only red-team-artifact replicate 3, `adaptive-pruning` score-only online replicate 3, `ftrl` semi red-team-artifact replicate 3, `robust-clip` semi red-team-artifact replicate 1, and `pinn` score-only red-team-artifact replicate 2.
 
 Current Results20 accounting is 300 valid, 6 terminal failures, 29 in flight, and 625 pending or not yet launched. No replacement owner has been submitted while 10421723 is active.
+
+
+## Current native recovery checkpoint — 2026-09-13T10:23:27-04:00
+
+The previous live owners have now been inspected to terminal state. No healthy PaperBench owner was interrupted and no completed assignment or valid judgment was rerun. The fixed Semi/Score audit owner `10421810` failed after persisting **1,707/1,800** rubric operations; its valid outputs and failure evidence remain in place. The learned-rest producer `10421723` failed with native Codex app-server startup/scheduler errors; its existing namespace is being resumed by `10424162`.
+
+| Owner | State | Current evidence | Action |
+|---|---|---|---|
+| `10424162` | RUNNING | 300 selected; 18 failed; 32 running; 250 pending; no terminal valid assignments yet | Native `revise --resume` in the existing learned-rest namespace |
+| `10424163` | PENDING | Fixed Semi/Score audit recovery; waiting for CPU quota while `10424162` uses 32 CPUs | Native `detect --resume` in the existing fixed audit namespace |
+| `10424154` | RUNNING | Read-only Full/User dev3 validation; zero provider calls and scientific writes | Same collector as `10422283`, with the pinned execution `src` on `PYTHONPATH` |
+| `10422051` | PENDING | `DependencyNeverSatisfied` after failed `10421810` | Preserve; replace only after `10424163` is terminal |
+| `10422649` | PENDING | `DependencyNeverSatisfied` after failed `10422283` | Preserve; replace only after `10424154` passes |
+| `10422655` | PENDING | `DependencyNeverSatisfied` after failed `10422283` | Preserve; replace only after `10424154` passes |
+
+`10422283` was not a scientific validation failure: its wrapper imported the wrong environment and raised `ModuleNotFoundError: rubric_gen.submission_revision.source_resolution` before reading the dev3 study. The replacement adds only `PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912/src`; it remains read-only.
+
+Current Results20 aggregate accounting is **300 valid, 18 failed, 32 running, and 616 pending/not yet valid** out of 960 assignment records. The 32 running and 250 pending records are the existing 300-row learned-rest scope; the remaining 366 pending records belong to the six Full/User learned Results20 cells whose validator is still running or dependency-gated. The only terminal non-trace conditions remain Full-static and User-simulator-static.
+
+The exact native commands and current job ownership are in [current-status.json](current-status.json); the per-condition matrix is [current-condition-status.csv](current-condition-status.csv). The old DependencyNeverSatisfied jobs are retained as scheduler evidence and are not competing owners. CPU profiles, scientific settings, red_team_trace work, and BioMNIBench work remain untouched.
+
+## Current recovery checkpoint — 2026-09-13T10:31:00-04:00
+
+The corrected read-only validator replacement `10424154` completed successfully. It validated all six Full/User non-static dev3 conditions at 9/9 each with zero provider calls and zero scientific writes; the former `10422283` failure was only the missing execution `src` on `PYTHONPATH`. The minimal Full/User Results20 replacement `10424271` is now queued after that successful validator and owns the existing namespace.
+
+The native learned-rest replacement `10424162` is healthy: **2 completed valid, 21 failed, 32 running, and 245 pending** within its 300 selected assignments. It has no current failure event and has not rerun any completed assignment. The sole global fixed Semi/Score audit owner `10424163` is running after preparing the existing 120 assignments; the previous valid audit outputs remain preserved.
+
+The old jobs `10422051`, `10422649`, and `10422655` remain `DependencyNeverSatisfied` evidence and are not competing owners. Score-only-offline audit and Full/User dev3 audit replacements remain deferred until the current global audit owner reaches a terminal state, so only one audit executor can own the shared lease.
+
+Aggregate Results20 accounting is now **302 valid, 21 failed, 32 running, and 605 pending/not yet valid** out of 960. The two terminal conditions remain Full-static and User-simulator-static. All CPU profiles, scientific settings, trace work, and BioMNIBench work remain untouched.
+
+
+## Current queued-audit checkpoint — 2026-09-13T10:47:48-04:00
+
+The Full/User dev3 validator `10424154` passed all six conditions at 9/9 native-valid, so the only Results20 replacement owner is `10424271`, queued after that successful validator. The native Full/User dev3 audit replacement `10424419` is queued behind the Score-only-offline audit replacement `10424410`; both are afterok chained behind the active fixed Semi/Score audit `10424163`, preserving one global audit owner.
+
+The active learned-rest recovery `10424162` has reached **6 completed valid, 21 failed, 32 running, and 241 pending** of 300 selected assignments. It continues to emit successful solver work and has no current failure event. Results20 aggregate accounting is **306 valid, 21 failed, 32 running, and 601 pending/not yet valid** of 960; Full-static and User-simulator-static remain the only terminal conditions.
+
+
+## Current recovery checkpoint — 2026-09-13T11:08:44-04:00
+
+Read-only accounting confirmed that audit owner **10424163** terminated **FAILED (exit 1:0)** at 10:57:31 after its `rubric_score` stage attempted all 1,800 rubric units. The five direct stages completed with exit 0; the native runtime preserved their valid outputs, and no completed assignment or judgment was rerun. The failure surfaced as `RuntimeError: revision rubric score non-panel job failed` after the provider tail; the persisted runtime did not report an authentication error or an HTTP status.
+
+The old downstream owner **10424410** is now `DependencyNeverSatisfied` because it depended on 10424163. I submitted the same-namespace native missing-only fixed-audit replacement **10424672**, then submitted **10424681** for Score-only-offline afterok 10424672 and **10424684** for Full/User dev3 audit afterok 10424681. These are queued replacements, not competing active audit owners; the old failed chains remain as scheduler evidence.
+
+Full/User Results20 owner **10424271** acquired its 32-CPU allocation but is still in native pretreatment: the live snapshot is 960 pending/dependency-blocked records, with zero provider reservations and zero assignment writes. Its configured pretreatment source exists and is completed on NFS; this source-preparation state is being monitored before any owner replacement decision.
+
+At this checkpoint, the active scientific owners are **10424162** (learned-rest revision recovery, 6 valid / 21 failed / 32 running / 241 pending) and **10424271** (Full/User learned Results20 pretreatment). The only queued global audit owner is **10424672**; CPU profiles remain unchanged at 32 CPUs, and no trace/BioMNIBench work was touched.

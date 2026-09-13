@@ -1,6 +1,6 @@
 {
-  "observed_at": "2026-09-13T06:34:30-04:00",
-  "status": "native_resumes_active",
+  "observed_at": "2026-09-13T11:14:43-04:00",
+  "status": "native_missing_only_recovery_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
     "conditions_expected": 16,
@@ -27,53 +27,92 @@
   },
   "active_paperbench_jobs": [
     {
-      "job_id": "10421723",
-      "name": "pb-r20-semi-score-learned-rest-resume",
-      "state": "RUNNING",
-      "progress": "300 selected; 29 running; 265 pending; 6 structural exhausted",
-      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      "job_id": "10424162",
+      "name": "pb-r20-semi-score-learned-rest-resume-recovery",
+      "output_owner": "existing semi-score-learned-rest Results20 study namespace",
+      "progress": "300 selected; 6 completed valid; 31 failed; 32 running; 231 pending; live solver/evolution activity",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "state": "RUNNING"
     },
     {
-      "job_id": "10421810",
-      "name": "pb-r20-audit-semi-score-fixed-resume",
-      "state": "RUNNING",
-      "progress": "120/120 assignment records prepared; 1677 rubric-audit operations completed; native tail still running; no assignment failures",
-      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      "job_id": "10424163",
+      "name": "pb-r20-audit-semi-score-fixed-recovery",
+      "output_owner": "existing semi-score-fixed audit namespace",
+      "progress": "120/120 prepared; all direct stages complete; rubric_score failed after 1800-unit pass; exit 1",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "state": "FAILED"
+    },
+    {
+      "job_id": "10424271",
+      "name": "pb-r20-full-user-learned-recovery",
+      "output_owner": "existing Full/User Results20 study namespace",
+      "progress": "360 selected; 0 completed; 11 running; 349 pending; native revision work active; no failures recorded",
+      "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "state": "RUNNING"
+    },
+    {
+      "job_id": "10424410",
+      "name": "pb-r20-audit-score-only-offline-recovery",
+      "output_owner": "superseded score-only-offline audit namespace owner",
+      "progress": "DependencyNeverSatisfied after failed prerequisite 10424163; no execution",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "state": "PENDING (DependencyNeverSatisfied)"
+    },
+    {
+      "job_id": "10424419",
+      "name": "pb-dev3-audit-full-user-learned-recovery",
+      "output_owner": "superseded Full/User dev3 audit namespace owner",
+      "progress": "blocked behind 10424410; replacement 10424684 queued after 10424681",
+      "source": "4f67a3b8daca4a545d9c0a67578b283296e63823",
+      "state": "PENDING"
     },
     {
       "job_id": "10422051",
       "name": "pb-r20-audit-score-only-offline-resume",
       "state": "PENDING",
-      "progress": "waiting for afterok:10421810; prerequisite 10421607 output is complete on NFS",
-      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
-    },
-    {
-      "job_id": "10422283",
-      "name": "pb-dev3-validate-full-user-learned-resume",
-      "state": "PENDING",
-      "progress": "afterok:10421608; read-only native validator waiting for CPU quota",
-      "source": "4f67a3b8daca4a545d9c0a67578b283296e63823"
-    },
-    {
-      "job_id": "10422593",
-      "name": "pb-r20-diag-learned-rest",
-      "state": "PENDING",
-      "progress": "afterany:10421723; read-only diagnosis of five current exhausted rows",
-      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
+      "progress": "DependencyNeverSatisfied after failed 10421810; no execution",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "output_owner": "superseded by 10424410"
     },
     {
       "job_id": "10422649",
       "name": "pb-dev3-audit-full-user-learned-resume",
       "state": "PENDING",
-      "progress": "afterok:10422283; native global audit lease will serialize execution",
-      "source": "4f67a3b8daca4a545d9c0a67578b283296e63823"
+      "progress": "DependencyNeverSatisfied after failed 10422283; no execution",
+      "source": "4f67a3b8daca4a545d9c0a67578b283296e63823",
+      "output_owner": "superseded by 10424419"
     },
     {
       "job_id": "10422655",
       "name": "pb-r20-full-user-learned-resume",
       "state": "PENDING",
-      "progress": "afterok:10422283; six Full/User non-static conditions, native --resume",
-      "source": "411ea949ae9818085151484ce17a9de3c5b8ba41"
+      "progress": "DependencyNeverSatisfied after failed 10422283; no execution",
+      "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
+      "output_owner": "superseded by 10424271"
+    },
+    {
+      "job_id": "10424672",
+      "name": "pb-r20-audit-semi-score-fixed-recovery-v2",
+      "output_owner": "same semi-score-fixed audit namespace; native missing-only replacement for 10424163",
+      "progress": "queued on CPU quota; preserves 10424163 direct outputs and valid rubric judgments",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "state": "PENDING"
+    },
+    {
+      "job_id": "10424681",
+      "name": "pb-r20-audit-score-only-offline-recovery-v2",
+      "output_owner": "same score-only-offline audit namespace; native missing-only replacement",
+      "progress": "afterok 10424672; queued dependency replacement for failed chain 10424410",
+      "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
+      "state": "PENDING"
+    },
+    {
+      "job_id": "10424684",
+      "name": "pb-dev3-audit-full-user-learned-recovery-v2",
+      "output_owner": "same Full/User dev3 audit namespace; native missing-only replacement",
+      "progress": "afterok 10424681; queued dependency replacement for failed chain 10424419",
+      "source": "4f67a3b8daca4a545d9c0a67578b283296e63823",
+      "state": "PENDING"
     }
   ],
   "out_of_scope_active_jobs": [
@@ -85,9 +124,9 @@
     "dev3_valid_assignments": 90,
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
-    "results20_valid_assignments": 300,
-    "results20_failed_assignments": 6,
-    "results20_not_launched_assignments": 625,
+    "results20_valid_assignments": 306,
+    "results20_failed_assignments": 31,
+    "results20_not_launched_assignments": 580,
     "shared_static_audit": {
       "sol_rubric": "900/900",
       "opus_rubric": "900/900",
@@ -97,9 +136,9 @@
     "new_revision_assignment_slots_submitted": 306,
     "reused_results20_assignments": 120,
     "latest_missing_only_failed_attempts": 135,
-    "latest_missing_only_valid_completions": 0,
-    "results20_inflight_assignments": 29,
-    "results20_pending_assignments": 625,
+    "latest_missing_only_valid_completions": 6,
+    "results20_inflight_assignments": 43,
+    "results20_pending_assignments": 580,
     "historical_results20_failed_attempts_before_current_resume": 77
   },
   "conditions": [
@@ -139,9 +178,9 @@
       "feedback_policy": "full",
       "rubric_policy": "offline_elicitation",
       "status": "revision-incomplete",
-      "dev3_revision": "54/54 assignment records completed; native validation pending",
-      "dev3_audit": "not launched",
-      "results20_revision": "not launched",
+      "dev3_revision": "9/9 valid (native validator 10424154)",
+      "dev3_audit": "queued afterok:10424681 (job 10424684)",
+      "results20_revision": "10424271 running native --resume; pretreatment phase currently 960 pending/dependency-blocked records and no assignment writes",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -149,31 +188,36 @@
       "final_metrics_available": false,
       "reused_assignments": 0,
       "valid_assignments": 0,
-      "failed_assignments": 9,
+      "failed_assignments": 0,
       "not_launched_assignments": 60,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "4f67a3b8daca4a545d9c0a67578b283296e63823",
+        "411ea949ae9818085151484ce17a9de3c5b8ba41"
       ],
-      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/full-user-learned",
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6",
       "job_ids": [
         "10414499",
         "10415466",
         "10421608",
         "10422283",
         "10422649",
-        "10422655"
+        "10422655",
+        "10424154",
+        "10424271",
+        "10424419",
+        "10424684"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "10422283 native validator pending; Results20 producer 10422655 and dev3 audit 10422649 are dependency-gated"
+      "blocker": "10424271 is allocated but native pretreatment is dependency-blocked; source exists on NFS; audit 10424684 waits after 10424681"
     },
     {
       "condition": "full-online-rubric",
       "feedback_policy": "full",
       "rubric_policy": "online_elicitation",
       "status": "revision-incomplete",
-      "dev3_revision": "54/54 assignment records completed; native validation pending",
-      "dev3_audit": "not launched",
-      "results20_revision": "not launched",
+      "dev3_revision": "9/9 valid (native validator 10424154)",
+      "dev3_audit": "queued afterok:10424681 (job 10424684)",
+      "results20_revision": "10424271 running native --resume; pretreatment phase currently 960 pending/dependency-blocked records and no assignment writes",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -181,31 +225,36 @@
       "final_metrics_available": false,
       "reused_assignments": 0,
       "valid_assignments": 0,
-      "failed_assignments": 9,
+      "failed_assignments": 0,
       "not_launched_assignments": 60,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "4f67a3b8daca4a545d9c0a67578b283296e63823",
+        "411ea949ae9818085151484ce17a9de3c5b8ba41"
       ],
-      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/full-user-learned",
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6",
       "job_ids": [
         "10414499",
         "10415466",
         "10421608",
         "10422283",
         "10422649",
-        "10422655"
+        "10422655",
+        "10424154",
+        "10424271",
+        "10424419",
+        "10424684"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "10422283 native validator pending; Results20 producer 10422655 and dev3 audit 10422649 are dependency-gated"
+      "blocker": "10424271 is allocated but native pretreatment is dependency-blocked; source exists on NFS; audit 10424684 waits after 10424681"
     },
     {
       "condition": "full-red-team-artifact",
       "feedback_policy": "full",
       "rubric_policy": "red_team_artifact",
       "status": "revision-incomplete",
-      "dev3_revision": "54/54 assignment records completed; native validation pending",
-      "dev3_audit": "not launched",
-      "results20_revision": "not launched",
+      "dev3_revision": "9/9 valid (native validator 10424154)",
+      "dev3_audit": "queued afterok:10424681 (job 10424684)",
+      "results20_revision": "10424271 running native --resume; pretreatment phase currently 960 pending/dependency-blocked records and no assignment writes",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -213,22 +262,27 @@
       "final_metrics_available": false,
       "reused_assignments": 0,
       "valid_assignments": 0,
-      "failed_assignments": 9,
+      "failed_assignments": 0,
       "not_launched_assignments": 60,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "4f67a3b8daca4a545d9c0a67578b283296e63823",
+        "411ea949ae9818085151484ce17a9de3c5b8ba41"
       ],
-      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/full-user-learned",
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6",
       "job_ids": [
         "10414499",
         "10415466",
         "10421608",
         "10422283",
         "10422649",
-        "10422655"
+        "10422655",
+        "10424154",
+        "10424271",
+        "10424419",
+        "10424684"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "10422283 native validator pending; Results20 producer 10422655 and dev3 audit 10422649 are dependency-gated"
+      "blocker": "10424271 is allocated but native pretreatment is dependency-blocked; source exists on NFS; audit 10424684 waits after 10424681"
     },
     {
       "condition": "semi-static",
@@ -236,11 +290,11 @@
       "rubric_policy": "fixed",
       "status": "audit-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "failed after direct stages; 2 rubric responses incomplete",
+      "dev3_audit": "failed after direct stages; 10424163 rubric_score failed after 1800/1800 units",
       "results20_revision": "60/60 valid",
-      "results20_audit": "not launched",
-      "sol_coverage": "not launched",
-      "opus_coverage": "not launched",
+      "results20_audit": "10424163 failed in rubric_score tail; native missing-only replacement 10424672 queued",
+      "sol_coverage": "partial; exact terminal panel coverage pending 10424672",
+      "opus_coverage": "partial; exact terminal panel coverage pending 10424672",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
@@ -259,10 +313,12 @@
         "10415463",
         "10414751",
         "10421605",
-        "10421810"
+        "10421810",
+        "10424163",
+        "10424672"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-fixed-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
-      "blocker": "native audit owner 10421810 running; no final equal-weight coverage table yet"
+      "blocker": "10424163 failed after full rubric attempt; 10424672 queued on CPU quota; downstream audits serialized"
     },
     {
       "condition": "semi-offline-rubric",
@@ -270,28 +326,30 @@
       "rubric_policy": "offline_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "not launched",
-      "results20_revision": "running under 10421723; 31 running, 265 pending, 4 structural exhausted",
+      "dev3_audit": "complete (validated dev3 reused)",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 0,
-      "not_launched_assignments": 60,
+      "failed_assignments": null,
+      "not_launched_assignments": null,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
       ],
-      "output_root": null,
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
       "job_ids": [
         "10414740",
         "10414748",
         "10421723",
-        "10422593"
+        "10422593",
+        "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10421723 remains healthy with native progress; 4 exhausted rows preserved for 10422593 diagnosis and later missing-only resume"
+      "blocker": "10424162 healthy native missing-only revision owner; aggregate 6 valid / 21 failed / 32 running / 241 pending; per-condition split pending",
+      "valid_assignments": null
     },
     {
       "condition": "semi-online-rubric",
@@ -299,28 +357,30 @@
       "rubric_policy": "online_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "not launched",
-      "results20_revision": "running under 10421723; 31 running, 265 pending, 4 structural exhausted",
+      "dev3_audit": "complete (validated dev3 reused)",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 0,
-      "not_launched_assignments": 60,
+      "failed_assignments": null,
+      "not_launched_assignments": null,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
       ],
-      "output_root": null,
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
       "job_ids": [
         "10414740",
         "10414748",
         "10421723",
-        "10422593"
+        "10422593",
+        "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10421723 remains healthy with native progress; 4 exhausted rows preserved for 10422593 diagnosis and later missing-only resume"
+      "blocker": "10424162 healthy native missing-only revision owner; aggregate 6 valid / 21 failed / 32 running / 241 pending; per-condition split pending",
+      "valid_assignments": null
     },
     {
       "condition": "semi-red-team-artifact",
@@ -328,28 +388,30 @@
       "rubric_policy": "red_team_artifact",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "not launched",
-      "results20_revision": "running under 10421723; 31 running, 265 pending, 4 structural exhausted",
+      "dev3_audit": "complete (validated dev3 reused)",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 0,
-      "not_launched_assignments": 60,
+      "failed_assignments": null,
+      "not_launched_assignments": null,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
       ],
-      "output_root": null,
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
       "job_ids": [
         "10414740",
         "10414748",
         "10421723",
-        "10422593"
+        "10422593",
+        "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10421723 remains healthy with native progress; 4 exhausted rows preserved for 10422593 diagnosis and later missing-only resume"
+      "blocker": "10424162 healthy native missing-only revision owner; aggregate 6 valid / 21 failed / 32 running / 241 pending; per-condition split pending",
+      "valid_assignments": null
     },
     {
       "condition": "score-only-static",
@@ -357,11 +419,11 @@
       "rubric_policy": "fixed",
       "status": "audit-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "failed after direct stages; 2 rubric responses incomplete",
+      "dev3_audit": "failed after direct stages; 10424163 rubric_score failed after 1800/1800 units",
       "results20_revision": "60/60 valid",
-      "results20_audit": "not launched",
-      "sol_coverage": "not launched",
-      "opus_coverage": "not launched",
+      "results20_audit": "10424163 failed in rubric_score tail; native missing-only replacement 10424672 queued",
+      "sol_coverage": "partial; exact terminal panel coverage pending 10424672",
+      "opus_coverage": "partial; exact terminal panel coverage pending 10424672",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
@@ -380,10 +442,12 @@
         "10415463",
         "10414751",
         "10421605",
-        "10421810"
+        "10421810",
+        "10424163",
+        "10424672"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-fixed-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
-      "blocker": "native audit owner 10421810 running; no final equal-weight coverage table yet"
+      "blocker": "10424163 failed after full rubric attempt; 10424672 queued on CPU quota; downstream audits serialized"
     },
     {
       "condition": "score-only-offline-rubric",
@@ -393,7 +457,7 @@
       "dev3_revision": "9/9 valid",
       "dev3_audit": "failed after direct stages; 3 rubric responses incomplete",
       "results20_revision": "60/60 valid",
-      "results20_audit": "not launched",
+      "results20_audit": "native missing-only replacement 10424681 queued afterok:10424672; old 10424410 DependencyNeverSatisfied",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
@@ -413,10 +477,12 @@
         "10414747",
         "10415465",
         "10421607",
-        "10422051"
+        "10422051",
+        "10424410",
+        "10424681"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-score-only-offline-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
-      "blocker": "native audit owner 10422051 pending after fixed audit 10421810"
+      "blocker": "10424681 waits for fixed-audit replacement 10424672; old 10424410 cannot run"
     },
     {
       "condition": "score-only-online-rubric",
@@ -424,28 +490,30 @@
       "rubric_policy": "online_elicitation",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "not launched",
-      "results20_revision": "running under 10421723; 31 running, 265 pending, 4 structural exhausted",
+      "dev3_audit": "complete (validated dev3 reused)",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 0,
-      "not_launched_assignments": 60,
+      "failed_assignments": null,
+      "not_launched_assignments": null,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
       ],
-      "output_root": null,
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
       "job_ids": [
         "10414740",
         "10414748",
         "10421723",
-        "10422593"
+        "10422593",
+        "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10421723 remains healthy with native progress; 4 exhausted rows preserved for 10422593 diagnosis and later missing-only resume"
+      "blocker": "10424162 healthy native missing-only revision owner; aggregate 6 valid / 21 failed / 32 running / 241 pending; per-condition split pending",
+      "valid_assignments": null
     },
     {
       "condition": "score-only-red-team-artifact",
@@ -453,28 +521,30 @@
       "rubric_policy": "red_team_artifact",
       "status": "revision-incomplete",
       "dev3_revision": "9/9 valid",
-      "dev3_audit": "not launched",
-      "results20_revision": "running under 10421723; 31 running, 265 pending, 4 structural exhausted",
+      "dev3_audit": "complete (validated dev3 reused)",
+      "results20_revision": "native missing-only 10424162: 6 completed / 21 failed / 32 running / 241 pending aggregate",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 0,
-      "not_launched_assignments": 60,
+      "failed_assignments": null,
+      "not_launched_assignments": null,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
       ],
-      "output_root": null,
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/semi-score-learned-rest/study/paperbench-code-dev-factorial-r10-61c2335984ea",
       "job_ids": [
         "10414740",
         "10414748",
         "10421723",
-        "10422593"
+        "10422593",
+        "10424162"
       ],
       "safe_resume_command": null,
-      "blocker": "10421723 remains healthy with native progress; 4 exhausted rows preserved for 10422593 diagnosis and later missing-only resume"
+      "blocker": "10424162 healthy native missing-only revision owner; aggregate 6 valid / 21 failed / 32 running / 241 pending; per-condition split pending",
+      "valid_assignments": null
     },
     {
       "condition": "user-simulator-static",
@@ -512,9 +582,9 @@
       "feedback_policy": "user_simulator",
       "rubric_policy": "offline_elicitation",
       "status": "revision-incomplete",
-      "dev3_revision": "54/54 assignment records completed; native validation pending",
-      "dev3_audit": "not launched",
-      "results20_revision": "not launched",
+      "dev3_revision": "9/9 valid (native validator 10424154)",
+      "dev3_audit": "queued afterok:10424681 (job 10424684)",
+      "results20_revision": "10424271 running native --resume; pretreatment phase currently 960 pending/dependency-blocked records and no assignment writes",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
@@ -522,84 +592,101 @@
       "final_metrics_available": false,
       "reused_assignments": 0,
       "valid_assignments": 0,
-      "failed_assignments": 9,
+      "failed_assignments": 0,
       "not_launched_assignments": 60,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "4f67a3b8daca4a545d9c0a67578b283296e63823",
+        "411ea949ae9818085151484ce17a9de3c5b8ba41"
       ],
-      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/full-user-learned",
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6",
       "job_ids": [
         "10414499",
         "10415466",
         "10421608",
         "10422283",
         "10422649",
-        "10422655"
+        "10422655",
+        "10424154",
+        "10424271",
+        "10424419",
+        "10424684"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "10422283 native validator pending; Results20 producer 10422655 and dev3 audit 10422649 are dependency-gated"
+      "blocker": "10424271 is allocated but native pretreatment is dependency-blocked; source exists on NFS; audit 10424684 waits after 10424681"
     },
     {
       "condition": "user-simulator-online-rubric",
       "feedback_policy": "user_simulator",
       "rubric_policy": "online_elicitation",
       "status": "revision-incomplete",
-      "dev3_revision": "54/54 assignment records completed; native validation pending",
-      "dev3_audit": "not launched",
-      "results20_revision": "not launched",
+      "dev3_revision": "9/9 valid (native validator 10424154)",
+      "dev3_audit": "queued afterok:10424681 (job 10424684)",
+      "results20_revision": "10424271 running native --resume; pretreatment phase currently 960 pending/dependency-blocked records and no assignment writes",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 9,
+      "failed_assignments": 0,
       "not_launched_assignments": 60,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "4f67a3b8daca4a545d9c0a67578b283296e63823",
+        "411ea949ae9818085151484ce17a9de3c5b8ba41"
       ],
-      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/full-user-learned",
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6",
       "job_ids": [
         "10414499",
         "10415466",
         "10421608",
         "10422283",
         "10422649",
-        "10422655"
+        "10422655",
+        "10424154",
+        "10424271",
+        "10424419",
+        "10424684"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "10422283 native validator pending; Results20 producer 10422655 and dev3 audit 10422649 are dependency-gated"
+      "blocker": "10424271 is allocated but native pretreatment is dependency-blocked; source exists on NFS; audit 10424684 waits after 10424681",
+      "valid_assignments": 0
     },
     {
       "condition": "user-simulator-red-team-artifact",
       "feedback_policy": "user_simulator",
       "rubric_policy": "red_team_artifact",
       "status": "revision-incomplete",
-      "dev3_revision": "54/54 assignment records completed; native validation pending",
-      "dev3_audit": "not launched",
-      "results20_revision": "not launched",
+      "dev3_revision": "9/9 valid (native validator 10424154)",
+      "dev3_audit": "queued afterok:10424681 (job 10424684)",
+      "results20_revision": "10424271 running native --resume; pretreatment phase currently 960 pending/dependency-blocked records and no assignment writes",
       "results20_audit": "not launched",
       "sol_coverage": "not launched",
       "opus_coverage": "not launched",
       "detector_holistic": "not launched",
       "final_metrics_available": false,
       "reused_assignments": 0,
-      "failed_assignments": 9,
+      "failed_assignments": 0,
       "not_launched_assignments": 60,
       "source_commits": [
-        "4f67a3b8daca4a545d9c0a67578b283296e63823"
+        "4f67a3b8daca4a545d9c0a67578b283296e63823",
+        "411ea949ae9818085151484ce17a9de3c5b8ba41"
       ],
-      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/dev3/full-user-learned",
+      "output_root": "/data/user_data/aydanh/rubric_gen/runs/paperbench-nontrace-results20-20260912/results20/full-user-learned/study/paperbench-code-dev-factorial-r10-484a1576b8b6",
       "job_ids": [
         "10414499",
         "10415466",
         "10421608",
         "10422283",
         "10422649",
-        "10422655"
+        "10422655",
+        "10424154",
+        "10424271",
+        "10424419",
+        "10424684"
       ],
       "safe_resume_command": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-      "blocker": "10422283 native validator pending; Results20 producer 10422655 and dev3 audit 10422649 are dependency-gated"
+      "blocker": "10424271 is allocated but native pretreatment is dependency-blocked; source exists on NFS; audit 10424684 waits after 10424681",
+      "valid_assignments": 0
     }
   ],
   "dependency_failures": [
@@ -634,6 +721,39 @@
         "10414876"
       ],
       "effect": "failed prerequisite; dependent work did not execute"
+    },
+    {
+      "failed_prerequisite": "10422283",
+      "dependent_jobs": [
+        "10422649",
+        "10422655"
+      ],
+      "effect": "DependencyNeverSatisfied; prerequisite failed before validation with ModuleNotFoundError for rubric_gen.submission_revision.source_resolution",
+      "repair": "10424154 reruns the same read-only validator with the pinned execution src on PYTHONPATH"
+    },
+    {
+      "failed_prerequisite": "10421810",
+      "dependent_jobs": [
+        "10422051"
+      ],
+      "effect": "DependencyNeverSatisfied after fixed Semi/Score audit failed in rubric_score tail",
+      "repair": "10424163 is the native missing-only replacement owner in the same audit namespace"
+    },
+    {
+      "dependent_jobs": [
+        "10424410"
+      ],
+      "effect": "DependencyNeverSatisfied after 10424163 failed in rubric_score after all 1800 rubric units were attempted; direct stages remained successful",
+      "failed_prerequisite": "10424163",
+      "repair": "10424672 is the same-namespace native missing-only replacement; 10424681 depends on it"
+    },
+    {
+      "dependent_jobs": [
+        "10424419"
+      ],
+      "effect": "blocked behind the failed 10424410 chain; no Full/User dev3 audit execution",
+      "failed_prerequisite": "10424410",
+      "repair": "10424684 is the same-namespace native missing-only replacement after 10424681"
     }
   ],
   "provider_blocker": {
@@ -648,7 +768,15 @@
     "dev3_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
     "results20_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-full-user-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-full-user-learned-resume --dependency=afterok:10422283 scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-full-user-learned.yaml --resume",
     "dev3_audit_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-audit-full-user-learned-resume --dependency=afterok:10422283 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
-    "results20_semi_score_learned_rest": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-learned-rest-resume-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml --resume"
+    "results20_semi_score_learned_rest": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-learned-rest-resume-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml --resume",
+    "dev3_full_user_validator_recovery": "sbatch --parsable --partition=preempt --qos=preempt_cpu_qos --time=00:30:00 --ntasks=1 --cpus-per-task=1 --mem=4G --no-requeue --job-name=pb-dev3-validate-full-user-learned-recovery --output=/home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-dev3-20260912/validate-full-user-learned-recovery-%j.out --wrap='PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912/src /data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602/bin/python /home/aydanh/repos/rubric_gen/runs/paperbench-nontrace-dev3-20260912/collect.py full-user-learned'",
+    "audit_semi_score_fixed_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-audit-semi-score-fixed-recovery-v2 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
+    "results20_full_user_learned_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-full-user-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424154 --job-name=pb-r20-full-user-learned-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-full-user-learned.yaml --resume",
+    "audit_score_only_offline_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424672 --job-name=pb-r20-audit-score-only-offline-recovery-v2 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
+    "dev3_audit_full_user_learned_recovery": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424681 --job-name=pb-dev3-audit-full-user-learned-recovery-v2 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
+    "audit_semi_score_fixed_recovery_v2": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-audit-semi-score-fixed-recovery-v2 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-semi-score-fixed.yaml --resume",
+    "audit_score_only_offline_recovery_v2": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424672 --job-name=pb-r20-audit-score-only-offline-recovery-v2 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
+    "dev3_audit_full_user_learned_recovery_v2": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --dependency=afterok:10424681 --job-name=pb-dev3-audit-full-user-learned-recovery-v2 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume"
   },
   "static_metrics": {
     "full_static": {
@@ -699,88 +827,52 @@
     "final_static_report": "../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md"
   },
   "latest_live_checkpoint": {
-    "recorded_at": "2026-09-13T06:34:30-04:00",
-    "auth_sanity": "native provider call completed after targeted live-workspace credential refresh; no scientific artifact created",
-    "credential_refresh_job": "10421584",
+    "auth_sanity": "previous native provider sanity succeeded; no new sanity call made",
     "cpu_resource_audit_touched": false,
-    "job_10421605": {
-      "state": "COMPLETED",
+    "job_10424154": {
       "exit_code": 0,
-      "assignments": "120/120 valid",
-      "elapsed_seconds": 2624,
-      "audit_job": "10421810"
-    },
-    "job_10421607": {
-      "state": "COMPLETED",
-      "exit_code": 0,
-      "assignments": "60/60 valid",
-      "elapsed_seconds": 3920,
-      "audit_job": "10422051"
-    },
-    "job_10421608": {
-      "state": "COMPLETED",
-      "exit_code": 0,
-      "assignments": "54/54 assignment records completed; native validation pending",
-      "terminal_valid": null,
-      "validator_job": "10422283"
-    },
-    "job_10421723": {
-      "state": "RUNNING",
-      "assignments": "300 selected; 29 running; 265 pending; 6 structural exhausted",
-      "failure_keys": [
-        "adaptive-pruning--rep-001--solver-luna--semi-red-team-artifact",
-        "all-in-one--rep-003--solver-luna--score-only-red-team-artifact",
-        "adaptive-pruning--rep-003--solver-luna--score-only-online-rubric",
-        "ftrl--rep-003--solver-luna--semi-red-team-artifact",
-        "robust-clip--rep-001--solver-luna--semi-red-team-artifact",
-        "pinn--rep-002--solver-luna--score-only-red-team-artifact"
-      ],
-      "no_completed_assignments_rerun": true
-    },
-    "job_10421810": {
-      "state": "RUNNING",
-      "assignments": "120/120 prepared; native audit tail active",
-      "rubric_audit_operations_completed": 1677,
-      "assignment_failures": [],
-      "ready_by_provider": {
-        "anthropic": 51,
-        "openai": 51
-      },
-      "failure_types": {
-        "APIStatusError": 1,
-        "IncompleteProviderResponse": 6
-      },
-      "last_successful_rubric_unit": "2026-09-13T06:25:38-04:00"
-    },
-    "job_10422051": {
-      "state": "PENDING",
-      "dependency": "afterok:10421810",
-      "source_success": "10421607 output complete; old ID no longer needed by Slurm"
-    },
-    "job_10422283": {
-      "state": "PENDING",
-      "dependency": "afterok:10421608",
+      "native_valid": "9/9 in each of six Full/User dev3 conditions",
       "provider_calls": 0,
-      "purpose": "read-only native dev3 validation",
-      "scientific_writes": 0
+      "scientific_writes": 0,
+      "state": "COMPLETED"
     },
-    "job_10422593": {
+    "job_10424162": {
+      "state": "RUNNING",
+      "assignments": "6 completed valid; 31 failed; 32 running; 231 pending of 300 selected",
+      "current_failure": "historical APITimeoutError only; latest evolution-generation and solver-turn operations continue",
+      "native_missing_only": true,
+      "valid_assignments_rerun": 0
+    },
+    "job_10424163": {
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "failure": "rubric_score non-panel job failed after 1800/1800 rubric units; direct stages exit 0; no auth/http error recorded",
+      "valid_outputs_preserved": true
+    },
+    "job_10424271": {
+      "state": "RUNNING",
+      "native_missing_only": true,
+      "progress": "360 selected; 0 completed; 11 running; 349 pending; revision work active",
+      "dependency": "none at Slurm level; native pretreatment completed and selected revision scope is active",
+      "source_namespace": "score-only-offline pretreatment source exists and is completed_scope"
+    },
+    "job_10424672": {
       "state": "PENDING",
-      "dependency": "afterany:10421723",
-      "provider_calls": 0,
-      "purpose": "read-only diagnosis of learned-rest exhausted rows"
+      "dependency": "none",
+      "purpose": "native missing-only fixed Semi/Score audit replacement for 10424163"
     },
-    "job_10422649": {
+    "job_10424681": {
       "state": "PENDING",
-      "dependency": "afterok:10422283",
-      "purpose": "Full/User dev3 audit resume"
+      "dependency": "afterok:10424672",
+      "purpose": "native missing-only Score-only-offline audit replacement for 10424410"
     },
-    "job_10422655": {
+    "job_10424684": {
       "state": "PENDING",
-      "dependency": "afterok:10422283",
-      "purpose": "Full/User non-static Results20 native resume"
+      "dependency": "afterok:10424681",
+      "purpose": "native missing-only Full/User dev3 audit replacement for 10424419"
     },
-    "dependency_repair": "Full/User Results20 submission initially referenced expired completed job 10421607 and was rejected; resubmitted as 10422655 with only the still-live native validator dependency because the verified 10421607 output is durable on NFS.",
-    "no_completed_assignments_rerun": true
+    "no_completed_assignments_rerun": true,
+    "no_scientific_settings_changed": true,
+    "recorded_at": "2026-09-13T11:14:43-04:00"
   }
 }
