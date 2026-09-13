@@ -2373,3 +2373,6 @@ PaperBench dev3 job 10421608 completed 54/54 with its saved output and accountin
 
 ## 2026-09-13 05:16 EDT — Queue3 missing-cell audit owner
 Queued native missing-only audit 10422293 after repaired no-appendix report 10422202 for full-fixed, full-trace, semi-trace, score_only-trace, and user_simulator-fixed. Complete Queue3 cells remain untouched; this owner only fills persisted incomplete judgments.
+
+## 2026-09-13 05:19 EDT — Scale audits dependency-queued
+Queued existing native Results30 audit 10422299 after exact q6 recovery 10422169, provider-free report 10422300 afterany; Results45 audit 10422302 after q7 repaired validator/revision jobs and q6 report, provider-free report 10422304 afterany. No provider work starts until native prerequisites complete; no completed assignment is resubmitted.

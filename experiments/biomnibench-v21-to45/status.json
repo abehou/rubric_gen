@@ -14,7 +14,7 @@
     "native_seed_integrity_check_retry": "10417222",
     "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator",
     "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
-    "observed_at": "2026-09-13T05:16:57.314398-04:00",
+    "observed_at": "2026-09-13T05:19:11.892983-04:00",
     "obsolete_cache_cleanup_final": "10422142",
     "obsolete_cache_cleanup_final_state": "PENDING afterany 10422088 read-only residual inspection; exact two obsolete cache directories only",
     "obsolete_cache_cleanup_six_state": "10421655 FAILED rmdir after exact cleanup; target had residual entry, diagnostic/retry required",
@@ -223,9 +223,17 @@
     "paperbench_r20_semi_score_learned_resume": "10421723",
     "paperbench_r20_semi_score_learned_resume_state": "RUNNING after 10421608; PaperBench owner; 32 CPUs; unrelated to BioMNIBench recovery",
     "paperbench_r20_audit_semi_score_fixed_resume_state": "RUNNING 120/120 assignments; 32 CPUs; rubric-audit queue still draining",
-    "next_action": "Await PaperBench owners 10421723 and 10421810 for quota; then exact q6/q7 finalizers/recovery and q3 native missing-cell audits run dependency-controlled.",
+    "next_action": "Await PaperBench quota release; run exact inspectors/finalizers, q3/q6/q7 recoveries, then dependency-queued scale audits/reports.",
     "queue3_missing_cells_audit_repaired": "10422293",
-    "queue3_missing_cells_audit_repaired_state": "PENDING afterany:10422202; native missing-only full-fixed/full-trace/semi-trace/score_only-trace/user_simulator-fixed; complete cells untouched"
+    "queue3_missing_cells_audit_repaired_state": "PENDING afterany:10422202; native missing-only full-fixed/full-trace/semi-trace/score_only-trace/user_simulator-fixed; complete cells untouched",
+    "results30_scale_audit": "10422299",
+    "results30_scale_audit_state": "PENDING afterok:10422169; native detect --resume over ten Results30 tasks, both full conditions",
+    "results30_scale_report": "10422300",
+    "results30_scale_report_state": "PENDING afterany:10422299; provider-free report",
+    "results45_scale_audit": "10422302",
+    "results45_scale_audit_state": "PENDING afterany:10422300 and afterok repaired q7 validator/revision jobs; native detect --resume over fifteen Results45 tasks",
+    "results45_scale_report": "10422304",
+    "results45_scale_report_state": "PENDING afterany:10422302; provider-free report"
   },
   "heldout_decision": {
     "at": "2026-09-12T12:39:00-04:00",
