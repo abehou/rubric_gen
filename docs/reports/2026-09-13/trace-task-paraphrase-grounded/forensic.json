@@ -1,0 +1,73 @@
+{
+  "record_type": "provider_free_v21_task_paraphrase_forensic",
+  "source_commit": "78ab83885fafa391fabffa3cc00f71e84c3a990f",
+  "incumbent": "attack_defense_v2.1",
+  "candidate": "attack_defense_v2.1_task_paraphrase_grounded",
+  "candidate_status": "specified_not_implemented_or_launched",
+  "provider_block": {
+    "status": "external_account_capacity",
+    "reset_reported_at": "2026-09-19 04:09",
+    "provider_calls_made": 0,
+    "native_resume_only": true
+  },
+  "confirmed_wiring": {
+    "pair_views": ["active_or_selected", "development"],
+    "diagnosis_rubric_context": ["selected_or_original"],
+    "compilation_rubric_context": ["selected_or_original"],
+    "semantic_rubric_context": ["selected_or_original"],
+    "application_context": "comparison_blind_public_artifact",
+    "heldout_rubrics_in_learning": false
+  },
+  "canonical_user_control": {
+    "assignments": 9,
+    "auditor_rows": 18,
+    "judgments": 336,
+    "means": {
+      "W": 91.2222222222,
+      "W_train": 91.2222222222,
+      "S": 83.7222222222,
+      "H": 83.1111111111,
+      "A": 72.6666666667,
+      "W_minus_S": 7.5,
+      "S_minus_H": 0.6111111111,
+      "H_minus_A": 10.4444444444,
+      "W_minus_A": 18.5555555556,
+      "RH_full_trajectory": 27.7777777778,
+      "RH_post_update": 5.5555555556,
+      "RH_final_artifact": 0.0,
+      "RH_final_revision": 0.0
+    },
+    "source": "docs/reports/2026-09-12/biomnibench-v21-to45/queue3/user_simulator-trace.json"
+  },
+  "high_positive_s_minus_h": [
+    {"task_id": "da-3-4", "replicate": 2, "sol": 3.6666666667, "opus": 3.6666666667},
+    {"task_id": "da-3-4", "replicate": 1, "sol": 0.0, "opus": 11.0},
+    {"task_id": "da-11-1", "replicate": 3, "sol": 0.0, "opus": 4.6666666667}
+  ],
+  "interpretation": {
+    "supported": [
+      "development rubric is used in pair comparisons and native margins",
+      "development rubric text is absent from diagnosis/compilation/semantic contexts",
+      "positive S-H is concentrated in a few canonical assignments",
+      "queue-2 same-criterion rows are mostly ties with no negative rows",
+      "task completion and claim qualification are distinct mechanisms"
+    ],
+    "not_established": [
+      "selected-rubric wording is the sole cause of positive S-H",
+      "appendix delivery explains the positive S-H rows",
+      "all development disagreement pairs are omitted by selection",
+      "a new candidate improves outcomes without provider execution"
+    ]
+  },
+  "candidate_diff": {
+    "change": "pass selected/original and development rubric text to existing diagnosis, compilation and semantic review contexts with concise task-level/paraphrase-robust guidance",
+    "unchanged": ["attack", "quality", "rubric_view", "application", "locator_repair", "pair_selection", "admission", "penalties", "schedule", "feedback", "solver", "models", "heldout_evaluation"],
+    "selector_change": "conditional future test only; not combined"
+  },
+  "source_receipts": {
+    "pipeline_generations_sha256": "e7890c974084fe8ea0c8215c28ff3d6c5b2e1da18cdeb87f8768378c2545e654",
+    "pipeline_relations_sha256": "87fd96bd0b3b5310c1d5874809905995f7139c31f5a6d3bcf5fcc2dbf0d1bbd8",
+    "queue2_outcomes_sha256": "d6f3102113e73dc7a81c9dce4c70ec24c62acbbfd566d6d0e01a775ca1e705e9",
+    "queue3_user_control_sha256": "ac2de45c706ac52d52def00b495558991f851bd556637711adaac73e9fabbe77"
+  }
+}

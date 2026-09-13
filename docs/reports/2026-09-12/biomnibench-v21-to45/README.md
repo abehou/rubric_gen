@@ -99,3 +99,25 @@ The BioMNIBench jobs currently held are q3 audit `10422818`, q6 local recovery `
 After the provider limit resets, resume only the native missing work in this order: q3 `--resume` for the three failed `da-11-1` assignments and its held audit; q6 `da-1-3` native resume after validating the four saved targets; q7 native seed regeneration/validator for `da-17-1/rep-003`; then release the already prepared revision waves and scale audits through their native dependencies. The existing report jobs and `10422359` synthesis should run only after their inputs are complete. The exact output roots are `/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30` and `/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15`; access them through Slurm, not login-node existence checks.
 
 The historical Result20 table above remains the last complete scientific scale result. No expanded W/W_train/S/H/A, gap, RH, interval, or final joint-decision values are reported for Results30/45 because their new-task revisions and audits are not complete. The appropriate status is **partially met; Results30/45 incomplete and externally provider-blocked**, with all valid prior work and failure evidence retained.
+
+## 2026-09-13 — v2.1 task/paraphrase forensic checkpoint
+
+The provider-free v2.1 inspection confirms that the active/selected and
+development rubric views are both used for pair comparisons and native margins,
+but only the selected/original rubric is passed to diagnosis, compilation and
+semantic construction. Positive canonical User S−H is concentrated in three
+assignment/replicate cases (with material Sol/Opus disagreement in one), so this
+is evidence for a bounded task/paraphrase hypothesis rather than proof of
+selected-rubric overfitting. The queue-2 same-criterion audit is mostly ties and
+shows that task completion and claim qualification are separate mechanisms.
+
+The smallest supported next candidate is recorded, but not implemented or
+launched, at [the provider-free task/paraphrase record](../../2026-09-13/trace-task-paraphrase-grounded/README.md).
+It would pass the selected and development rubric text to the existing
+diagnosis/compilation/semantic stages and leave every other Red-Team-Trace and
+feedback component unchanged. The account-capacity failure reported in the
+native q3 resume (reset `2026-09-19 04:09`) prevents new provider calls. Adding
+or editing a `trace_defense*.py` module would also change the current all-v2
+implementation fingerprint, so no source or historical receipt was changed
+while that identity issue and provider block remain unresolved. v2.1 remains
+the incumbent; Results30/45 native recovery is still held.

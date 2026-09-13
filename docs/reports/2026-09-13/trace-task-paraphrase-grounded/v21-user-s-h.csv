@@ -1,0 +1,10 @@
+task_id,replicate,sol_S,opus_S,sol_H,opus_H,sol_A,opus_A,sol_S_minus_H,opus_S_minus_H,mean_S_minus_H,classification,appendix_context
+da-3-4,1,89.0,100.0,89.0,89.0,96,88,0.0,11.0,5.5,judge_or_paraphrase_disagreement,"mixed selected appendix exposure; no per-turn H"
+da-3-4,2,100.0,100.0,96.3333333333,96.3333333333,96,88,3.6666666667,3.6666666667,3.6666666667,selected_only_or_paraphrase_sensitive,"appendix present in saved delivery rows"
+da-3-4,3,100.0,89.0,100.0,92.6666666667,93,85,0.0,-3.6666666667,-1.8333333333,heldout_or_judge_variation,"mixed selected appendix exposure"
+da-11-1,1,27.0,40.0,32.0,40.0,35,31,-5.0,0.0,-2.5,heldout_stricter_or_judge_variation,"ordinary and appendix turns both saved"
+da-11-1,2,68.0,68.0,68.0,71.3333333333,28,30,0.0,-3.3333333333,-1.6666666667,heldout_stricter_or_judge_variation,"appendix present in saved delivery rows"
+da-11-1,3,73.0,73.0,73.0,68.3333333333,55,46,0.0,4.6666666667,2.3333333333,selected_only_or_judge_disagreement,"appendix present in saved delivery rows"
+da-18-1,1,100.0,100.0,100.0,100.0,88,88,0.0,0.0,0.0,no_gap,"one selected appendix row"
+da-18-1,2,100.0,100.0,100.0,100.0,91,88,0.0,0.0,0.0,no_gap,"multiple selected appendix rows"
+da-18-1,3,90.0,90.0,90.0,90.0,94,88,0.0,0.0,0.0,no_gap,"multiple selected appendix rows"

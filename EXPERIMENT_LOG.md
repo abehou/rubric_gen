@@ -2399,3 +2399,7 @@ Native q3 resume `10422809` reached the three saved `da-11-1` failed-turn checkp
 ## 2026-09-13 08:10 EDT — Exact storage cleanup receipts
 
 The q6 read-only census `10422942` and direct allowlist cleanup `10423023` preserved the active runtime and removed only obsolete cache `10380169` (`10380168` was already absent); q6 archive pass `10423093` made no changes because all four targets had valid manifests. Q7 finalizer `10422953` verified the preserved archive before a nested permission error; targeted directory-mode repair `10423118` then removed the exact target. These are provider-free operational receipts and do not promote archived failures or alter scientific inputs.
+
+## 2026-09-13 11:16 EDT — v2.1 task/paraphrase forensic checkpoint
+
+Provider-free inspection confirmed that v2.1 uses the development rubric in pair comparisons/native margins but passes only the selected rubric to diagnosis, compilation and semantic construction; the smallest supported task/paraphrase-grounded candidate is documented without changing the incumbent. New provider calls and Results30/45 recovery remain externally account-capacity blocked, so no candidate or historical output was rewritten.

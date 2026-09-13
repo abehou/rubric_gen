@@ -670,3 +670,7 @@
 ## 2026-09-12 — Reviewed runtime reuse for trace audit responses
 
 - 12:46 EDT: c451942 already resolves the observed nested-schema rejection and preserves successful historical scores through native adoption; isolated copies0b58da6/9233e64 passed514 focused tests and573 saved-record replays unchanged. Output-format instructions change for missing requests, while scientific grading and completed evidence remain fixed; no separate recovery framework is introduced.
+
+## 2026-09-13 — v2.1 candidate identity review
+
+- 11:16 EDT: v2.1 diagnosis/compilation/semantic requests omit the development-rubric text even though pair comparisons and native margins include that view. A task/paraphrase-grounded recipe is therefore supported by the saved mechanism evidence, but implementation is deferred while provider access is capped and because the current all-v2 source fingerprint would change if a new `trace_defense*.py` module were added; no compatibility hash or historical receipt rewrite was introduced.
