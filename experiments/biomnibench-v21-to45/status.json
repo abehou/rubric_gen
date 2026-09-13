@@ -14,7 +14,7 @@
     "native_seed_integrity_check_retry": "10417222",
     "native_seed_integrity_check_retry_memory": "128G; same read-only inputs and validator",
     "note": "Active Results30 revisions and Results45 seed lanes remain healthy; q3 recovery and collectors stay dependency-held. No completed assignment was resubmitted.",
-    "observed_at": "2026-09-13T04:35:00-04:00",
+    "observed_at": "2026-09-13T04:55:00-04:00",
     "obsolete_cache_cleanup_final": "10422142",
     "obsolete_cache_cleanup_final_state": "PENDING afterany 10422088 read-only residual inspection; exact two obsolete cache directories only",
     "obsolete_cache_cleanup_six_state": "10421655 FAILED rmdir after exact cleanup; target had residual entry, diagnostic/retry required",
@@ -36,9 +36,11 @@
     "recovery_patch_commit": "b5cbe7e",
     "recovery_patch_scope": "mechanical exact-path cleanup only; q7 archive path corrected; no scientific inputs or completed assignments changed",
     "results30_archive_partial_revision": "10421689",
+    "results30_archive_partial_revision_repaired": "10422168",
     "results30_da_1_3_recovery_inspect": "10421606",
     "results30_da_1_3_revision_final": "10417289",
     "results30_da_1_3_revision_recovery": "10421690",
+    "results30_da_1_3_revision_recovery_repaired": "10422169",
     "results30_da_1_3_revision_recovery_state": "PENDING dependency; exact four manifestless assignments only after archive 10421689; two completed assignments preserved; prior NFS failures retained",
     "results30_missing_only_resume_lanes": {
       "dependency": "afterany:10416366:10416038 (lane0), afterany:10416366:10415714 (lane1)",
@@ -110,6 +112,15 @@
       },
       "scope": "first four previously unlaunched Results45 task revisions; native dev3-4 resume"
     },
+    "results45_revision_wave1_repaired": {
+      "dependency": "afterok:10422171",
+      "jobs": {
+        "da-17-3": "10422176",
+        "da-24-3": "10422175",
+        "da-6-5": "10422174",
+        "da-9-7": "10422177"
+      }
+    },
     "results45_revision_wave2": {
       "dependency": "afterok:10421683 and afterany:10421737-10421740",
       "jobs": {
@@ -119,6 +130,15 @@
         "da-8-3": "10421816"
       },
       "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
+    },
+    "results45_revision_wave2_repaired": {
+      "dependency": "afterok:10422171 and afterany:10422174-10422177",
+      "jobs": {
+        "da-1-4": "10422182",
+        "da-17-1": "10422178",
+        "da-17-5": "10422179",
+        "da-8-3": "10422181"
+      }
     },
     "results45_revision_wave3": {
       "dependency": "afterok:10421683 and afterany:10421814-10421817",
@@ -130,6 +150,15 @@
       },
       "scope": "next four previously unlaunched Results45 task revisions; native dev3-4 resume"
     },
+    "results45_revision_wave3_repaired": {
+      "dependency": "afterok:10422171 and afterany:10422178-10422182",
+      "jobs": {
+        "da-20-1": "10422187",
+        "da-4-7": "10422189",
+        "da-8-2": "10422188",
+        "da-9-1": "10422184"
+      }
+    },
     "results45_revision_wave4": {
       "dependency": "afterok:10421683 and afterany:10421822-10421825",
       "jobs": {
@@ -139,13 +168,24 @@
       },
       "scope": "final three previously unlaunched Results45 task revisions; native dev3-4 resume"
     },
+    "results45_revision_wave4_repaired": {
+      "dependency": "afterok:10422171 and afterany:10422184-10422189",
+      "jobs": {
+        "da-19-4": "10422192",
+        "da-25-1": "10422196",
+        "da-6-2": "10422194"
+      }
+    },
     "results45_seed_jobs": [
       "10415531",
       "10415532"
     ],
     "results45_seed_state_check": "10416323",
     "results45_seed_validation_after_recovery": "10421683",
+    "results45_seed_validation_repaired": "10422171",
     "results45_single_seed_recovery": "10421673",
+    "results45_single_seed_recovery_repaired": "10422170",
+    "results45_single_seed_recovery_repaired_state": "pending afterok exact finalizers 10422141,10422142; da-17-1 rep-003 only",
     "results45_single_seed_recovery_state": "PENDING dependency; guarded native recovery for da-17-1 replicate 3 only after archive 10421649 and cleanup 10421656",
     "scale_audit_wrapper_commit": "c94daee; not dispatched until q6/q7 revision coverage validates",
     "scale_seed_state_check_after_missing_only": "10416777",
@@ -164,7 +204,7 @@
   "inventory_job_exit": "0:0",
   "inventory_job_state": "COMPLETED",
   "mission_started_at": "2026-09-12T09:27:31-04:00",
-  "next_action": "Complete read-only q7/cache inspections and exact finalizers when capacity opens; then native missing-only q7 seed/q6 revision/q3 revision recoveries, audits, and scale reports.",
+  "next_action": "Await exact inspectors/finalizers and provider capacity; then validate q3/q6/q7 missing revisions, dispatch scale audits only after complete coverage, and run provider-free scale reports.",
   "provider_calls": null,
   "provider_calls_note": "Scientific calls have started. Counts will come from native runtime accounting; inventory used zero calls.",
   "queue2": {

@@ -2359,3 +2359,7 @@
 ## 2026-09-13 — Exact recovery finalizers queued
 
 - 04:35 EDT: Mechanical recovery patch `b5cbe7e` corrects the q7 archive owner path and adds exact allowlisted permission repair for the manifestless `da-17-1/rep-003` seed target and two obsolete runtime caches after concrete PermissionError/rmdir failures. Finalizers 10422141 and 10422142 wait behind read-only inspectors 10422063 and 10422088; no provider calls or scientific inputs changed.
+
+## 2026-09-13 — Missing-only scale chains requeued
+
+- 04:55 EDT: Submitted q6 `da-1-3` archive/resume (`10422168`→`10422169`), q7 `da-17-1/rep-003` seed/validation (`10422170`→`10422171`), and repaired Results45 revision waves (`10422174`–`10422196`) behind the repaired validator. The old dependency-blocked wave IDs remain historical; all new scopes are native `--resume` and preserve completed assignments.
