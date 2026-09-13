@@ -2363,3 +2363,7 @@
 ## 2026-09-13 — Missing-only scale chains requeued
 
 - 04:55 EDT: Submitted q6 `da-1-3` archive/resume (`10422168`→`10422169`), q7 `da-17-1/rep-003` seed/validation (`10422170`→`10422171`), and repaired Results45 revision waves (`10422174`–`10422196`) behind the repaired validator. The old dependency-blocked wave IDs remain historical; all new scopes are native `--resume` and preserve completed assignments.
+
+## 2026-09-13 — Superseded blocked jobs cleared; q3 audit resubmitted
+
+- 05:05 EDT: Slurm rejected the q3 audit submission at the per-user job-count limit because 22 never-started jobs were permanently dependency-unsatisfiable after the failed first recovery chain. Canceled only those exact blocked IDs (their logs/IDs remain historical), then queued q3 missing-only audit `10422200`, cell report `10422201`, and comparison report `10422202` after native da-11-1 recovery `10422080`; active PaperBench, inspectors, finalizers and repaired scale waves were untouched.
