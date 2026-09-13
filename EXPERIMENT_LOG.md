@@ -2351,3 +2351,7 @@
 ## 2026-09-12 — PaperBench resumed-state handoff
 
 - 13:59 EDT: Rechecked PaperBench Slurm accounting and NFS ledgers: no PaperBench job is active; 90/144 dev3 and 223/960 Results20 assignments are valid, with 77 failed and 660 not launched in Results20. The latest native missing-only owners selected only failed rows but all 131 latest attempts stopped on the revoked provider refresh token; no completed assignment was rerun and the current matrix remains externally blocked.
+
+## 2026-09-13 — Resumed scale recovery
+
+- 04:22 EDT: After Results20 capacity opened, Results30 inspection 10421606 completed; q7 archive 10421649 preserved its exact manifestless failure evidence but hit a permission error removing the failed workspace, and cache cleanup 10421655 found an undeletable residual entry. Queue3 recovery 10421719 completed the two available tasks but retained all three da-11-1 provider-exit failures; native da-11-1 revision resume 10422080 is queued. No completed assignment was resubmitted.
