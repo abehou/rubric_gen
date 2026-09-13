@@ -560,3 +560,9 @@ Authentication remains repaired. The fixed Semi/Score Results20 producer 1042160
 The Full/User dev3 producer 10421608 has 54/54 assignment records and awaits read-only native validation 10422283. Full/User dev3 audit 10422649 and the six-condition Results20 producer 10422655 are dependency-gated on that validator. The first 10422655 submission referenced expired completed job 10421607 and was rejected by Slurm; the accepted replacement keeps only the live validation dependency and uses the durable verified 10421607 output on NFS.
 
 Learned-rest producer 10421723 remains healthy and running the existing 300-assignment scope with 31 solver turns active and 265 pending. Four exhausted rows are preserved for read-only diagnosis 10422593 and later native missing-only recovery. No completed assignment is being rerun, and the CPU resource audit remains separate.
+
+## Live checkpoint — 2026-09-13 06:28 EDT
+
+Fixed Semi/Score audit owner 10421810 remains RUNNING in its native token/provider tail. Telemetry records 1,668 completed rubric-audit operations, 58 Anthropic and 59 OpenAI queue items ready, six bounded incomplete-response/API failures, and no assignment failure. Learned-rest producer 10421723 remains RUNNING with 30 solver turns active, 265 pending, and five exhausted rows; its read-only diagnosis 10422593 remains afterany-gated.
+
+The accepted follow-up owners remain 10422283 (read-only Full/User dev3 validation), 10422649 (Full/User dev3 audit), and 10422655 (six Full/User Results20 conditions). The learned-rest missing-only recovery command is recorded in `current-status.json` and must be used only after 10421723 reaches a terminal state.

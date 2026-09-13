@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-13T06:05:00-04:00",
+  "observed_at": "2026-09-13T06:28:30-04:00",
   "status": "native_resumes_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
@@ -30,14 +30,14 @@
       "job_id": "10421723",
       "name": "pb-r20-semi-score-learned-rest-resume",
       "state": "RUNNING",
-      "progress": "300 selected; 31 running; 265 pending; 4 structural exhausted",
+      "progress": "300 selected; 30 running; 265 pending; 5 structural exhausted",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
     },
     {
       "job_id": "10421810",
       "name": "pb-r20-audit-semi-score-fixed-resume",
       "state": "RUNNING",
-      "progress": "120/120 assignment records prepared; native audit tail still running; no assignment failures",
+      "progress": "120/120 assignment records prepared; 1668 rubric-audit operations completed; native tail still running; no assignment failures",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
     },
     {
@@ -58,7 +58,7 @@
       "job_id": "10422593",
       "name": "pb-r20-diag-learned-rest",
       "state": "PENDING",
-      "progress": "afterany:10421723; read-only diagnosis of the current exhausted rows",
+      "progress": "afterany:10421723; read-only diagnosis of five current exhausted rows",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552"
     },
     {
@@ -644,7 +644,8 @@
     "results20_score_only_offline": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-score-only-offline-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-score-only-offline.yaml --resume",
     "dev3_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-full-user-learned-resume scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
     "results20_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-full-user-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-full-user-learned-resume --dependency=afterok:10422283 scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-full-user-learned.yaml --resume",
-    "dev3_audit_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-audit-full-user-learned-resume --dependency=afterok:10422283 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume"
+    "dev3_audit_full_user_learned": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-dev3-audit-full-user-learned-resume --dependency=afterok:10422283 scripts/babel/experiment.sbatch --profile results20 detect --experiment experiments/babel/paperbench-nontrace-dev3-full-user-learned.yaml --resume",
+    "results20_semi_score_learned_rest": "cd /home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-results20-20260912 && sbatch --parsable --cpus-per-task=32 --mem=256G --job-name=pb-r20-semi-score-learned-rest-resume-recovery scripts/babel/experiment.sbatch --profile results20 revise --experiment experiments/babel/paperbench-nontrace-results20-semi-score-learned-rest.yaml --resume"
   },
   "static_metrics": {
     "full_static": {
@@ -695,7 +696,7 @@
     "final_static_report": "../paperbench-static/selected-neutral-heldout-rigorous-results20-final.md"
   },
   "latest_live_checkpoint": {
-    "recorded_at": "2026-09-13T06:05:00-04:00",
+    "recorded_at": "2026-09-13T06:28:30-04:00",
     "auth_sanity": "native provider call completed after targeted live-workspace credential refresh; no scientific artifact created",
     "credential_refresh_job": "10421584",
     "cpu_resource_audit_touched": false,
@@ -722,7 +723,7 @@
     },
     "job_10421723": {
       "state": "RUNNING",
-      "assignments": "300 selected; 31 running; 265 pending; 4 structural exhausted",
+      "assignments": "300 selected; 30 running; 265 pending; 5 structural exhausted",
       "failure_keys": [
         "adaptive-pruning--rep-001--solver-luna--semi-red-team-artifact",
         "adaptive-pruning--rep-003--solver-luna--score-only-online-rubric",
@@ -733,13 +734,18 @@
     },
     "job_10421810": {
       "state": "RUNNING",
-      "assignments": "120/120 prepared; audit tail active",
+      "assignments": "120/120 prepared; native audit tail active",
+      "rubric_audit_operations_completed": 1668,
       "assignment_failures": [],
+      "ready_by_provider": {
+        "anthropic": 58,
+        "openai": 59
+      },
       "failure_types": {
         "APIStatusError": 1,
-        "IncompleteProviderResponse": 5
+        "IncompleteProviderResponse": 6
       },
-      "latest_telemetry": "74 anthropic and 75 openai rubric queue items ready; no active operation at latest sample; last successful rubric unit continued"
+      "last_successful_rubric_unit": "2026-09-13T06:25:38-04:00"
     },
     "job_10422051": {
       "state": "PENDING",
