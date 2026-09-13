@@ -598,3 +598,13 @@ The previous live owners have now been inspected to terminal state. No healthy P
 Current Results20 aggregate accounting is **300 valid, 18 failed, 32 running, and 616 pending/not yet valid** out of 960 assignment records. The 32 running and 250 pending records are the existing 300-row learned-rest scope; the remaining 366 pending records belong to the six Full/User learned Results20 cells whose validator is still running or dependency-gated. The only terminal non-trace conditions remain Full-static and User-simulator-static.
 
 The exact native commands and current job ownership are in [current-status.json](current-status.json); the per-condition matrix is [current-condition-status.csv](current-condition-status.csv). The old DependencyNeverSatisfied jobs are retained as scheduler evidence and are not competing owners. CPU profiles, scientific settings, red_team_trace work, and BioMNIBench work remain untouched.
+
+## Current recovery checkpoint — 2026-09-13T10:31:00-04:00
+
+The corrected read-only validator replacement `10424154` completed successfully. It validated all six Full/User non-static dev3 conditions at 9/9 each with zero provider calls and zero scientific writes; the former `10422283` failure was only the missing execution `src` on `PYTHONPATH`. The minimal Full/User Results20 replacement `10424271` is now queued after that successful validator and owns the existing namespace.
+
+The native learned-rest replacement `10424162` is healthy: **2 completed valid, 21 failed, 32 running, and 245 pending** within its 300 selected assignments. It has no current failure event and has not rerun any completed assignment. The sole global fixed Semi/Score audit owner `10424163` is running after preparing the existing 120 assignments; the previous valid audit outputs remain preserved.
+
+The old jobs `10422051`, `10422649`, and `10422655` remain `DependencyNeverSatisfied` evidence and are not competing owners. Score-only-offline audit and Full/User dev3 audit replacements remain deferred until the current global audit owner reaches a terminal state, so only one audit executor can own the shared lease.
+
+Aggregate Results20 accounting is now **302 valid, 21 failed, 32 running, and 605 pending/not yet valid** out of 960. The two terminal conditions remain Full-static and User-simulator-static. All CPU profiles, scientific settings, trace work, and BioMNIBench work remain untouched.
