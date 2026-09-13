@@ -578,3 +578,23 @@ Fixed Semi/Score audit 10421810 remains RUNNING at 1,675 completed rubric-audit 
 The fixed Semi/Score audit owner 10421810 remains RUNNING with 1,677 completed rubric-audit operations, 51 Anthropic and 51 OpenAI queue items ready, and no assignment failure. Learned-rest producer 10421723 remains RUNNING with 29 active solver turns and 265 pending selected assignments. Six exhausted rows are preserved: `adaptive-pruning` semi red-team-artifact replicate 1, `all-in-one` score-only red-team-artifact replicate 3, `adaptive-pruning` score-only online replicate 3, `ftrl` semi red-team-artifact replicate 3, `robust-clip` semi red-team-artifact replicate 1, and `pinn` score-only red-team-artifact replicate 2.
 
 Current Results20 accounting is 300 valid, 6 terminal failures, 29 in flight, and 625 pending or not yet launched. No replacement owner has been submitted while 10421723 is active.
+
+
+## Current native recovery checkpoint — 2026-09-13T10:23:27-04:00
+
+The previous live owners have now been inspected to terminal state. No healthy PaperBench owner was interrupted and no completed assignment or valid judgment was rerun. The fixed Semi/Score audit owner `10421810` failed after persisting **1,707/1,800** rubric operations; its valid outputs and failure evidence remain in place. The learned-rest producer `10421723` failed with native Codex app-server startup/scheduler errors; its existing namespace is being resumed by `10424162`.
+
+| Owner | State | Current evidence | Action |
+|---|---|---|---|
+| `10424162` | RUNNING | 300 selected; 18 failed; 32 running; 250 pending; no terminal valid assignments yet | Native `revise --resume` in the existing learned-rest namespace |
+| `10424163` | PENDING | Fixed Semi/Score audit recovery; waiting for CPU quota while `10424162` uses 32 CPUs | Native `detect --resume` in the existing fixed audit namespace |
+| `10424154` | RUNNING | Read-only Full/User dev3 validation; zero provider calls and scientific writes | Same collector as `10422283`, with the pinned execution `src` on `PYTHONPATH` |
+| `10422051` | PENDING | `DependencyNeverSatisfied` after failed `10421810` | Preserve; replace only after `10424163` is terminal |
+| `10422649` | PENDING | `DependencyNeverSatisfied` after failed `10422283` | Preserve; replace only after `10424154` passes |
+| `10422655` | PENDING | `DependencyNeverSatisfied` after failed `10422283` | Preserve; replace only after `10424154` passes |
+
+`10422283` was not a scientific validation failure: its wrapper imported the wrong environment and raised `ModuleNotFoundError: rubric_gen.submission_revision.source_resolution` before reading the dev3 study. The replacement adds only `PYTHONPATH=/home/aydanh/repos/rubric_gen/runs/babel-code/paperbench-nontrace-dev3-20260912/src`; it remains read-only.
+
+Current Results20 aggregate accounting is **300 valid, 18 failed, 32 running, and 616 pending/not yet valid** out of 960 assignment records. The 32 running and 250 pending records are the existing 300-row learned-rest scope; the remaining 366 pending records belong to the six Full/User learned Results20 cells whose validator is still running or dependency-gated. The only terminal non-trace conditions remain Full-static and User-simulator-static.
+
+The exact native commands and current job ownership are in [current-status.json](current-status.json); the per-condition matrix is [current-condition-status.csv](current-condition-status.csv). The old DependencyNeverSatisfied jobs are retained as scheduler evidence and are not competing owners. CPU profiles, scientific settings, red_team_trace work, and BioMNIBench work remain untouched.
