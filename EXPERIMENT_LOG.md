@@ -2370,3 +2370,6 @@
 
 ## 2026-09-13 05:15 EDT — PaperBench quota handoff
 PaperBench dev3 job 10421608 completed 54/54 with its saved output and accounting intact; dependent owner 10421723 started immediately and now occupies the released 32 CPUs. BioMNIBench recovery jobs remain queued without duplication; PaperBench jobs were not interrupted.
+
+## 2026-09-13 05:16 EDT — Queue3 missing-cell audit owner
+Queued native missing-only audit 10422293 after repaired no-appendix report 10422202 for full-fixed, full-trace, semi-trace, score_only-trace, and user_simulator-fixed. Complete Queue3 cells remain untouched; this owner only fills persisted incomplete judgments.
