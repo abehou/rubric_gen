@@ -146,6 +146,9 @@ def reconstruct_scope(scope: str) -> tuple[dict, list[dict], list[dict]]:
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("scale reconstruction must run on a compute node")
     source, tasks = (Q6_SOURCE, Q6_TASKS) if scope == "results30" else (Q7_SOURCE, Q7_TASKS)
+    # The historical report adapter expects its diagnostics imports to have
+    # already been placed on sys.path by the report launcher.
+    sys.path.insert(0, str(Q6_SOURCE / "scripts/diagnostics"))
     report_module = load_module("scale_report_reconstruct", Q6_SOURCE / "experiments/trace-attack-defense-v21/report/report_reconstruct.py")
     sys.path.insert(0, str(source / "src"))
     from rubric_gen.submission_revision.experiment import load_experiment
