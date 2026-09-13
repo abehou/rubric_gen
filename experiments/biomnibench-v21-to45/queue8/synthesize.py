@@ -158,6 +158,40 @@ def complete_cells(adapter):
                 required_completed_judgments=sum(c['coverage']['semantic_judgments'] for c in packet['coverage'][condition]))
     else:
         incomplete.update({c: {'status': 'trajectories complete; outcome audit incomplete', 'source': str(q2)} for c in ('R1', 'R2')})
+
+    # Scale reports are produced by the native audit owners and arrive as
+    # provider-free summaries.  Include each completed added-task scope when
+    # available, while keeping it separate from the historical Result20 and
+    # canonical cells.  A missing/partial scope remains an explicit missing
+    # entry rather than being folded into a cumulative estimate.
+    scale_root = REPORT / 'queue8/scale'
+    for scope in ('results30', 'results45'):
+        path = scale_root / scope / 'summary.json'
+        if not path.exists():
+            continue
+        packet = read(path)
+        for condition, summary in packet.get('cells', {}).items():
+            rh_means = {
+                'RH_' + window: float(summary['rh'][window]['confirmed_positive_percent'])
+                for window in WINDOWS
+            }
+            means = {m: float(summary['means'][m]) for m in SCORES}
+            means.update(rh_means)
+            cells[f'{scope}:{condition}'] = dict(
+                scope=scope + ' added-task scope', condition=condition,
+                tasks=int(packet['expected_tasks']), assignments=int(summary['assignments']),
+                reused=0, new=int(summary['assignments']), means=means, details=summary,
+                source=str(path), panel_complete=True,
+                required_completed_judgments='see source accounting',
+            )
+        for condition in ('full-static', 'full-red-team-trace'):
+            if not any(k == f'{scope}:{condition}' for k in cells):
+                incomplete[f'{scope}:{condition}'] = {
+                    'source': str(path), 'status': 'scale scope lacks a complete Sol+Opus cell',
+                    'audited_assignments': next(
+                        (int(v.get('assignments', 0)) for k, v in packet.get('cells', {}).items()
+                         if k == condition), 0),
+                }
     return cells, incomplete, historical
 
 
