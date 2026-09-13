@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-13T11:23:05-04:00",
+  "observed_at": "2026-09-13T11:26:12-04:00",
   "status": "native_missing_only_recovery_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
@@ -30,7 +30,7 @@
       "job_id": "10424162",
       "name": "pb-r20-semi-score-learned-rest-resume-recovery",
       "output_owner": "existing semi-score-learned-rest Results20 study namespace",
-      "progress": "300 selected; 6 completed valid; 34 failed; 29 running; 231 pending; live solver/evolution activity; shared NFS capacity constrained",
+      "progress": "300 selected; 6 completed valid; 35 failed; 28 running; 231 pending; last successful operation was evolution-generation; shared NFS capacity constrained",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
       "state": "RUNNING"
     },
@@ -46,7 +46,7 @@
       "job_id": "10424271",
       "name": "pb-r20-full-user-learned-recovery",
       "output_owner": "existing Full/User Results20 study namespace",
-      "progress": "360 selected; 0 completed; 31 running; 329 pending; native revision work active; shared NFS capacity constrained",
+      "progress": "360 selected; 0 completed; 32 running; 328 pending; no failures recorded; shared NFS capacity constrained",
       "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
       "state": "RUNNING"
     },
@@ -125,8 +125,8 @@
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
     "results20_valid_assignments": 306,
-    "results20_failed_assignments": 34,
-    "results20_not_launched_assignments": 560,
+    "results20_failed_assignments": 35,
+    "results20_not_launched_assignments": 559,
     "shared_static_audit": {
       "sol_rubric": "900/900",
       "opus_rubric": "900/900",
@@ -138,7 +138,7 @@
     "latest_missing_only_failed_attempts": 135,
     "latest_missing_only_valid_completions": 6,
     "results20_inflight_assignments": 60,
-    "results20_pending_assignments": 560,
+    "results20_pending_assignments": 559,
     "historical_results20_failed_attempts_before_current_resume": 77
   },
   "conditions": [
@@ -838,8 +838,8 @@
     },
     "job_10424162": {
       "state": "RUNNING",
-      "assignments": "6 completed valid; 34 failed; 29 running; 231 pending of 300 selected",
-      "current_failure": "OSError/InterruptedError failures are present; latest evolution-generation activity continues; no auth/http error",
+      "assignments": "6 completed valid; 35 failed; 28 running; 231 pending of 300 selected",
+      "current_failure": "OSError/InterruptedError failures are present; no auth/http error; last recorded successful unit is evolution-generation",
       "native_missing_only": true,
       "valid_assignments_rerun": 0,
       "storage_observation": "active node reports /data/user_data/aydanh at 100% with about 29 MB free and inode use 100%; no cleanup performed"
@@ -853,7 +853,7 @@
     "job_10424271": {
       "state": "RUNNING",
       "native_missing_only": true,
-      "progress": "360 selected; 0 completed; 31 running; 329 pending; revision work active",
+      "progress": "360 selected; 0 completed; 32 running; 328 pending; no failure recorded",
       "dependency": "none at Slurm level; native pretreatment completed and selected revision scope is active",
       "source_namespace": "score-only-offline pretreatment source exists and is completed_scope",
       "storage_observation": "active node reports /data/user_data/aydanh at 100% with about 29 MB free and inode use 100%; no cleanup performed"
@@ -875,10 +875,10 @@
     },
     "no_completed_assignments_rerun": true,
     "no_scientific_settings_changed": true,
-    "recorded_at": "2026-09-13T11:23:05-04:00"
+    "recorded_at": "2026-09-13T11:26:12-04:00"
   },
   "storage_observation": {
-    "observed_at": "2026-09-13T11:23:05-04:00",
+    "observed_at": "2026-09-13T11:26:12-04:00",
     "nodes": [
       "babel-m9-28",
       "babel-n5-20"

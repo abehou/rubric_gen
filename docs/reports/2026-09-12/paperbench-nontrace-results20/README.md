@@ -631,3 +631,15 @@ At this checkpoint, the active scientific owners are **10424162** (learned-rest 
 ## Storage capacity checkpoint — 2026-09-13T11:20:16-04:00
 
 Read-only checks on the two active PaperBench nodes found the shared `/data/user_data/aydanh` NFS filesystem at **100% space use** with approximately 29–32 MB free and inode use at **100%** with approximately 57K free inodes. The learned-rest owner 10424162 has recorded `OSError`/`InterruptedError` operation failures while still producing evolution/solver activity; 10424271 is also active. No output was deleted, no job was cancelled, and no new provider owner was submitted. Further native work may require storage capacity to be restored; the active owners remain preserved for safe resume.
+
+
+## Morning-safe handoff checkpoint — 2026-09-13T11:26:12-04:00
+
+At the final read-only checkpoint, Results20 accounting is **306 valid, 35 failed, 60 running, and 559 pending/not yet valid of 960**. Existing terminal cells remain Full-static and User-simulator-static only.
+
+- **10424162** remains the same native missing-only learned-rest owner: 6 valid, 35 failed, 28 running, 231 pending of 300 selected. It still records evolution activity but has `OSError`/`InterruptedError` failures and no authentication or HTTP error.
+- **10424271** remains the same Full/User learned Results20 owner: 32 running and 328 pending of 360 selected, with no recorded failure.
+- **10424672** remains the only fixed Semi/Score audit replacement and is pending `QOSMaxCpuPerUserLimit`; 10424681 and 10424684 remain afterok dependents.
+- Both active nodes report `/data/user_data/aydanh` at 100% space and inode use, with only about 29–32 MB and 57K inodes available. No cleanup, cancellation, new owner, provider setting, scientific setting, or CPU-profile change was made.
+
+The exact native resume commands remain in `current-status.json`; do not submit them while their corresponding owner is still active. The immediate external blocker is shared NFS capacity.
