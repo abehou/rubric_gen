@@ -615,3 +615,14 @@ Aggregate Results20 accounting is now **302 valid, 21 failed, 32 running, and 60
 The Full/User dev3 validator `10424154` passed all six conditions at 9/9 native-valid, so the only Results20 replacement owner is `10424271`, queued after that successful validator. The native Full/User dev3 audit replacement `10424419` is queued behind the Score-only-offline audit replacement `10424410`; both are afterok chained behind the active fixed Semi/Score audit `10424163`, preserving one global audit owner.
 
 The active learned-rest recovery `10424162` has reached **6 completed valid, 21 failed, 32 running, and 241 pending** of 300 selected assignments. It continues to emit successful solver work and has no current failure event. Results20 aggregate accounting is **306 valid, 21 failed, 32 running, and 601 pending/not yet valid** of 960; Full-static and User-simulator-static remain the only terminal conditions.
+
+
+## Current recovery checkpoint — 2026-09-13T11:08:44-04:00
+
+Read-only accounting confirmed that audit owner **10424163** terminated **FAILED (exit 1:0)** at 10:57:31 after its `rubric_score` stage attempted all 1,800 rubric units. The five direct stages completed with exit 0; the native runtime preserved their valid outputs, and no completed assignment or judgment was rerun. The failure surfaced as `RuntimeError: revision rubric score non-panel job failed` after the provider tail; the persisted runtime did not report an authentication error or an HTTP status.
+
+The old downstream owner **10424410** is now `DependencyNeverSatisfied` because it depended on 10424163. I submitted the same-namespace native missing-only fixed-audit replacement **10424672**, then submitted **10424681** for Score-only-offline afterok 10424672 and **10424684** for Full/User dev3 audit afterok 10424681. These are queued replacements, not competing active audit owners; the old failed chains remain as scheduler evidence.
+
+Full/User Results20 owner **10424271** acquired its 32-CPU allocation but is still in native pretreatment: the live snapshot is 960 pending/dependency-blocked records, with zero provider reservations and zero assignment writes. Its configured pretreatment source exists and is completed on NFS; this source-preparation state is being monitored before any owner replacement decision.
+
+At this checkpoint, the active scientific owners are **10424162** (learned-rest revision recovery, 6 valid / 21 failed / 32 running / 241 pending) and **10424271** (Full/User learned Results20 pretreatment). The only queued global audit owner is **10424672**; CPU profiles remain unchanged at 32 CPUs, and no trace/BioMNIBench work was touched.
