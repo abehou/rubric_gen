@@ -1,6 +1,6 @@
 # Interim checkpoint: completed evidence and unfinished work
 
-Observed 2026-09-12T12:27:53.864766-04:00; mission elapsed3.00h; this analysis made0 provider calls.
+Observed 2026-09-12T15:48:49.887884-04:00; mission elapsed6.34h; this analysis made0 provider calls.
 
 Only complete intended cells appear below. Historical stress, canonical development and Result20 have different scopes. Reuse/new counts refer to this mission, not their original execution.
 
@@ -15,6 +15,10 @@ Only complete intended cells appear below. Historical stress, canonical developm
 | stress:v3 | 3 | 9 | 9/0 | 96.00 | 96.00 | 89.56 | 90.22 | 77.39 | 6.44 | -0.67 | 12.83 | 18.61 | 0.00 | 0.00 | 0.00 | 0.00 |
 | stress:v3.1 | 3 | 9 | 9/0 | 96.00 | 96.00 | 83.06 | 82.02 | 74.67 | 12.94 | 1.04 | 7.35 | 21.33 | 5.56 | 11.11 | 0.00 | 0.00 |
 | stress:v3.2 | 3 | 9 | 9/0 | 92.89 | 92.89 | 86.56 | 83.24 | 71.28 | 6.33 | 3.31 | 11.96 | 21.61 | 0.00 | 0.00 | 0.00 | 0.00 |
+| canonical:semi-fixed | 3 | 9 | 0/9 | 89.44 | 89.44 | 76.00 | 76.48 | 78.83 | 13.44 | -0.48 | -2.35 | 10.61 | 11.11 | 0.00 | 0.00 | 0.00 |
+| canonical:score_only-fixed | 3 | 9 | 0/9 | 78.78 | 78.78 | 68.39 | 69.52 | 79.83 | 10.39 | -1.13 | -10.31 | -1.06 | 0.00 | 0.00 | 0.00 | 0.00 |
+| canonical:R1 | 3 | 9 | 0/9 | 93.78 | 92.67 | 84.89 | 83.72 | 69.94 | 8.89 | 1.17 | 13.78 | 23.83 | 33.33 | 11.11 | 5.56 | 0.00 |
+| canonical:R2 | 3 | 9 | 0/9 | 96.33 | 96.33 | 83.39 | 89.13 | 71.56 | 12.94 | -5.74 | 17.57 | 24.78 | 33.33 | 16.67 | 5.56 | 11.11 |
 
 RH means are confirmed-positive percentages over the full auditor denominator. Native panel unions, abstentions and identification bounds remain separate in [synthesis.json](synthesis.json) and the linked original reports. They are not confidence intervals.
 
@@ -50,6 +54,14 @@ Spearman and Kendall tau-b compare this severity ordering with continuous equal-
 | result20:static_user | full_trajectory | 60 | 0.310 | 0.232 |
 | canonical:user_simulator-trace | final_artifact | 9 | 0.165 | 0.132 |
 | canonical:user_simulator-trace | full_trajectory | 9 | 0.035 | -0.064 |
+| canonical:semi-fixed | final_artifact | 9 | 0.379 | 0.327 |
+| canonical:semi-fixed | full_trajectory | 9 | 0.268 | 0.230 |
+| canonical:score_only-fixed | final_artifact | 9 | 0.348 | 0.302 |
+| canonical:score_only-fixed | full_trajectory | 9 | -0.043 | -0.038 |
+| canonical:R1 | final_artifact | 9 | 0.494 | 0.390 |
+| canonical:R1 | full_trajectory | 9 | 0.688 | 0.575 |
+| canonical:R2 | final_artifact | 9 | 0.717 | 0.586 |
+| canonical:R2 | full_trajectory | 9 | 0.571 | 0.345 |
 
 [All component correlations, tie-aware overlaps and RH-status groups](artifact-gap-rh-ranking-summary.json) · [artifact rows](artifact-gap-rh-ranking.csv). No condition pooling, weighting search or provider calls. These descriptive associations neither substitute for RH nor establish causal mediation.
 
@@ -57,14 +69,10 @@ Spearman and Kendall tau-b compare this severity ordering with continuous equal-
 
 - full-fixed: no complete audited cell.
 - full-trace: no complete audited cell.
-- semi-fixed: no complete audited cell.
 - semi-trace: no complete audited cell.
-- score_only-fixed: no complete audited cell.
 - score_only-trace: no complete audited cell.
 - user_simulator-fixed: no complete audited cell.
 - score_only-trace-no-appendix: no complete audited cell.
-- R1: trajectories complete; outcome audit incomplete.
-- R2: trajectories complete; outcome audit incomplete.
 
 See the [mission report](../README.md) and [persisted status](../../../../../../experiments/biomnibench-v21-to45/status.json) for source ownership, failures and safe continuation. This is not a completed30/45-task result.
 
@@ -72,7 +80,7 @@ See the [mission report](../README.md) and [persisted status](../../../../../../
 
 [Assignment counts](assignment-progress.csv) · [Slurm accounting](job-accounting.csv) · [exact job commands, sources and observed states](observed-status.json). Unobserved accounting is not treated as completion.
 
-- results30: 24/30 starting blocks sealed. These are inputs, not treatment-assignment outcomes.
-- results45-added15: 7/45 starting blocks sealed. These are inputs, not treatment-assignment outcomes.
+- results30: 30/30 starting blocks sealed. These are inputs, not treatment-assignment outcomes.
+- results45-added15: 43/45 starting blocks sealed. These are inputs, not treatment-assignment outcomes.
 
-Healthy jobs retain their current owners. No new speculative recipe, scale dispatch, model retry or Git operation is performed by this checkpoint script. Missing outcome coverage prevents a full-cell estimate; it does not erase completed records.
+Healthy jobs retain their current owners. No new speculative recipe, scale dispatch, model retry or Git operation is performed by this checkpoint script. The exact q7 seed/archive and obsolete-cache recovery finalizers are queued only after read-only inspections; they are one-CPU, allowlisted operational stages and do not alter scientific records. Missing outcome coverage prevents a full-cell estimate; it does not erase completed records.
