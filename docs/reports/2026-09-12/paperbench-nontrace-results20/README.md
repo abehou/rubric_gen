@@ -626,3 +626,8 @@ The old downstream owner **10424410** is now `DependencyNeverSatisfied` because 
 Full/User Results20 owner **10424271** acquired its 32-CPU allocation but is still in native pretreatment: the live snapshot is 960 pending/dependency-blocked records, with zero provider reservations and zero assignment writes. Its configured pretreatment source exists and is completed on NFS; this source-preparation state is being monitored before any owner replacement decision.
 
 At this checkpoint, the active scientific owners are **10424162** (learned-rest revision recovery, 6 valid / 21 failed / 32 running / 241 pending) and **10424271** (Full/User learned Results20 pretreatment). The only queued global audit owner is **10424672**; CPU profiles remain unchanged at 32 CPUs, and no trace/BioMNIBench work was touched.
+
+
+## Storage capacity checkpoint — 2026-09-13T11:20:16-04:00
+
+Read-only checks on the two active PaperBench nodes found the shared `/data/user_data/aydanh` NFS filesystem at **100% space use** with approximately 29–32 MB free and inode use at **100%** with approximately 57K free inodes. The learned-rest owner 10424162 has recorded `OSError`/`InterruptedError` operation failures while still producing evolution/solver activity; 10424271 is also active. No output was deleted, no job was cancelled, and no new provider owner was submitted. Further native work may require storage capacity to be restored; the active owners remain preserved for safe resume.

@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-13T11:14:43-04:00",
+  "observed_at": "2026-09-13T11:20:16-04:00",
   "status": "native_missing_only_recovery_active",
   "mission": "PaperBench non-trace Results20",
   "scope": {
@@ -30,7 +30,7 @@
       "job_id": "10424162",
       "name": "pb-r20-semi-score-learned-rest-resume-recovery",
       "output_owner": "existing semi-score-learned-rest Results20 study namespace",
-      "progress": "300 selected; 6 completed valid; 31 failed; 32 running; 231 pending; live solver/evolution activity",
+      "progress": "300 selected; 6 completed valid; 32 failed; 31 running; 231 pending; live solver/evolution activity; NFS capacity constrained",
       "source": "fdd5403abb16e412c003aa7db79d3eaf8cd4b552",
       "state": "RUNNING"
     },
@@ -46,7 +46,7 @@
       "job_id": "10424271",
       "name": "pb-r20-full-user-learned-recovery",
       "output_owner": "existing Full/User Results20 study namespace",
-      "progress": "360 selected; 0 completed; 11 running; 349 pending; native revision work active; no failures recorded",
+      "progress": "360 selected; 0 completed; 19 running; 341 pending; native revision work active; NFS capacity constrained",
       "source": "411ea949ae9818085151484ce17a9de3c5b8ba41",
       "state": "RUNNING"
     },
@@ -125,8 +125,8 @@
     "dev3_failed_assignments": 54,
     "results20_expected_assignments": 960,
     "results20_valid_assignments": 306,
-    "results20_failed_assignments": 31,
-    "results20_not_launched_assignments": 580,
+    "results20_failed_assignments": 32,
+    "results20_not_launched_assignments": 572,
     "shared_static_audit": {
       "sol_rubric": "900/900",
       "opus_rubric": "900/900",
@@ -137,8 +137,8 @@
     "reused_results20_assignments": 120,
     "latest_missing_only_failed_attempts": 135,
     "latest_missing_only_valid_completions": 6,
-    "results20_inflight_assignments": 43,
-    "results20_pending_assignments": 580,
+    "results20_inflight_assignments": 50,
+    "results20_pending_assignments": 572,
     "historical_results20_failed_attempts_before_current_resume": 77
   },
   "conditions": [
@@ -838,10 +838,11 @@
     },
     "job_10424162": {
       "state": "RUNNING",
-      "assignments": "6 completed valid; 31 failed; 32 running; 231 pending of 300 selected",
-      "current_failure": "historical APITimeoutError only; latest evolution-generation and solver-turn operations continue",
+      "assignments": "6 completed valid; 32 failed; 31 running; 231 pending of 300 selected",
+      "current_failure": "OSError/InterruptedError failures are present; latest evolution-generation and solver-turn operations continue; no auth/http error",
       "native_missing_only": true,
-      "valid_assignments_rerun": 0
+      "valid_assignments_rerun": 0,
+      "storage_observation": "active node reports /data/user_data/aydanh at 100% with about 29 MB free and inode use 100%; no cleanup performed"
     },
     "job_10424163": {
       "state": "FAILED",
@@ -852,9 +853,10 @@
     "job_10424271": {
       "state": "RUNNING",
       "native_missing_only": true,
-      "progress": "360 selected; 0 completed; 11 running; 349 pending; revision work active",
+      "progress": "360 selected; 0 completed; 19 running; 341 pending; revision work active",
       "dependency": "none at Slurm level; native pretreatment completed and selected revision scope is active",
-      "source_namespace": "score-only-offline pretreatment source exists and is completed_scope"
+      "source_namespace": "score-only-offline pretreatment source exists and is completed_scope",
+      "storage_observation": "active node reports /data/user_data/aydanh at 100% with about 29 MB free and inode use 100%; no cleanup performed"
     },
     "job_10424672": {
       "state": "PENDING",
@@ -873,6 +875,18 @@
     },
     "no_completed_assignments_rerun": true,
     "no_scientific_settings_changed": true,
-    "recorded_at": "2026-09-13T11:14:43-04:00"
+    "recorded_at": "2026-09-13T11:20:16-04:00"
+  },
+  "storage_observation": {
+    "observed_at": "2026-09-13T11:20:16-04:00",
+    "nodes": [
+      "babel-m9-28",
+      "babel-n5-20"
+    ],
+    "filesystem": "/data/user_data/aydanh",
+    "capacity": "100% used; approximately 29-32 MB available",
+    "inodes": "100% used; approximately 57K free",
+    "impact": "new NFS writes may fail; 10424162 has OSError failures; preserve running owners and do not delete outputs",
+    "action": "read-only diagnosis recorded; no cleanup, cancellation, or new provider owner submitted"
   }
 }
