@@ -1,0 +1,81 @@
+{
+  "as_of": "2026-09-13T21:40:51-04:00",
+  "scope": {
+    "paperbench_scientific_execution": "stopped",
+    "red_team_trace": "untouched",
+    "biomnibench": "untouched",
+    "cpu_resource_audit": "untouched"
+  },
+  "terminal_static_baseline": {
+    "conditions": ["full-static", "user-simulator-static"],
+    "revisions": "120/120",
+    "sol": "900/900",
+    "opus": "900/900",
+    "detector_and_holistic": "complete",
+    "full_static": {
+      "W": 97.8003,
+      "S": 63.2648,
+      "H": 62.3260,
+      "A": 33.9417,
+      "mean_S_minus_H": 0.9389
+    },
+    "user_simulator_static": {
+      "W": 87.1752,
+      "S": 63.4416,
+      "H": 62.9950,
+      "A": 39.2583,
+      "mean_S_minus_H": 0.4466
+    },
+    "report_md": "docs/reports/2026-09-12/paperbench-static/selected-neutral-heldout-rigorous-results20-final.md",
+    "report_json": "docs/reports/2026-09-12/paperbench-static/selected-neutral-heldout-rigorous-results20-final.json"
+  },
+  "nontrace_matrix": {
+    "total_conditions": 16,
+    "terminal_conditions": 2,
+    "status": "intentionally_stopped",
+    "note": "The other 14 cells have partial or queued historical outputs and are not claimed as terminal results."
+  },
+  "paperbench_jobs": {
+    "remaining_in_squeue": 0,
+    "canceled": [
+      {"job_id": "10424672", "reason": "stale audit/finalization owner; 120/120 assignments present"},
+      {"job_id": "10424681", "reason": "held score-only-offline audit owner"},
+      {"job_id": "10424684", "reason": "held Full/User dev3 audit owner"},
+      {"job_id": "10422051", "reason": "superseded score-only-offline audit chain"},
+      {"job_id": "10424410", "reason": "superseded score-only-offline recovery chain"},
+      {"job_id": "10422649", "reason": "failed-prerequisite Full/User dev3 audit chain"},
+      {"job_id": "10424419", "reason": "downstream stale dev3 audit chain"},
+      {"job_id": "10422655", "reason": "failed-prerequisite Full/User Results20 producer"}
+    ],
+    "no_valid_work_rerun": true,
+    "no_paperbench_provider_work_remaining": true
+  },
+  "cleanup": {
+    "job_id": "10432176",
+    "deleted_roots": [
+      "runs/paperbench-count-safe-audit-validation-v4-20260910",
+      "runs/paperbench-count-safe-audit-validation-v5-20260910",
+      "runs/paperbench-keyed-audit-validation-v1-20260910",
+      "runs/paperbench-keyed-audit-validation-v2-20260910",
+      "runs/paperbench-keyed-audit-validation-v3-20260910"
+    ],
+    "reclaimed_bytes": 6364993,
+    "reclaimed_files": 77,
+    "before": {"available_bytes_reported": "18M", "free_inodes": 36576, "use_percent": 100},
+    "after": {"available_bytes_reported": "24M", "free_inodes": 49108, "use_percent": 100},
+    "scientific_outputs_deleted": false,
+    "canonical_inputs_and_failure_evidence_preserved": true,
+    "large_ambiguous_roots_deleted": false
+  },
+  "repository": {
+    "base": "origin/aydan-red-team",
+    "base_commit": "7f05584190e29c24f161a18ad0d1eba845f8520a",
+    "handoff_files": [
+      "docs/reports/2026-09-13/paperbench-stop-handoff.md",
+      "docs/reports/2026-09-13/paperbench-stop-handoff.json"
+    ],
+    "cpu_patch_included": false,
+    "trace_or_biomnibench_changes_included": false
+  },
+  "next_owner": "red-team-trace"
+}
