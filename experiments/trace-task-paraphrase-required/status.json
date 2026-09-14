@@ -1,0 +1,34 @@
+{
+  "method": "attack_defense_v2.1_task_paraphrase_required",
+  "parent": "attack_defense_v2.1_task_paraphrase_grounded",
+  "state": "blocked_before_provider_execution",
+  "scientific_calls": 0,
+  "scope": {
+    "tasks": ["da-3-4", "da-11-1", "da-18-1"],
+    "replicates": 3,
+    "feedback_arms": ["full", "user_simulator"],
+    "expected_assignments": 18
+  },
+  "implementation_commit": "a89a60f",
+  "test_job": {"job_id": "10432879", "state": "COMPLETED", "passed": 53, "failed": 0},
+  "route_smoke": {
+    "job_id": "10432888",
+    "state": "FAILED",
+    "worker_access": "blocked",
+    "error_type": "CodexProviderHealthError",
+    "underlying": "TransportClosedError: Codex app-server closed stdout during startup"
+  },
+  "storage_check": {
+    "job_id": "10432884",
+    "state": "COMPLETED",
+    "filesystem": "nas8:/data/user_data/aydanh",
+    "free_bytes_reported": "25M",
+    "bytes_use_percent": 100,
+    "free_inodes_reported": 49491,
+    "inode_use_percent": 100
+  },
+  "output_root": "/data/user_data/aydanh/rubric_gen/runs/trace-task-paraphrase-required-20260913/canonical",
+  "resume_command": "sbatch experiments/trace-task-paraphrase-required/run_candidate.sbatch",
+  "resume_prerequisites": ["fresh same-route worker smoke succeeds", "compute-node storage has safe free bytes and inodes"],
+  "historical_outputs_rewritten": false
+}

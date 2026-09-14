@@ -76,10 +76,36 @@ supported root cause. The stress records also contain invalid retained
 computations, target-like private guidance and evaluator/context disagreement,
 so the selected-rubric pathway is only one mechanism among several.
 
+## Structural follow-up selected after the architecture audit
+
+The provider-free audit found a concrete safe-omission loophole: a learned
+criterion could be rendered as claim-conditional and receive an `A`/
+`not_applicable` zero-penalty application when the solver simply omitted an
+explicitly requested analysis.  This is why one bounded descendant was added;
+it is not a new learner or a change to admission mathematics.
+
+`attack_defense_v2.1_task_paraphrase_required` is the sole selected follow-up.
+It retains the selected/development rubric grounding and adds one closed
+`obligation_mode` (`claim_conditional` or `task_required`) to diagnosis and
+compilation.  Only an obligation explicit in the task or immutable base rubric
+may use `task_required`; its renderer makes omission a failure and its
+application contract rejects `not_applicable`.  Claim-conditional criteria
+delegate to the pinned renderer.  The candidate implementation and tests are
+`b0f0365` and `a89a60f`; the full focused suite passed 53/53 in Slurm job
+`10432879` (3.43 s, 101,112 KB MaxRSS).  New canonical configs and the native
+run entrypoint are in
+[`experiments/trace-task-paraphrase-required/`](../../../../experiments/trace-task-paraphrase-required/).
+
+The task-required candidate has not made a scientific provider call.  Its
+canonical scope is exactly 18 assignments: three tasks (`da-3-4`, `da-11-1`,
+`da-18-1`), three replicates, Full and User trace.  It reuses the compatible
+v2.1 seed/paraphrase/g1 inputs and writes only to the new candidate root;
+historical v2.1 and the earlier grounded candidate remain unchanged.
+
 ## Smallest candidate and implementation status
 
 The evidence supports one opt-in RTT-only candidate:
-`attack_defense_v2.1_task_paraphrase_grounded`.
+`attack_defense_v2.1_task_paraphrase_required`.
 
 Its single scientific difference is to pass both the selected/original base
 rubric and the development base-rubric paraphrase into the existing diagnosis,
@@ -90,20 +116,18 @@ locator repair, selection order, admission mathematics, penalties, schedule,
 feedback, solver, models, settings, and heldout evaluation remain unchanged.
 Outcome heldout rubrics are never supplied.
 
-The version-scoped implementation is committed in `b66035b` (candidate dispatch,
-prompt/context modules and configuration) and the focused fixture correction is
-in `c0aa4a3`. The legacy v2.1 stage and request identity remain unchanged. The
-focused candidate suite passed 6/6 in job `10431812`; the earlier broad suite
-reached 46 passing tests and one fixture-shape failure, which is corrected in
-`c0aa4a3` without changing scientific behavior. No historical receipt was
-rewritten.
+The prior task/paraphrase-grounded implementation remains committed in
+`b66035b`/`c0aa4a3`; the new obligation-mode descendant is committed in
+`b0f0365` with the assertion correction in `a89a60f`.  The legacy v2.1 stage
+and request identity remain unchanged.  No historical receipt was rewritten.
 
-The fresh route smoke `10431507` did not reach a model turn: the reviewed
-Codex/Luna app-server exited its stdout during startup and raised
-`CodexProviderHealthError` wrapping `TransportClosedError`. This is a current
-runtime-route failure, distinct from the old account-limit receipt. A scientific
-candidate run must wait for a successful same-route smoke and safe output
-storage; no Anthropic audit/score calls have been spent.
+The fresh same-route smoke `10432888` also did not reach a model turn.  Its
+record is `CodexProviderHealthError`; the prior retained route receipt gives the
+underlying `TransportClosedError` (Codex app-server closed stdout during
+startup).  This is a current worker-route failure, distinct from the old
+account-limit receipt.  A scientific candidate run must wait for a successful
+same-route smoke and safe output storage; no Anthropic audit/score calls have
+been spent.
 
 When the route and storage are healthy, the native order is: run the canonical
 three-task/three-replicate Full and User development block (18 fresh candidate
@@ -133,12 +157,21 @@ many trace and scale entries shown as `JobHeldUser`, `JobHeldAdmin`, or
 running CPUs and make no provider calls. They remain intact so their provenance
 and native resume relationships are not lost.
 
-The scan `10431655` recorded `nas8:/data/user_data/aydanh` at 2.0T used, 15M
-free, and 100% inodes. This is shared-mount headroom, not a personal 500GB quota
-balance; the export does not answer the standard `quota` query. The top-level
-read-only scan `10431744` is being allowed to finish before any narrow,
-owner-checked cache cleanup is considered. Scientific outputs, audit records and
-other owners' files are not candidates for deletion.
+The latest read-only check `10432884` records
+`nas8:/data/user_data/aydanh` at 2.0T used, 25M free, and 100% inodes.  This is
+shared-mount headroom, not a personal 500GB quota balance; the export does not
+answer the standard `quota` query.  The previously allowlisted obsolete runtime
+cache was already removed by job `10423023`; the active environment was
+preserved.  No further safe deletion target is established, and scientific
+outputs, audit records and other owners' files are not candidates for deletion.
+
+Because both provider startup and durable output storage are currently blocked,
+the canonical candidate job is intentionally **not submitted**.  The exact
+continuation is `sbatch experiments/trace-task-paraphrase-required/run_candidate.sbatch`
+from this worktree after a fresh route smoke succeeds and a compute-node check
+shows enough bytes/inodes for the 18-assignment root.  Then validate
+`completion.json` before dispatching only the missing Sol+Opus audit judgments;
+there is no permission to jump to Result20 or to regenerate controls.
 
 This record is a concrete scientific limitation, not a successful candidate.
 Expectations remain **partially met**: v2.1 Full Results20 is a supported
