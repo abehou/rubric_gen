@@ -23,6 +23,12 @@ from rubric_gen.runtime.capacity import policy
 from rubric_gen.submission_revision.commands import _run_detect_owned
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.execution_scope import terminal_records
+from rubric_gen.submission_revision.source_resolution import resolve_study_sources
+from rubric_gen.submission_revision.evaluation.direct import DirectDetectionConfig, prepare_direct_detection
+from rubric_gen.submission_revision.detection_windows import RevisionDetectionWindow
+from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
+from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner, RubricFreeScoreRunner
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -80,17 +86,56 @@ def run_task(task: str) -> dict[str, object]:
     }
 
 
+def preflight_task(task: str) -> dict[str, object]:
+    """Load and prepare every native audit stage without executing a call."""
+    config_path = ROOT / "experiments/trace-task-paraphrase-required/canonical" / f"{task}.yaml"
+    view = PROVISIONAL / "views" / task
+    output = PROVISIONAL / "audit" / task
+    exp = load_experiment(config_path)
+    exp.dag["detect"]["output_dir"] = str(output)
+    sources = resolve_study_sources(view, exp)
+    common = dict(experiment=exp, study_dir=view,
+                  paraphrase_dir=Path(str(exp.dag["paraphrase"]["output_dir"])),
+                  max_concurrency=8, resume=True)
+    rubric_config = EvaluationConfig(output_dir=output / "rubric_score", **common)
+    free_config = EvaluationConfig(output_dir=output, **common)
+    targets = load_evaluation_targets(rubric_config, sources)
+    direct = [prepare_direct_detection(DirectDetectionConfig(
+        experiment=exp, study_dir=view, output_dir=output / f"direct_{window.value}",
+        max_concurrency=8, resume=True, window=window), sources, {})
+        for window in RevisionDetectionWindow]
+    rubric_runner = RubricScoreRunner(rubric_config, targets)
+    free_runner = RubricFreeScoreRunner(free_config, targets)
+    rubric_runner.preflight()
+    free_runner.preflight()
+    reused = [rubric_runner.prepare_resume(), free_runner.prepare_resume()]
+    reused.extend(runner.prepare_resume() for runner in direct)
+    return {"task": task, "assignments": len(targets), "rubric_reused": reused[0],
+            "free_reused": reused[1], "direct_reused": reused[2:],
+            "output": str(output)}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", choices=TASKS, action="append")
+    parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("provisional audit must run on Slurm")
     runtime = policy()
     if runtime["aggregate_concurrency"] != 60 or runtime["audit_studies"] != 1:
         raise RuntimeError(f"unexpected shared capacity policy: {runtime}")
-    configure_credentials()
     tasks = tuple(args.task or TASKS)
+    if args.preflight_only:
+        rows = [preflight_task(task) for task in tasks]
+        receipt = {"kind": "provisional-16-assignment-audit-preflight",
+                   "candidate": "attack_defense_v2.1_task_paraphrase_required",
+                   "job": os.environ["SLURM_JOB_ID"], "tasks": rows,
+                   "provider_calls": 0}
+        write_json_atomic(PROVISIONAL / "audit-preflight.json", receipt)
+        print(json.dumps({"stage": "provisional_audit_preflight_complete", "tasks": list(tasks), "assignments": sum(r["assignments"] for r in rows)}), flush=True)
+        return
+    configure_credentials()
     receipt = {
         "kind": "provisional-16-assignment-sol-opus-audit",
         "candidate": "attack_defense_v2.1_task_paraphrase_required",
