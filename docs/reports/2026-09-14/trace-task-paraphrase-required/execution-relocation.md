@@ -194,3 +194,24 @@ exact da-11-1 seed trees (including sealed elicitation and judgment records),
 and those rep-001/rep-003 bytes are not yet available on a writable persistent
 mirror. The study remains 16/18 complete; no scientific configuration, request
 identity, or completed output changed.
+
+## 2026-09-14 18:21 EDT — Current resume boundary
+
+The live Slurm check has no running candidate or seed-mirror job. Historical
+runner `10438266` failed before any assignment, `10438357` was preempted/cancelled
+after preserving 16 completed records, and recovery attempts `10439774` and
+`10440057` were cancelled while the NAS8 source was unreadable. Exact mirror
+`10440592` failed during NAS8 enumeration; pending mirror submissions `10443454`
+and `10443483` were cancelled before starting. None of these operations made a
+new provider/model call.
+
+The authoritative candidate study ledger remains 16/18: all six da-3-4 and
+da-18-1 assignments are completed; da-11-1 has four completed assignments and
+two partial Full records (`rep-001` and `rep-002`). NAS1 currently reports about
+15 GiB free and 4% inode use, and the candidate tree is about 1.5 GiB. The
+NAS1 mirror contains task/paraphrase bytes but `frozen-input-mirror/seed/da-11-1`
+is empty; only rep-002 seed metadata was recovered. Native resume requires the
+exact sealed seed contents (submission, elicitation attempt, and initial
+judgment hashes), so no safe submission is possible until those bytes are
+placed at a persistent NAS1 path. Reusing an older experiment's seed or
+rewriting a manifest would change the frozen input identity and is prohibited.
