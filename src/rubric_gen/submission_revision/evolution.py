@@ -131,6 +131,11 @@ def rubric_generation_implementation_sha256(red_team_trace_version: str | None =
             paths += (package_root / 'task_paraphrase_grounded.py',
                       package_root / 'task_paraphrase_prompts.py',
                       package_root / 'task_paraphrase_stage.py')
+        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required':
+            paths += (package_root / 'task_paraphrase_required.py',
+                      package_root / 'task_paraphrase_required_prompts.py',
+                      package_root / 'task_paraphrase_required_schema.py',
+                      package_root / 'task_paraphrase_required_stage.py')
     digest = hashlib.sha256()
     for path in paths:
         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))

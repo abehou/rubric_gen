@@ -1,0 +1,99 @@
+"""Provider-free checks for the task-required RTT candidate."""
+
+import json
+from types import SimpleNamespace
+
+import pytest
+
+from rubric_gen.submission_revision import trace_defense_v2_prompts as legacy_prompts
+from rubric_gen.submission_revision import task_paraphrase_required_prompts as prompts
+from rubric_gen.submission_revision import task_paraphrase_required_schema as schema
+from rubric_gen.submission_revision.rubric_generation import ElicitedCriterion
+from rubric_gen.submission_revision.task_paraphrase_required import (
+    TASK_REQUIRED_PREFIX,
+    criterion_obligation_mode,
+    render_task_required_rubric,
+)
+from rubric_gen.submission_revision.task_paraphrase_required_stage import TraceStagesV2
+from rubric_gen.submission_revision.trace_defense_registry import recipe, prompt_hashes
+from test_rubric_evolution import _development_rubric, _rubric
+
+
+VERSION = "attack_defense_v2.1_task_paraphrase_required"
+
+
+def _proposer(version=VERSION):
+    contract = SimpleNamespace(record=lambda: {"model": "stub"})
+    return SimpleNamespace(red_team_trace_version=version, max_retries=0,
+                           proposer_contract=contract)
+
+
+def _criterion(requirement):
+    return ElicitedCriterion.create(
+        title="A task-level public check",
+        requirement=requirement,
+        levels=(("A", 0, "Pass."), ("B", -5, "Failure."), ("C", -10, "Material failure.")),
+        provenance_pair_ids=("pair_" + "1" * 16,), source_generation=2,
+    )
+
+
+def test_new_recipe_and_legacy_unrelated_prompts_are_separate():
+    assert recipe(VERSION).learning_module == "task_paraphrase_required"
+    for name in ("attack", "quality", "rubric_view", "application", "locator_repair", "corrective", "anticipatory"):
+        assert prompt_hashes("attack_defense_v2.1")[name] == prompt_hashes(VERSION)[name]
+    assert prompt_hashes(VERSION)["diagnosis"] != prompt_hashes("attack_defense_v2.1")["diagnosis"]
+    assert prompt_hashes(VERSION)["compilation"] != prompt_hashes("attack_defense_v2.1")["compilation"]
+    assert prompt_hashes(VERSION)["semantic"] != prompt_hashes("attack_defense_v2.1")["semantic"]
+
+
+def test_actual_stage_dispatch_uses_new_prompt_and_contract_identity():
+    validator = schema.ResponseContract("diagnosis", schema.diagnosis_schema((), {
+        "preferred": SimpleNamespace(source_id="preferred", lines=("x",), content_sha256="0" * 64),
+        "rejected": SimpleNamespace(source_id="rejected", lines=("x",), content_sha256="0" * 64),
+    }))
+    request = TraceStagesV2(_proposer(), ".").request("diagnosis", {"task": "x"}, validator)
+    assert request["prompt_version"] == prompts.PROMPT_VERSION
+    assert request["prompt"] == prompts.STAGES["diagnosis"]
+    assert request["prompt"] != legacy_prompts.STAGES["diagnosis"]
+    assert request["response_contract"]["schema_version"] == schema.SCHEMA_VERSION
+
+
+def test_task_required_mode_is_explicit_and_not_applicable_is_not_legal():
+    docs = {"artifact": SimpleNamespace(source_id="artifact", lines=("x",), content_sha256="0" * 64)}
+    contract = schema.ResponseContract("application", schema.application_schema(("A", "B", "C"), docs,
+                                                                                   obligation_mode="task_required"),
+                                       docs, {"artifact": "artifact"}, labels=("A", "B", "C"))
+    response = {"applicability": "not_applicable", "public_refs": [], "check": "none", "level": "A",
+                "reason": "no claim"}
+    with pytest.raises(ValueError):
+        contract.validate(response)
+
+
+def test_task_required_renderer_changes_only_task_required_scope():
+    base = _rubric()
+    claim = _criterion("When a result is claimed, check its displayed support.")
+    task = _criterion(TASK_REQUIRED_PREFIX + "Report the explicitly requested result and support it.")
+    assert criterion_obligation_mode(claim) == "claim_conditional"
+    assert criterion_obligation_mode(task) == "task_required"
+    assert render_task_required_rubric(base, (claim,)) == __import__(
+        "rubric_gen.submission_revision.rubric_generation", fromlist=["render_augmented_rubric"]
+    ).render_augmented_rubric(base, (claim,))
+    rendered = render_task_required_rubric(base, (task,)).content
+    assert "Task-required obligation" in rendered
+    assert "omission of the explicitly required" in rendered
+    assert "not applicable" not in rendered.lower()
+
+
+def test_candidate_guidance_requires_mode_and_preserves_task_specificity():
+    assert "obligation_mode" in prompts.DIAGNOSIS_V2
+    assert "claim_conditional" in prompts.COMPILATION_V2
+    assert "task_required" in prompts.SEMANTIC_V2
+    assert "hidden target" in prompts.TASK_REQUIRED_GUIDANCE
+    assert _development_rubric().content != _rubric().content
+
+
+def test_candidate_request_does_not_introduce_heldout_context():
+    text = json.dumps({"diagnosis": prompts.DIAGNOSIS_V2, "compilation": prompts.COMPILATION_V2,
+                       "semantic": prompts.SEMANTIC_V2}).lower()
+    assert "heldout rubric text" in text
+    assert "outcome-heldout" not in text

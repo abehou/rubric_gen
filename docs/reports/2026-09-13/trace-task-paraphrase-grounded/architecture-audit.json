@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-13",
+  "provider_calls": 0,
+  "candidate": "attack_defense_v2.1_task_paraphrase_grounded",
+  "finding": "safe_omission_loophole",
+  "evidence": {
+    "diagnosis_has_obligation_mode": false,
+    "compilation_has_obligation_mode": false,
+    "renderer_is_claim_conditional_for_all_elicited": true,
+    "application_allows_not_applicable_level_A": true,
+    "not_applicable_requires_public_range": false,
+    "native_admission_uses_application_level": true
+  },
+  "decision": "implement_one_versioned_task_required_rtt_candidate",
+  "unchanged": [
+    "attack", "quality", "rubric_view", "application_math", "pair_selection",
+    "admission_support_margin", "penalties", "schedule", "simulator",
+    "delivery", "solver", "heldout_rubrics", "outcome_evaluation"
+  ],
+  "audit_reuse": {
+    "exact_request_reuse": "active; full canonical request identity",
+    "provider_side_cache_change": "none identified",
+    "new_cache_framework": false
+  }
+}

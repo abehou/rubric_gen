@@ -216,10 +216,16 @@ def project_rubric_feedback(
     """Project selected-reference feedback plus learned-criterion penalties."""
 
     reference = CompleteRubric.from_content(reference_rubric_text)
+    expected_render = render_augmented_rubric
+    if getattr(generation, "red_team_trace_version", None) == "attack_defense_v2.1_task_paraphrase_required":
+        # The opt-in RTT candidate has one additional criterion scope (an
+        # explicitly task-required omission).  Legacy generations continue to
+        # use the pinned renderer byte-for-byte.
+        from .task_paraphrase_required import render_task_required_rubric
+        expected_render = render_task_required_rubric
     if (
         reference.content_sha256 != reference_rubric_sha256
-        or render_augmented_rubric(reference, generation.elicited_criteria)
-        != generation.rubric
+        or expected_render(reference, generation.elicited_criteria) != generation.rubric
     ):
         raise ValueError("feedback reference does not match the active rubric base")
     resolved_policy = FeedbackPolicy(policy)

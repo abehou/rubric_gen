@@ -34,6 +34,12 @@ _V21 = TraceRecipe('v2', 'trace_defense_v2_prompts', 'trace_defense_v21', 'trace
 _V21_TASK_PARAPHRASE = TraceRecipe(
     'v2', 'task_paraphrase_prompts', 'task_paraphrase_grounded',
     'trace_defense_v2_attack', 'attack-record-v2.json')
+# This opt-in descendant adds only the explicit obligation-mode contract to the
+# task/paraphrase-grounded learner.  Legacy v2.1 and the prior candidate remain
+# separate recipes and are never rewritten.
+_V21_TASK_REQUIRED = TraceRecipe(
+    'v2', 'task_paraphrase_required_prompts', 'task_paraphrase_required',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
 # v3 keeps the complete v2.1 attack/learning path.  Its only scientific
 # difference is the User-simulator delivery adapter, selected in controller
 # scoring; the learning recipe remains the pinned v2.1 implementation.
@@ -45,6 +51,7 @@ RECIPES = {
     'attack_defense_v2': _V2,
     'attack_defense_v2.1': _V21,
     'attack_defense_v2.1_task_paraphrase_grounded': _V21_TASK_PARAPHRASE,
+    'attack_defense_v2.1_task_paraphrase_required': _V21_TASK_REQUIRED,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,
