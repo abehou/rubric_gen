@@ -153,3 +153,25 @@ home-backed study ledgers retained the 16 completed assignments and two
 in-progress records throughout the transition, so the runner resumed only the
 unfinished work. This is scheduler recovery, not a scientific or provider
 failure.
+At 12:09--12:45 EDT, provider-free compute-node probes confirmed the practical
+storage distinction. NAS1 `/home/aydanh` has 15 GiB available and 4% inode use;
+the candidate output tree is 1.7 GiB. The exact three da-11-1 seed manifests
+are readable as metadata, but their content reads and recursive copies stall on
+NAS8 (30-second `rsync` I/O timeouts and uninterruptible `dd` reads). A small
+NAS1 mirror successfully copied the hash-verified local task bytes (104 MiB)
+and the da-11-1 paraphrase pool; the frozen seed bytes were not rewritten or
+approximated. A per-job user-namespace bind probe (`10440212`) passed, so an
+exact input mirror can later be mounted at the original NAS8 paths without
+changing scientific request identities once the seed records are obtainable.
+
+The mirror attempts `10440247` (invalid `rsync --contimeout` option), `10440251`
+(NAS8 task-directory timeout), `10440304` (NAS8 seed timeout), and
+`10440413` (NAS8 seed timeout) are preserved as operational evidence. The
+bounded content probes recovered only the rep-002 manifest (`10440463`); the
+rep-001/rep-003 reads remained blocked and were stopped after their NFS I/O
+became uninterruptible (`10440509`, `10440510`). No provider/model call was
+made by these jobs. The frozen study remains 16/18 completed, with only
+`da-11-1` Full rep-001 and rep-002 pending; no active Dev3 job is running while
+the exact seed source is unreadable. NAS1 relocation is therefore the right
+execution direction, but it cannot safely complete the run until the missing
+NAS8 seed content is readable or an already sealed exact copy is found.

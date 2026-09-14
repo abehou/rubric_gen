@@ -674,3 +674,7 @@
 ## 2026-09-13 — v2.1 candidate identity review
 
 - 11:16 EDT: v2.1 diagnosis/compilation/semantic requests omit the development-rubric text even though pair comparisons and native margins include that view. A task/paraphrase-grounded recipe is therefore supported by the saved mechanism evidence, but implementation is deferred while provider access is capped and because the current all-v2 source fingerprint would change if a new `trace_defense*.py` module were added; no compatibility hash or historical receipt rewrite was introduced.
+
+## 2026-09-14 12:50 EDT — Frozen input relocation
+
+- NAS1 is healthy enough for the remaining Dev3 outputs, and a hash-verified task/paraphrase mirror plus user-namespace bind capability provide a safe execution path. Do not treat the partial seed mirror as valid: rep-001/rep-003 seed bytes and source-reuse metadata still require exact reads from NAS8 or an existing sealed copy. The one-shot `10440592` tar copy is provider-free and will either produce a complete byte-preserving mirror or leave the scientific run unchanged; no method, prompt, or request identity is altered.
