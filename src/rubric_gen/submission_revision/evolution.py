@@ -123,6 +123,14 @@ def rubric_generation_implementation_sha256(red_team_trace_version: str | None =
         from .trace_defense_registry import recipe
         paths += tuple(p for p in sorted(package_root.glob("trace_defense*.py"))
                        if recipe(red_team_trace_version).family == 'v2' or 'v2' not in p.stem)
+        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_grounded':
+            # This opt-in recipe has deliberately separate filenames so that
+            # historical v2/v2.1 identities remain byte-stable.  Include its
+            # actual learning and prompt modules in the new recipe's existing
+            # implementation fingerprint.
+            paths += (package_root / 'task_paraphrase_grounded.py',
+                      package_root / 'task_paraphrase_prompts.py',
+                      package_root / 'task_paraphrase_stage.py')
     digest = hashlib.sha256()
     for path in paths:
         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))

@@ -28,6 +28,12 @@ class TraceRecipe:
 _V1 = TraceRecipe('v1', 'trace_defense_prompts', 'trace_defense', 'trace_defense_attack', 'attack-record.json')
 _V2 = TraceRecipe('v2', 'trace_defense_v2_prompts', 'trace_defense_v2', 'trace_defense_v2_attack', 'attack-record-v2.json')
 _V21 = TraceRecipe('v2', 'trace_defense_v2_prompts', 'trace_defense_v21', 'trace_defense_v2_attack', 'attack-record-v2.json')
+# The task/paraphrase candidate keeps the v2.1 attack and native contracts but
+# dispatches its learning stages through an opt-in module with explicit
+# selected/development rubric context.
+_V21_TASK_PARAPHRASE = TraceRecipe(
+    'v2', 'task_paraphrase_prompts', 'task_paraphrase_grounded',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
 # v3 keeps the complete v2.1 attack/learning path.  Its only scientific
 # difference is the User-simulator delivery adapter, selected in controller
 # scoring; the learning recipe remains the pinned v2.1 implementation.
@@ -38,6 +44,7 @@ RECIPES = {
     'attack_defense_v2.dev2': _V2,
     'attack_defense_v2': _V2,
     'attack_defense_v2.1': _V21,
+    'attack_defense_v2.1_task_paraphrase_grounded': _V21_TASK_PARAPHRASE,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,
