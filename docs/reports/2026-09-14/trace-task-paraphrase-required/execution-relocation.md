@@ -128,3 +128,20 @@ fix; the candidate recipe, requests, prompts, model settings, frozen inputs and
 assignment scope remain unchanged. The failed owner receipt for `10438266` is
 retained; the same 18-assignment runner will be resubmitted once this fix is
 committed and pushed.
+
+The fix was committed and pushed as `47ec2ef` and the clean execution checkout
+was aligned to that commit. Because `10438266` had no assignment records, the
+same frozen runner was submitted once more as job `10438357`; its owner receipt
+records commit `47ec2ef`, the unchanged candidate identity, and the same 18
+assignment scope. At the first post-submit check it was pending for scheduler
+`Priority`; no new provider call had started at that point. This retry preserves
+the failed `10438266` receipt as historical evidence.
+
+At 2026-09-14 09:18 EDT, `10438357` was actively executing the frozen
+18-assignment study on `babel-n5-20`. Five assignments were complete, nine were
+running, and four were pending across the three six-assignment studies; no
+assignment had failed. The log showed live Full/User revision rounds and the
+home-backed ledgers were receiving terminal records. NAS1/home had approximately
+5.5 GiB free and 10% inode use at this checkpoint. This is an operational
+progress record only; the candidate source, prompts, inputs, and assignment
+scope remain unchanged.
