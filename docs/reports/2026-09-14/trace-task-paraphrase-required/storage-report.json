@@ -1,0 +1,125 @@
+{
+  "recorded_at": "2026-09-14T06:29:42-04:00",
+  "compute_node": "babel-v9-20",
+  "scientific_recipe": "attack_defense_v2.1_task_paraphrase_required",
+  "source_commit": "ed98e95",
+  "scope": {
+    "expected_assignments": 18,
+    "provider_calls": 0,
+    "launched": false,
+    "output_root": "/data/user_data/aydanh/rubric_gen/runs/trace-task-paraphrase-required-20260913/canonical"
+  },
+  "filesystems": {
+    "data": {
+      "mount": "/data/user_data/aydanh",
+      "source": "nas8:/data/user_data/aydanh",
+      "fstype": "nfs4",
+      "size": "2.0T",
+      "used": "2.0T",
+      "available": "6.0M",
+      "use_percent": 100,
+      "inodes_total": 8094181,
+      "inodes_used": 8083308,
+      "inodes_free": 10873,
+      "inode_use_percent": 100
+    },
+    "home": {
+      "mount": "/home/aydanh",
+      "source": "nas1:/srv/nfs/home/aydanh",
+      "fstype": "nfs4",
+      "size": "100G",
+      "used": "93G",
+      "available": "7.1G",
+      "use_percent": 93,
+      "inodes_total": 15900997,
+      "inodes_used": 1188011,
+      "inodes_free": 14712986,
+      "inode_use_percent": 8
+    }
+  },
+  "quota": {
+    "queried": true,
+    "supported": false,
+    "output": "quota: user /data/user_data/aydanh does not exist.",
+    "interpretation": "df reflects the mounted export/filesystem; no personal 500 GB quota was verified"
+  },
+  "snapshots": [
+    {"job_id": "10432884", "timestamp": "2026-09-13T22:35:18-04:00", "available": "25M", "free_inodes": 49491},
+    {"job_id": "10437319", "timestamp": "2026-09-14T06:19:55-04:00", "available": "6.0M", "free_inodes": 10873, "du_status": 124},
+    {"job_id": "10437391", "timestamp": "2026-09-14T06:29:42-04:00", "available": "6.0M", "free_inodes": 10873}
+  ],
+  "bounded_scan": {
+    "job_id": "10437319",
+    "top_level_enumeration": "completed",
+    "recursive_du": "timed out in NFS metadata I/O; no aggregate total available",
+    "inode_scan": "not started after bounded du timeout"
+  },
+  "measured_items": [
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/cache/environments/a5f86d3f89f6256c-d61735ca9b4a-10380169",
+      "bytes": 1017505307,
+      "entries": 21703,
+      "category": "obsolete runtime cache",
+      "active_dependency": false,
+      "action": "deleted previously by allowlisted job 10423023"
+    },
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/data/.../da-17-1/environment/data",
+      "bytes": 11811160064,
+      "bytes_source": "targeted prior du reported 11G",
+      "category": "scientific task data",
+      "active_dependency": "unknown/possibly yes",
+      "action": "protected"
+    },
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/data/.../da-1-3/environment/data",
+      "bytes": 9663676416,
+      "bytes_source": "targeted prior du reported 9.0G",
+      "category": "scientific task data",
+      "active_dependency": "unknown/possibly yes",
+      "action": "protected"
+    },
+    {
+      "path": "/data/user_data/aydanh/rubric_gen/validation",
+      "bytes": 130023424,
+      "bytes_source": "incomplete prior top-level du reported 124M",
+      "category": "validation records",
+      "active_dependency": "unknown",
+      "action": "protected"
+    }
+  ],
+  "deletions_this_task": [],
+  "prior_allowlisted_deletion": {
+    "job_id": "10423023",
+    "removed_path": "/data/user_data/aydanh/rubric_gen/cache/environments/a5f86d3f89f6256c-d61735ca9b4a-10380169",
+    "removed_bytes_census": 1017505307,
+    "removed_entries_census": 21703,
+    "active_environment_preserved": "/data/user_data/aydanh/rubric_gen/cache/environments/trace-repair-10381602"
+  },
+  "scratch_review": {
+    "candidate_transient_paths": ["provider workspace", "retry/parsing intermediates", "app-server temporary files"],
+    "could_use_job_scratch": true,
+    "changed": false,
+    "reason": "durable-path/resume contract has not been validated for relocation; no scientific code changed"
+  },
+  "home_fallback": {
+    "available_bytes": "7.1G",
+    "free_inodes": 14712986,
+    "used": false,
+    "reason": "different export and prepared native /data paths/provenance would be broken; capacity is not a safe substitute"
+  },
+  "worker_smoke": {
+    "job_id": "10432888",
+    "state": "FAILED",
+    "model_turn": false,
+    "error_type": "CodexProviderHealthError",
+    "underlying": "TransportClosedError: Codex app-server closed stdout during startup",
+    "scientific_calls": 0
+  },
+  "dev3": {
+    "state": "blocked_before_provider_execution",
+    "launch_command": "sbatch experiments/trace-task-paraphrase-required/run_candidate.sbatch",
+    "resume_prerequisites": ["safe persistent data byte headroom", "safe persistent data inode headroom", "successful same-route real model-turn smoke"]
+  },
+  "decision": "stop deletion and scientific launch; prepare admin-ready diagnostic because shared/export storage is at byte and inode exhaustion and no additional safe owned target is established"
+}

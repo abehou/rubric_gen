@@ -2407,3 +2407,6 @@ Provider-free inspection confirmed that v2.1 uses the development rubric in pair
 ## 2026-09-13 11:21 EDT — final persisted-state verification
 
 The latest available `sacct` query still shows all BioMNIBench recovery/audit/report owners pending, with q3 retry `10422809` failed after the saved account-capacity responses; `squeue` was unavailable because the Slurm stream socket returned `Operation not permitted`. PaperBench owners remain separate, and no BioMNIBench assignment or judgment was resubmitted.
+## 2026-09-14 — Frozen task-required Dev3 storage blocker
+
+- 06:29 EDT: Compute-node probe `10437391` confirms `/data/user_data/aydanh` is the `nas8` NFS export at 2.0T/100% with 6.0M bytes and 10,873 free inodes, while `$HOME` is a separate `nas1` export with 7.1G and 8% inode use; no personal quota query is supported. The bounded top-level `du` diagnostic `10437319` timed out in NFS metadata I/O, so no unsafe recursive cleanup was attempted; only the previously allowlisted obsolete cache deletion `10423023` is retained. Worker smoke `10432888` remains a pre-model-turn `TransportClosedError`, and the frozen 18-assignment Dev3 launch remains unsubmitted pending storage and a successful real-turn smoke; see `docs/reports/2026-09-14/trace-task-paraphrase-required/storage-report.md`.
