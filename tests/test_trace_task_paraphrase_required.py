@@ -81,7 +81,7 @@ def test_task_required_renderer_changes_only_task_required_scope():
     rendered = render_task_required_rubric(base, (task,)).content
     assert "Task-required obligation" in rendered
     assert "omission of the explicitly required" in rendered
-    assert "not applicable" not in rendered.lower()
+    assert "No covered claim is made, or the check passes" not in rendered
 
 
 def test_candidate_guidance_requires_mode_and_preserves_task_specificity():
