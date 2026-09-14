@@ -1338,3 +1338,8 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12 — PaperBench current handoff
 
 - 13:59 EDT: PaperBench non-trace state was rechecked after the prior session ended. There are no active PaperBench jobs; failed prerequisites for the cancelled dependency chains were identified, and no replacement was submitted while provider authentication is revoked. Current condition-level coverage and exact native resume commands are in docs/reports/2026-09-12/paperbench-nontrace-results20/current-status.json and current-condition-status.csv.
+
+## 2026-09-14 — Task-required Dev3 local Mac adapter
+
+- 22:25 CST: Dedicated local branch `codex/trace-task-paraphrase-local-mac` remains at starting HEAD `571965a9ca8e244477a377649592faec6e46c9af` with uncommitted adapter/report work per user request. Local output root is `/Users/yuenanhuang/rubric_gen_runs/trace-task-paraphrase-required-local`; exact one-turn Codex/Luna smoke passed with persisted outputs/session/runtime events and no Slurm identity, and no separately billed OpenAI API fallback.
+- 22:25 CST: Fail-closed input validation confirms exact task data and all da-3-4/da-11-1 frozen seed/paraphrase files, but lacks da-18 frozen seed/paraphrase and all three compatible v2.1 g1 source studies. Receipt records `ready:false`, `provider_calls:0`; candidate remains 0/18 and native launch is withheld rather than regenerate frozen model artifacts.

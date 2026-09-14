@@ -1436,3 +1436,8 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12 — Added-task heldout authority
 
 - 12:39 EDT: User authorizes the committed rigorous-V2 prompt (47463ca) for newly generated expansion heldouts; preserve the historical twenty-task pool and report the old/new generation difference. This resolves the heldout-policy hold; no task membership or treatment recipe changes.
+
+## 2026-09-14 — Task-required Dev3 local execution
+
+- 22:25 CST: Move the frozen `attack_defense_v2.1_task_paraphrase_required` canonical Dev3 execution to a dedicated local Mac branch with operational path/runtime adapters only; preserve the 3 tasks, 3 replicates, Full/User arms, seed `20260806`, Luna/Codex route, and every scientific behavior. First-run limits are aggregate6/task2/assignment2/audit1, with the existing learning implementation unchanged; no Results20 before complete Dev3 evidence.
+- 22:25 CST: Per the user's updated audit decision, execute only missing `gemini-3.8-flash` candidate judgments locally and do not duplicate Sol+Opus work already running on Babel. Treat Gemini results as cross-auditor evidence unless an exact Gemini-compatible control is available; do not present them as a same-auditor matched control comparison.

@@ -22,10 +22,23 @@ import uuid
 from rubric_gen.runtime.paths import PROJECT_ROOT
 
 _LOCAL = threading.local()
+_RUNTIME_CONFIG_ENV = "RUBRIC_GEN_RUNTIME_CONFIG"
+
+
+def _runtime_config_path() -> Path:
+    configured = os.environ.get(_RUNTIME_CONFIG_ENV)
+    if configured is None:
+        return PROJECT_ROOT / "config/runtime.json"
+    path = Path(configured)
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise RuntimeError(
+            f"{_RUNTIME_CONFIG_ENV} must name a regular absolute JSON file"
+        )
+    return path
 
 
 def policy() -> dict:
-    value = json.loads((PROJECT_ROOT / "config/runtime.json").read_text())
+    value = json.loads(_runtime_config_path().read_text())
     if (set(value) != {"version", "aggregate_concurrency", "audit_studies", "coordination_dir"}
             or value["version"] != 1 or type(value["aggregate_concurrency"]) is not int
             or not 1 <= value["aggregate_concurrency"] <= 60

@@ -674,3 +674,12 @@
 ## 2026-09-13 — v2.1 candidate identity review
 
 - 11:16 EDT: v2.1 diagnosis/compilation/semantic requests omit the development-rubric text even though pair comparisons and native margins include that view. A task/paraphrase-grounded recipe is therefore supported by the saved mechanism evidence, but implementation is deferred while provider access is capped and because the current all-v2 source fingerprint would change if a new `trace_defense*.py` module were added; no compatibility hash or historical receipt rewrite was introduced.
+
+## 2026-09-14 — Local execution isolation
+
+- 22:25 CST: Opt-in absolute-prefix path mapping now occurs only after raw-YAML identity derivation, and opt-in runtime policy selection defaults to the checked-in Babel policy when absent; tests establish identical scientific IDs across relocated storage. The local adapter fails before provider work on missing/hash-mismatched frozen inputs, caps the first Mac run, persists ownership/status receipts, and uses native missing-only resume; candidate learning code is unchanged.
+
+## 2026-09-15 — Local Luna audit execution
+
+- 07:10 CST: Full-rubric scoring had a separate hard-coded OpenAI `none` effort while direct and rubric-free scoring honored xhigh. It now uses the same validated runtime override with an unchanged `none` default; an isolated rubric-score-only adapter avoids duplicating completed stages, and 109 focused tests pass.
+- 07:10 CST: Luna can consume a complete 2,048/4,096-token structured-output budget and return empty output; native records preserve this as terminal invalid coverage. No hidden budget increase or scientific fallback was added.

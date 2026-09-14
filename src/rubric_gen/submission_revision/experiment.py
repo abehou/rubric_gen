@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from rubric_gen.submission_revision.prompts import (
     prompt_implementation_sha256,
 )
 from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
+from rubric_gen.runtime.pricing import HOSTED_PRICES_PER_MILLION
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
@@ -35,6 +37,7 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 EXPERIMENT_ID_TOKEN = "{experiment_id}"
+_PATH_MAP_ENV = "RUBRIC_GEN_PATH_MAP_FILE"
 _RUBRIC_POLICY_SLUGS = {
     RubricPolicy.FIXED: "static",
     RubricPolicy.OFFLINE_ELICITATION: "offline-rubric",
@@ -239,8 +242,11 @@ def load_experiment(path: Path) -> Experiment:
         if (not isinstance(models, list) or not models
                 or any(type(m) is not str for m in models)
                 or len(models) != len(set(models))
-                or not set(models) <= set(payload["outcome_audit"]["models"])):
-            raise ValueError("execution_audit_models must be unique nonempty configured model IDs")
+                or not set(models) <= (
+                    set(payload["outcome_audit"]["models"])
+                    | set(HOSTED_PRICES_PER_MILLION)
+                )):
+            raise ValueError("execution_audit_models must be unique nonempty supported model IDs")
     return Experiment(resolved, payload)
 
 
@@ -739,7 +745,52 @@ def _resolve_relative(experiment_path: Path, value: object) -> Path:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("experiment paths must be non-empty strings")
     path = Path(value).expanduser()
-    return path.resolve() if path.is_absolute() else (experiment_path.parent / path).resolve()
+    if not path.is_absolute():
+        return (experiment_path.parent / path).resolve()
+    for source, destination in _operational_path_mappings():
+        try:
+            suffix = path.relative_to(source)
+        except ValueError:
+            continue
+        return (destination / suffix).resolve()
+    return path.resolve()
+
+
+def _operational_path_mappings() -> tuple[tuple[Path, Path], ...]:
+    """Load opt-in storage relocation without changing semantic YAML identity."""
+
+    value = os.environ.get(_PATH_MAP_ENV)
+    if value is None:
+        return ()
+    config = Path(value)
+    if not config.is_absolute() or config.is_symlink() or not config.is_file():
+        raise ValueError(f"{_PATH_MAP_ENV} must name a regular absolute JSON file")
+    try:
+        payload = json.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid {_PATH_MAP_ENV}") from exc
+    if not isinstance(payload, dict) or set(payload) != {"version", "mappings"}:
+        raise ValueError("path map requires exactly version and mappings")
+    mappings = payload["mappings"]
+    if payload["version"] != 1 or not isinstance(mappings, list) or not mappings:
+        raise ValueError("path map version must be 1 with nonempty mappings")
+    resolved: list[tuple[Path, Path]] = []
+    for mapping in mappings:
+        if not isinstance(mapping, dict) or set(mapping) != {"source", "destination"}:
+            raise ValueError("each path mapping requires source and destination")
+        source = Path(mapping["source"]) if isinstance(mapping["source"], str) else Path()
+        destination = (
+            Path(mapping["destination"])
+            if isinstance(mapping["destination"], str)
+            else Path()
+        )
+        if (not source.is_absolute() or source == Path("/")
+                or not destination.is_absolute()):
+            raise ValueError("path mapping endpoints must be absolute and source cannot be root")
+        resolved.append((source, destination))
+    if len({source for source, _ in resolved}) != len(resolved):
+        raise ValueError("path mapping sources must be unique")
+    return tuple(sorted(resolved, key=lambda item: len(item[0].parts), reverse=True))
 
 
 def _optional_string(value: object) -> str | None:

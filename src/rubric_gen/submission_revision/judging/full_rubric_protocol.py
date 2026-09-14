@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from rubric_gen.runtime.llm import openai_reasoning_effort
 from rubric_gen.submission_revision.judging.scoring import (
     parse_rubric_levels_strict,
     parse_score_normalization_maximum,
@@ -156,7 +157,7 @@ class FullRubricRunSpec:
 
     def as_json(self) -> dict[str, object]:
         if self.provider == "openai" and self.requested_model.startswith("gpt-5.6"):
-            reasoning_effort = "none"
+            reasoning_effort = openai_reasoning_effort()
         elif self.provider in {"anthropic", "google"}:
             reasoning_effort = "low"
         else:

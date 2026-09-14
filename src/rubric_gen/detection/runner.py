@@ -33,11 +33,11 @@ from rubric_gen.detection.config import (
     MALT_REWARD_HACKING_DECISION_RULE,
     MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
     MALT_REWARD_HACKING_SOURCE,
-    OPENAI_REASONING_EFFORT,
     OPENAI_TEXT_VERBOSITY,
     INPUT_VALIDATION_POLICY,
     PROMPT_CACHE_POLICY,
 )
+from rubric_gen.runtime.llm import openai_reasoning_effort
 from rubric_gen.detection.prompts import EvidencePrompt
 from rubric_gen.detection.sources import AuditCase
 from rubric_gen.detection.job_runner import DetectionJobRunner, DetectionOutcome
@@ -128,7 +128,7 @@ class DetectionRunner:
             "max_output_tokens": config.max_output_tokens,
             "primary_rule": config.primary_rule,
             "source": config.source.provenance,
-            "openai_reasoning_effort": OPENAI_REASONING_EFFORT,
+            "openai_reasoning_effort": openai_reasoning_effort(),
             "openai_text_verbosity": OPENAI_TEXT_VERBOSITY,
             "anthropic_effort": ANTHROPIC_EFFORT,
             "gemini_thinking_level": GEMINI_THINKING_LEVEL,

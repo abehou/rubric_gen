@@ -1,5 +1,9 @@
 # Frozen Dev3 execution relocation (NAS1)
 
+This Babel/NAS1 record is historical. Execution subsequently moved to the
+local Mac; see [the local execution record](local-mac-execution.md). The Babel
+runner and paths below were not rewritten.
+
 This is an operational snapshot for the frozen
 `attack_defense_v2.1_task_paraphrase_required` Dev3 candidate. It does not
 change the scientific recipe, request identities, task membership, or frozen

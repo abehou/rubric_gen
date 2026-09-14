@@ -25,6 +25,10 @@ DEFAULT_MAX_OUTPUT_TOKENS = 4_096
 HOSTED_REQUEST_TIMEOUT_SECONDS = 600.0
 TOKEN_COUNT_TIMEOUT_SECONDS = 120.0
 OPENAI_REASONING_EFFORT = "none"
+OPENAI_REASONING_EFFORT_ENV = "RUBRIC_GEN_OPENAI_REASONING_EFFORT"
+OPENAI_REASONING_EFFORTS = frozenset({
+    "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
+})
 OPENAI_TEXT_VERBOSITY = "low"
 ANTHROPIC_EFFORT = "low"
 GEMINI_THINKING_LEVEL = "low"
@@ -34,6 +38,18 @@ OPENAI_EXPLICIT_PROMPT_CACHE_MODELS = frozenset({
 })
 _TOKEN_COUNTER_CLIENTS: dict[tuple[str, str], object] = {}
 _TOKEN_COUNTER_CLIENTS_LOCK = threading.Lock()
+
+
+def openai_reasoning_effort() -> str:
+    """Return the explicitly selected OpenAI effort, preserving the default."""
+
+    value = os.getenv(OPENAI_REASONING_EFFORT_ENV, OPENAI_REASONING_EFFORT)
+    if value not in OPENAI_REASONING_EFFORTS:
+        raise ValueError(
+            f"{OPENAI_REASONING_EFFORT_ENV} must be one of "
+            + ", ".join(sorted(OPENAI_REASONING_EFFORTS))
+        )
+    return value
 
 
 def anthropic_schema(value: object) -> object:
@@ -217,7 +233,7 @@ def request_parameters_for_model(
         "provider": "openai",
         "requested_model": model,
         "max_output_tokens": max_output_tokens,
-        "reasoning_effort": OPENAI_REASONING_EFFORT,
+        "reasoning_effort": openai_reasoning_effort(),
         "text_verbosity": OPENAI_TEXT_VERBOSITY,
         "client_timeout_seconds": timeout_seconds,
         "client_max_retries": 0,
@@ -275,7 +291,7 @@ def estimate_input_tokens(model: str, request: StructuredRequest) -> int:
         {
             "input": request.openai_input(model),
             "text": request.text_config(),
-            "reasoning": {"effort": OPENAI_REASONING_EFFORT},
+            "reasoning": {"effort": openai_reasoning_effort()},
         },
         ensure_ascii=False,
         separators=(",", ":"),
@@ -333,7 +349,7 @@ def count_input_tokens(model: str, request: StructuredRequest) -> int:
         response = client.responses.input_tokens.count(  # type: ignore[attr-defined]
             model=model,
             input=request.openai_input(model),
-            reasoning={"effort": OPENAI_REASONING_EFFORT},
+            reasoning={"effort": openai_reasoning_effort()},
             text={"format": request.text_config()["format"]},
             truncation="disabled",
         )
@@ -492,7 +508,7 @@ def generate_structured(
         model=model,
         input=request_value.openai_input(model),
         max_output_tokens=request_value.max_output_tokens,
-        reasoning={"effort": OPENAI_REASONING_EFFORT},
+        reasoning={"effort": openai_reasoning_effort()},
         text=request_value.text_config(),
         truncation="disabled",
         store=False,
