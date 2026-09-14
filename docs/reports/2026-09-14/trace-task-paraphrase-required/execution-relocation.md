@@ -61,13 +61,10 @@ than this small Dev3 block. A live usage check will be repeated after launch.
 ## Gates and current state
 
 Provider-free compute-node path validation was submitted as Slurm job
-`10437661`; it checks all three frozen input roots, assignment/config identity,
-paraphrase compatibility, home write/read access, and the new output-root
-invariant. The same-route real worker smoke has not yet been rerun after this
-relocation, and the frozen 18-assignment Dev3 has not been launched. The next
-actions are to read the validation receipt, run exactly one home-backed worker
-smoke, and submit `experiments/trace-task-paraphrase-required/run_candidate.sbatch`
-only if both gates pass.
+`10437661`; its bounded narrow validation receipt is job `10437704`, checking
+all three frozen input roots, assignment/config identity, paraphrase
+compatibility, home write/read access, and the new output-root invariant. The
+single home-backed smoke and frozen Dev3 launch are recorded below.
 
 ## Runtime-path follow-up (2026-09-14)
 
@@ -92,3 +89,17 @@ Dev3 assignment was made by either job. The next gate is one real home-backed
 worker smoke with durable output under this NAS1 root, followed by the frozen
 18-assignment Dev3 only if that smoke reaches a real model turn and persists its
 output.
+
+## Frozen Dev3 launch (2026-09-14 08:25 EDT)
+
+The single real home-backed worker smoke (`10438256`) reached a real
+`gpt-5.6-luna` turn and persisted `route-ok` plus its trace under
+`/home/aydanh/runs/trace-task-paraphrase-required-20260914/route-smoke-10438256/`.
+The frozen Dev3 runner was then submitted once as Slurm job `10438266` from
+executing commit `4283f4b` (candidate identity
+`attack_defense_v2.1_task_paraphrase_required`; scientific source lineage
+remains the previously frozen candidate). At the first status check it was
+pending for scheduler `Priority`, with no assignment started yet. It requests
+the unchanged 32-CPU/512G profile and writes new durable outputs only below
+`/home/aydanh/runs/trace-task-paraphrase-required-20260914/`; frozen NAS8 inputs
+remain read-only. No Result10/Result20 work was launched.
