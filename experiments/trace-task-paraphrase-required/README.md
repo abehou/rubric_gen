@@ -11,7 +11,11 @@ compilation, semantic obligation-mode contracts; attack, views, application
 remain pinned. No provider run has been launched from this bundle.
 
 The run entrypoint is `run_candidate.sbatch`. It requires a 32-CPU Slurm
-allocation and writes large study outputs under
-`/data/user_data/aydanh/rubric_gen/runs/trace-task-paraphrase-required-20260913/`.
-Do not submit until a same-route worker smoke succeeds and the compute NFS has
-safe free bytes/inodes. Resume only through the native study ledger.
+allocation and writes new durable study/audit outputs under
+`/home/aydanh/runs/trace-task-paraphrase-required-20260914/` (NAS1). Frozen
+tasks, seeds, paraphrases and realized g1 inputs remain read-only on NAS8 at
+their recorded producer paths. Per-job temporary files use
+`/scratch/job_tmp/$SLURM_JOB_ID` when available. This is an execution-path
+relocation only; the scientific recipe and request identities are unchanged.
+Do not submit until the provider-free path validation and same-route worker
+smoke succeed. Resume only through the native study ledger.

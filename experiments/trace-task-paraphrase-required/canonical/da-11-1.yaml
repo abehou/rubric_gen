@@ -12,7 +12,7 @@ dag:
     depends_on:
     - revise
     - paraphrase
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-task-paraphrase-required-20260913/canonical/da-11-1/audit/{experiment_id}
+    output_dir: /home/aydanh/runs/trace-task-paraphrase-required-20260914/canonical/da-11-1/audit/{experiment_id}
   paraphrase:
     depends_on: []
     output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v2-20260910/dev3/inputs/da-11-1/paraphrase
@@ -20,7 +20,7 @@ dag:
     depends_on:
     - seed
     - paraphrase
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-task-paraphrase-required-20260913/canonical/da-11-1/study/{experiment_id}
+    output_dir: /home/aydanh/runs/trace-task-paraphrase-required-20260914/canonical/da-11-1/study/{experiment_id}
   seed:
     depends_on: []
     output_dir: /data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed

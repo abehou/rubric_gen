@@ -1,0 +1,25 @@
+{
+  "method": "attack_defense_v2.1_task_paraphrase_required",
+  "scientific_change": false,
+  "cleanup": {
+    "authorized_roots": [
+      "/home/aydanh/repos/CooperBench-git-r3-20260723",
+      "/home/aydanh/repos/CooperBench-next-20260721",
+      "/home/aydanh/repos/CooperBench-git-20260722",
+      "/home/aydanh/repos/CooperBench-sera-20260722"
+    ],
+    "bytes_freed": 244946944,
+    "protected_root": "/home/aydanh/repos/CooperBench-git-r2-20260723",
+    "owner_uid_gid": "6011048:6011048",
+    "active_dependents": false
+  },
+  "nas1": {
+    "before": {"timestamp": "2026-09-14T06:49:38-04:00", "available": "7.1G", "inode_use": "8%"},
+    "after": {"timestamp": "2026-09-14T06:50:40-04:00", "available": "7.3G", "inode_use": "8%"}
+  },
+  "frozen_input_export": "nas8:/data/user_data/aydanh",
+  "new_output_root": "/home/aydanh/runs/trace-task-paraphrase-required-20260914",
+  "path_validation_job": "10437661",
+  "worker_smoke": {"state": "pending_after_path_validation"},
+  "dev3": {"expected_assignments": 18, "launched": false}
+}

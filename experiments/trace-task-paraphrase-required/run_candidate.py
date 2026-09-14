@@ -15,7 +15,9 @@ from rubric_gen.submission_revision.execution_scope import terminal_records
 
 BUNDLE = Path(__file__).resolve().parent
 ROOT = BUNDLE.parents[1]
-RUN = Path('/data/user_data/aydanh/rubric_gen/runs/trace-task-paraphrase-required-20260913/canonical')
+# Execution-path relocation only: frozen inputs remain on NAS8; all new durable
+# candidate state is kept on the persistent NAS1 home export.
+RUN = Path('/home/aydanh/runs/trace-task-paraphrase-required-20260914/canonical')
 TASKS = ('da-3-4', 'da-11-1', 'da-18-1')
 VERSION = 'attack_defense_v2.1_task_paraphrase_required'
 
