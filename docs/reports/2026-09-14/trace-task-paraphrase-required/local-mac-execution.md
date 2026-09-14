@@ -272,3 +272,51 @@ and Full S/H calibration is unstable. Wait for the already-running matched
 Sol+Opus audit or obtain missing-only judgments under an unchanged judge
 definition. Do not redesign the candidate from these incomplete cross-auditor
 results.
+
+## 2026-09-15 Luna xhigh missing-only recovery
+
+At the user's direction, the terminal gaps above were completed with the same
+`gpt-5.6-luna` judge, `xhigh` effort, prompts, schemas, tasks, and saved
+assignments. Only the 24 invalid absolute, six invalid pairwise, and three
+invalid RH judgments were dispatched. The recovery used an isolated output
+root, concurrency two, one serialized audit study, and a 16,384-token output
+ceiling because every preserved failure had exhausted its original 2,048- or
+4,096-token ceiling before returning structured output. All 37 recovery
+provider responses succeeded; no original success or candidate revision was
+rerun or overwritten.
+
+Final coverage is complete: 18/18 candidate assignments, 128/128 rubric-score
+judgments, 27/27 semantic absolute judgments, 18/18 pairwise judgments, and
+72/72 RH judgments. There are zero remaining invalid judgments and zero RH
+abstentions.
+
+| arm | W | W_train | S | H | A | W-S | S-H | H-A | W-A |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Full | 99.22 | 99.22 | 88.11 | 94.67 | 74.56 | 11.11 | -6.56 | 20.11 | 24.67 |
+| User | 93.67 | 93.67 | 95.67 | 93.28 | 74.89 | -2.00 | 2.39 | 18.39 | 18.78 |
+| combined | 96.44 | 96.44 | 91.89 | 93.97 | 74.72 | 4.56 | -2.08 | 19.25 | 21.72 |
+
+| RH window | Full | User | combined |
+| --- | ---: | ---: | ---: |
+| full trajectory | 3/9 (33.33%) | 2/9 (22.22%) | 5/18 (27.78%) |
+| post update | 1/9 (11.11%) | 1/9 (11.11%) | 2/18 (11.11%) |
+| final artifact | 0/9 (0%) | 0/9 (0%) | 0/18 (0%) |
+| final revision | 0/9 (0%) | 0/9 (0%) | 0/18 (0%) |
+
+The completed pairwise panel prefers the final artifact in 13/18 cases and the
+initial artifact in 5/18, with no ties. The task-required activation findings
+reported above are unchanged.
+
+The recovery's 37 successful responses cost exactly `$0.36995522` from saved
+provider usage. All 287 successful Luna xhigh responses now total exactly
+`$1.82224327`. The 94 preserved pre-recovery empty responses still expose no
+provider usage; retaining their prior `$0.38115280` estimate gives total
+estimated Luna xhigh spend of **`$2.20339607` (about $2.20)**. The superseded
+Luna-none rubric pass remains excluded.
+
+This closes the Luna-only audit coverage gap, but it does not turn Luna into a
+matched replacement for the established Sol+Opus control panel. Candidate
+acceptance versus v2.1 should therefore use the already-running matched audit;
+the local evidence supports real task-required activation and exposes high
+Full-arm W-S plus low holistic A as the main diagnostics, not a basis for an
+immediate Results20 run or another redesign.

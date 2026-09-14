@@ -683,3 +683,4 @@
 
 - 07:10 CST: Full-rubric scoring had a separate hard-coded OpenAI `none` effort while direct and rubric-free scoring honored xhigh. It now uses the same validated runtime override with an unchanged `none` default; an isolated rubric-score-only adapter avoids duplicating completed stages, and 109 focused tests pass.
 - 07:10 CST: Luna can consume a complete 2,048/4,096-token structured-output budget and return empty output; native records preserve this as terminal invalid coverage. No hidden budget increase or scientific fallback was added.
+- 07:50 CST: The native rubric-free summarizer assumes every canonical job is colocated and cannot summarize a deliberately isolated missing-only subset; the recovery adapter now verifies exact 24+6 record coverage, preserves separate roots, and leaves merged reporting explicit instead of rewriting historical summaries.
