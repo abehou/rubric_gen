@@ -37,5 +37,4 @@ exec unshare -Urnm /bin/bash -c '
     mount --bind "$TRACE_MIRROR/inputs/$task/paraphrase" "$old/$task/paraphrase"
   done
   exec /home/aydanh/repos/rubric_gen/.venv/bin/python experiments/trace-task-paraphrase-required/provisional_audit.py "$@"
-'
-_ "$@"
+' _ "$@"
