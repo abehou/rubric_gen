@@ -66,10 +66,21 @@ def test_candidate_stage_uses_actual_candidate_prompt_dispatch():
 def test_candidate_learning_context_contains_selected_and_development_rubrics_only():
     h = history()
     artifacts = {a.artifact_id: a for a in h.artifacts}
+    # ``diagnosis_request`` consumes the already compared pair, not the raw
+    # ArtifactPair used to construct the fixture history.  Keep this tiny
+    # comparison local so the test checks request context without pretending
+    # that the fixture has undergone a model assessment.
+    raw_pair = h.pairs[0]
+    pair = SimpleNamespace(
+        pair_id=raw_pair.pair_id,
+        preferred_artifact_id=raw_pair.artifact_ids[0],
+        rejected_artifact_id=raw_pair.artifact_ids[1],
+        as_dict=lambda **_: {"pair_id": raw_pair.pair_id},
+    )
     selected = _rubric()
     development = _development_rubric()
     evidence, contract = diagnosis_request(
-        "Check arithmetic.", h.pairs[0], artifacts, selected, development,
+        "Check arithmetic.", pair, artifacts, selected, development,
         current(), (), (), h.red_team_model_records((h.pairs[0].pair_id,), include_trace=True))
     assert evidence["selected_base_rubric"] == selected.content
     assert evidence["development_base_rubric"] == development.content
