@@ -631,3 +631,41 @@ At this checkpoint, the active scientific owners are **10424162** (learned-rest 
 ## Storage capacity checkpoint — 2026-09-13T11:20:16-04:00
 
 Read-only checks on the two active PaperBench nodes found the shared `/data/user_data/aydanh` NFS filesystem at **100% space use** with approximately 29–32 MB free and inode use at **100%** with approximately 57K free inodes. The learned-rest owner 10424162 has recorded `OSError`/`InterruptedError` operation failures while still producing evolution/solver activity; 10424271 is also active. No output was deleted, no job was cancelled, and no new provider owner was submitted. Further native work may require storage capacity to be restored; the active owners remain preserved for safe resume.
+
+
+## Morning-safe handoff checkpoint — 2026-09-13T11:26:12-04:00
+
+At the final read-only checkpoint, Results20 accounting is **306 valid, 35 failed, 60 running, and 559 pending/not yet valid of 960**. Existing terminal cells remain Full-static and User-simulator-static only.
+
+- **10424162** remains the same native missing-only learned-rest owner: 6 valid, 35 failed, 28 running, 231 pending of 300 selected. It still records evolution activity but has `OSError`/`InterruptedError` failures and no authentication or HTTP error.
+- **10424271** remains the same Full/User learned Results20 owner: 32 running and 328 pending of 360 selected, with no recorded failure.
+- **10424672** remains the only fixed Semi/Score audit replacement and is pending `QOSMaxCpuPerUserLimit`; 10424681 and 10424684 remain afterok dependents.
+- Both active nodes report `/data/user_data/aydanh` at 100% space and inode use, with only about 29–32 MB and 57K inodes available. No cleanup, cancellation, new owner, provider setting, scientific setting, or CPU-profile change was made.
+
+The exact native resume commands remain in `current-status.json`; do not submit them while their corresponding owner is still active. The immediate external blocker is shared NFS capacity.
+
+## Conservative storage-triage checkpoint — 2026-09-13 19:48 EDT
+
+The shared `/data/user_data/aydanh` filesystem was checked from `babel-m9-28` before and after the only cleanup batch. The immediate pre-cleanup measurement was 15 MB available and 30K free inodes; the post-cleanup measurement was 15 MB and 31K free inodes. Both space and inode utilization remain 100%. Earlier cross-node observations recorded approximately 29–32 MB and 57K free, so the variation is consistent with concurrent NFS activity rather than recovered operating headroom.
+
+| Area | Current byte/inode result | Role and decision |
+|---|---|---|
+| `/data/user_data/aydanh/rubric_gen/runs` | Current recursive walk unavailable: `du`/`find` entered `rpc_wait_bit_killable`; historical 2026-09-08 inventory measured 20.10 GiB across 41 top-level entries | Contains PaperBench, trace/BioMNIBench, inputs, reports, provenance, and historical evidence; preserve |
+| `/data/user_data/aydanh/rubric_gen/cache` | Recursive total unavailable; direct active environment is present | Runtime environment/cache used by job 10424672 and potentially queued owners; preserve |
+| `/data/user_data/aydanh/rubric_gen/pools` | Recursive total unavailable | Frozen seed/paraphrase inputs; preserve |
+| `/data/user_data/aydanh/rubric_gen/data` | Recursive total unavailable | Shared scientific data; preserve |
+| `/data/user_data/aydanh/rubric_gen/caches/matplotlib-baseline-freeze` | 34,816 B reported disk usage; 1 file (67,023 B) | Referenced by `scripts/reporting/frozen_biomnibench.sbatch`; preserve |
+| `/data/user_data/aydanh/tmp/vllm_probe_8327405` | 4,176,896 B reported disk usage; 18 files | Historical probe logs; no active reference found, but diagnostic purpose/evidence is not disposable by proof; preserve |
+| `/data/user_data/aydanh/tmp/pip_cache` | Measurement entered NFS RPC wait; total unknown | Reproducible in principle but active/queued use and reclaimable size were not proven; preserve |
+| top-level caches/models (`hf_cache`, `hf_home`, `pip_cache`, `uv_cache`, `torchinductor_cache`, `triton_cache`, `vllm_cache`, `models`, `checkpoints`, `apptainer`) | Direct entries were inspected; recursive totals unavailable safely | Shared runtime/model resources may be used by queued trace/BioMNIBench or PaperBench jobs; preserve |
+
+The only deleted paths were two verified empty temporary directories:
+
+| Path | Before | Reclaimed | Reason |
+|---|---:|---:|---|
+| `/data/user_data/aydanh/rubric_gen/tmp/confirmation` | 0 files; 1,024 B reported directory usage | 1 inode | Empty temporary directory with no job/config reference |
+| `/data/user_data/aydanh/tmp/torchinductor_aydanh` | 0 files; 1,024 B reported directory usage | 1 inode | Empty temporary cache directory with no job/config reference |
+
+The batch reclaimed 2 inodes and no data bytes. The live PaperBench audit owner `10424672` was preserved on `babel-m9-28`; its native rubric-score stage remains active. Its dependent owners `10424681` (`afterok:10424672`) and `10424684` (`afterok:10424681`) remain queued unchanged. Revision owners `10424162` (FAILED) and `10424271` (PREEMPTED) remain available for later native missing-only recovery, with valid outputs and failure evidence preserved. No dependency chain was resubmitted, no provider call was made, and no scientific work was resumed because the storage blocker remains.
+
+The remaining candidates large enough to matter are ambiguous or protected: the `runs` tree contains scientific outputs and raw recovery evidence; cache/model trees can be referenced by queued jobs; and recursive accounting itself is currently unsafe on the full NFS. Restoring several GB of headroom therefore requires storage administration or an explicit review of those protected/ambiguous trees. No further deletion is authorized by the evidence collected here.
