@@ -103,3 +103,28 @@ pending for scheduler `Priority`, with no assignment started yet. It requests
 the unchanged 32-CPU/512G profile and writes new durable outputs only below
 `/home/aydanh/runs/trace-task-paraphrase-required-20260914/`; frozen NAS8 inputs
 remain read-only. No Result10/Result20 work was launched.
+
+## Launch recovery: historical source identity drift (2026-09-14 08:27--08:38 EDT)
+
+Job `10438266` reached its launcher but failed before any provider/model turn or
+assignment with `ValueError: pre-treatment source experiment identity mismatch`.
+The candidate YAMLs declare the sealed v2.1 producer IDs
+`62e39def3939`, `dddf5e1c5878`, and `e44e429b51a6`. Their historical source
+YAMLs are still present, and fixed-path probe `10438315` confirmed each
+completed source ledger has the corresponding declared ID and complete records;
+the source YAMLs now re-derive different IDs because the shared
+prompt-implementation fingerprint changed after those producers ran. No source
+YAML, ledger, pretreatment rubric, or candidate output was edited.
+
+The minimal native compatibility repair changes only
+`pretreatment_reuse.source_pool`: it continues all existing payload, task,
+protocol, input-byte, and completed-study checks, but anchors the producer
+identity to the declared ID in the completed `study.json` receipt instead of
+requiring a historical YAML to reproduce a newer prompt fingerprint. Focused
+provider-free tests pass (`tests/test_pretreatment_reuse.py`: 15/15), and
+compute-node config/pretreatment validation `10438337` passes for all three
+candidate configs (six assignments per task). This is an execution-compatibility
+fix; the candidate recipe, requests, prompts, model settings, frozen inputs and
+assignment scope remain unchanged. The failed owner receipt for `10438266` is
+retained; the same 18-assignment runner will be resubmitted once this fix is
+committed and pushed.

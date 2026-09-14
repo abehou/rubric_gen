@@ -26,8 +26,11 @@ def source_pool(experiment: Experiment) -> Path | None:
     if not isinstance(raw, dict) or 'pretreatment_source' in raw:
         raise ValueError('nested pre-treatment reuse is not supported')
     original = load_experiment(path)
-    if original.experiment_id != source['experiment_id']:
-        raise ValueError('pre-treatment source experiment identity mismatch')
+    # A source YAML is a historical producer record.  Its derived ID includes
+    # the current prompt-implementation identity, so it can legitimately stop
+    # reproducing the ID recorded when the completed source study was produced.
+    # The declared ID is checked against that immutable completed-study receipt
+    # below; the remaining payload checks still prevent cross-experiment reuse.
     for key in ('benchmark', 'seed_generator', 'rubric_paraphrases'):
         if original.payload[key] != experiment.payload[key]:
             raise ValueError(f'pre-treatment source differs: {key}')
@@ -77,7 +80,7 @@ def source_pool(experiment: Experiment) -> Path | None:
     if root.is_symlink() or not root.is_dir():
         raise ValueError('pre-treatment source study is not a regular directory')
     ledger = read_json_object(root / 'study.json', 'pre-treatment source study')
-    if ledger.get('experiment_id') != original.experiment_id or ledger.get('status') not in {'completed', 'completed_scope'}:
+    if ledger.get('experiment_id') != source['experiment_id'] or ledger.get('status') not in {'completed', 'completed_scope'}:
         raise ValueError('pre-treatment source study is not completed with the expected identity')
     if ledger.get('status') == 'completed_scope':
         # Validate the declared scope and complete full ledger; inactive cells

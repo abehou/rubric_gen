@@ -30,6 +30,15 @@ def test_explicit_source_preserves_scope(pair):
     assert reuse.scope_id(current) == 'source'
 
 
+def test_historical_source_identity_uses_completed_receipt(pair):
+    current, root = pair
+    # The source YAML can be re-derived under a later prompt implementation,
+    # while its completed study receipt retains the producer identity.
+    source = reuse.load_experiment(None)
+    source.experiment_id = 're-derived-under-current-code'
+    assert reuse.source_pool(current) == root / 'pretreatment-rubrics'
+
+
 @pytest.mark.parametrize('change', ['identity', 'protocol', 'tasks', 'status', 'nested'])
 def test_reject_incompatible_source(pair, change):
     current, root = pair
