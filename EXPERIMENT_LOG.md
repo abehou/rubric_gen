@@ -2419,6 +2419,10 @@ The latest available `sacct` query still shows all BioMNIBench recovery/audit/re
 
 - Read-only reconciliation finds no active candidate job: 16/18 frozen assignments are complete, with only da-11-1 Full rep-001/rep-002 partial. NAS1 has about 15 GiB free and 4% inode use, but its seed mirror is empty apart from rep-002 metadata; mirror jobs 10440592/10443454/10443483 did not produce a usable source. Native resume remains blocked on exact sealed seed contents, so no provider call or manifest rewrite was attempted.
 
+## 2026-09-14 18:35 EDT — Exact seed search closed
+
+- Provider-free exact-ID/hash search found no complete `da-11-1` seed copy for the two pending Full assignments; only rep-002 metadata and current partial outputs are available. The required payloads and minimum external artifact are recorded in `docs/reports/2026-09-14/trace-task-paraphrase-required/exact-seed-blocker.md`; no provider call or seed reconstruction was attempted.
+
 ## 2026-09-14 12:50 EDT — NAS1 input relocation attempt
 
 - NAS1 `/home/aydanh` now reports approximately 15 GiB free and 4% inode use; the frozen candidate tree is about 1.8 GiB. A provider-free mirror contains hash-verified local da-11-1 task bytes (about 104 MiB) and the selected/development paraphrases. The exact da-11-1 seed payload remains unreadable on NAS8 for rep-001/rep-003 after bounded native probes; rep-002 metadata was recovered without rewriting it. One final bounded tar mirror job (`10440592`) was submitted to test exact byte staging; no model/provider call is involved. The frozen study remains 16/18 complete, with only two Full assignments pending, and all completed outputs are preserved.

@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-09-14",
+  "candidate": "attack_defense_v2.1_task_paraphrase_required",
+  "study": "biomnibench-da-factorial-r10-7ad21eac3648",
+  "scope": {
+    "expected_assignments": 18,
+    "terminal_assignments": 16,
+    "partial_assignments": 2,
+    "provider_calls_during_search": 0
+  },
+  "pending": [
+    {"task": "da-11-1", "feedback_policy": "full", "replicate": 1, "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"},
+    {"task": "da-11-1", "feedback_policy": "full", "replicate": 2, "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"}
+  ],
+  "required_validation_seed_set": [
+    {"replicate": 1, "seed_sha256": "3889f8ae13cc525456024580daffc4a8941509ee6fca527911d0a375c9123f31"},
+    {"replicate": 2, "seed_sha256": "71bbaf07b9e0e1d4de62259ecf343c54554132d26062a40b8bb7daf245da6a5e"},
+    {"replicate": 3, "seed_sha256": "9c45a6e016051e8ef5f4c035958997effe64a8a151fbc916ff41aa498a03293f"}
+  ],
+  "source_root": "/data/user_data/aydanh/rubric_gen/runs/trace-attack-defense-v3-20260911/control-v21-compatible/inputs/da-11-1/seed",
+  "nas1_mirror": "/home/aydanh/runs/trace-task-paraphrase-required-20260914/frozen-input-mirror/seed/da-11-1",
+  "mirror_state": {
+    "rep_001_manifest_bytes": 0,
+    "rep_002_metadata_bytes": 3461,
+    "rep_003_manifest_bytes": 0,
+    "complete_seed_payload_present": false
+  },
+  "checked_locations": [
+    "/home/aydanh/runs/trace-task-paraphrase-required-20260914/frozen-input-mirror",
+    "/home/aydanh/runs/trace-task-paraphrase-required-20260914/canonical/da-11-1",
+    "/home/aydanh/runs",
+    "/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2-exec-571965a",
+    "Git-tracked queue3 input/reuse receipts",
+    "saved NAS8 probe/mirror receipts (10440247, 10440251, 10440304, 10440413, 10440592, 10443454, 10443483)"
+  ],
+  "missing_components": ["submission", "elicitation_attempt", "initial_judgment", "per-replicate manifest", "seed-set manifest if present"],
+  "minimum_external_artifact": "byte-for-byte complete da-11-1 seed set for replicates 1, 2, 3 with all hash-referenced files and manifests",
+  "decision": "blocked_before_provider_calls",
+  "next_safe_action": "validate exact seed copy on NAS1, then native missing-only resume of the two pending Full assignments"
+}

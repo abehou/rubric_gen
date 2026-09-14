@@ -215,3 +215,5 @@ exact sealed seed contents (submission, elicitation attempt, and initial
 judgment hashes), so no safe submission is possible until those bytes are
 placed at a persistent NAS1 path. Reusing an older experiment's seed or
 rewriting a manifest would change the frozen input identity and is prohibited.
+The bounded search and minimum external artifact are documented in
+`exact-seed-blocker.md` and `exact-seed-blocker.json`.
