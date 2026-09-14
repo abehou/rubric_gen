@@ -68,3 +68,27 @@ relocation, and the frozen 18-assignment Dev3 has not been launched. The next
 actions are to read the validation receipt, run exactly one home-backed worker
 smoke, and submit `experiments/trace-task-paraphrase-required/run_candidate.sbatch`
 only if both gates pass.
+
+## Runtime-path follow-up (2026-09-14)
+
+The first home-output smoke (`10437723`) still used the NAS8 Python environment
+and failed before a model turn with `CodexProviderHealthError`/
+`TransportClosedError`; it produced no scientific request. A provider-free exact
+`CodexSdkSessionDriver` startup probe using the home-backed project environment
+(`/home/aydanh/repos/rubric_gen/.venv`, `openai_codex 0.147.0`) completed on
+compute job `10438158` and resolved its bundled CLI from that home-backed
+environment. The clean runner and the single smoke wrapper are now operationally
+pointed at that compatible home environment; no scientific source, prompt,
+model, input, or identity changed.
+
+The bounded home-vs-NAS8 dependency comparison was briefly delayed by a Slurm
+controller connection failure, then completed as job `10438204` at 08:20 EDT.
+It found identical key package versions in both environments, including
+`openai_codex 0.147.0`, `numpy 2.2.6`, `pandas 2.3.3`, `pydantic 2.13.4`,
+`websockets 16.1.1`, and `httpx 0.28.1`. The focused provider-free runtime
+tests under the home environment completed as job `10438213` at 08:21 EDT
+(`32 passed in 3.75s`). These are execution checks only; no provider call or
+Dev3 assignment was made by either job. The next gate is one real home-backed
+worker smoke with durable output under this NAS1 root, followed by the frozen
+18-assignment Dev3 only if that smoke reaches a real model turn and persists its
+output.
