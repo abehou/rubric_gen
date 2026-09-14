@@ -145,3 +145,11 @@ home-backed ledgers were receiving terminal records. NAS1/home had approximately
 5.5 GiB free and 10% inode use at this checkpoint. This is an operational
 progress record only; the candidate source, prompts, inputs, and assignment
 scope remain unchanged.
+
+At 10:15 EDT the preempt partition preempted `10438357` after 1:32:42. Slurm
+marked the batch `PREEMPTED` and automatically requeued the same job
+(`Requeue=1`, `Restarts=1`); it restarted at 10:17 EDT on `babel-u5-32`. The
+home-backed study ledgers retained the 16 completed assignments and two
+in-progress records throughout the transition, so the runner resumed only the
+unfinished work. This is scheduler recovery, not a scientific or provider
+failure.
