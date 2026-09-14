@@ -1,10 +1,11 @@
 # v2.1 task/paraphrase-grounded forensic and candidate record
 
-This is a provider-free decision record for the next permitted Red-Team-Trace
+This is the decision and execution record for the opt-in Red-Team-Trace
 candidate. It does not alter `attack_defense_v2.1`, historical Results20
-artifacts, or the held Results30/45 work. The current external provider limit is
-reported in the mission status and the native missing-only chains remain held;
-no new candidate call is authorized while that block is active.
+artifacts, or the held Results30/45 work. The candidate implementation is
+committed and pushed, but no scientific provider call has been made: the fresh
+worker-route smoke failed before a model turn and the shared compute NFS is
+currently full. Native missing-only chains remain held.
 
 ## Finding from the v2.1 implementation
 
@@ -75,7 +76,7 @@ supported root cause. The stress records also contain invalid retained
 computations, target-like private guidance and evaluator/context disagreement,
 so the selected-rubric pathway is only one mechanism among several.
 
-## Smallest candidate (not run)
+## Smallest candidate and implementation status
 
 The evidence supports one opt-in RTT-only candidate:
 `attack_defense_v2.1_task_paraphrase_grounded`.
@@ -89,23 +90,28 @@ locator repair, selection order, admission mathematics, penalties, schedule,
 feedback, solver, models, settings, and heldout evaluation remain unchanged.
 Outcome heldout rubrics are never supplied.
 
-No source file was changed for this candidate. This is deliberate: the current
-account-capacity receipt records provider access reset at `2026-09-19 04:09`,
-and adding or editing a `trace_defense*.py` module currently changes the
-implementation fingerprint used for every v2 recipe. A safe version-scoped
-dispatch must first preserve the historical v2.1 fingerprint while giving the
-new recipe a distinct request identity. Adding a compatibility hash or silently
-rewriting old generation receipts during an external provider outage would add
-complexity without producing evidence. The candidate therefore remains
-unlaunched and v2.1 remains the incumbent.
+The version-scoped implementation is committed in `b66035b` (candidate dispatch,
+prompt/context modules and configuration) and the focused fixture correction is
+in `c0aa4a3`. The legacy v2.1 stage and request identity remain unchanged. The
+focused candidate suite passed 6/6 in job `10431812`; the earlier broad suite
+reached 46 passing tests and one fixture-shape failure, which is corrected in
+`c0aa4a3` without changing scientific behavior. No historical receipt was
+rewritten.
 
-When provider access returns, the native order is: implement the version-scoped
-dispatch with a provider-stub test, run the canonical three-task/three-replicate
-Full and User development block (18 fresh candidate assignments), audit all four
-RH windows, and compare S/H/A and the three signed gaps against compatible v2.1
-controls. A selector change is conditional and must not be stacked on this
-candidate unless the resulting saved pair-disagreement analysis demonstrates
-that the two-slot selector systematically misses such pairs.
+The fresh route smoke `10431507` did not reach a model turn: the reviewed
+Codex/Luna app-server exited its stdout during startup and raised
+`CodexProviderHealthError` wrapping `TransportClosedError`. This is a current
+runtime-route failure, distinct from the old account-limit receipt. A scientific
+candidate run must wait for a successful same-route smoke and safe output
+storage; no Anthropic audit/score calls have been spent.
+
+When the route and storage are healthy, the native order is: run the canonical
+three-task/three-replicate Full and User development block (18 fresh candidate
+assignments), audit all four RH windows, and compare S/H/A and the three signed
+gaps against compatible v2.1 controls. A selector change is conditional and must
+not be stacked on this candidate unless the resulting saved pair-disagreement
+analysis demonstrates that the two-slot selector systematically misses such
+pairs.
 
 ## Operational state
 
@@ -116,8 +122,23 @@ mission report. Results30 has ten valid seed manifests but four `da-1-3` Full
 records stuck after `s000`; Results45 has 44/45 valid seed blocks and requires
 native regeneration for `da-17-1/rep-003`; Queue3 still lacks the
 Score-only/no-appendix `da-11-1` cell. Their native recovery, audits and reports
-are held behind the external provider limit. PaperBench jobs are unrelated and
-were not touched.
+are held behind the current worker/storage failures. PaperBench jobs are
+unrelated and were not touched.
+
+At the current Slurm snapshot, `10424672` is the only active
+scientific-looking job but belongs to the separate PaperBench owner (32 CPUs).
+The only other running job is the read-only NFS scan `10431744` (1 CPU). The
+many trace and scale entries shown as `JobHeldUser`, `JobHeldAdmin`, or
+`DependencyNeverSatisfied` are old dependency-chain records; they reserve no
+running CPUs and make no provider calls. They remain intact so their provenance
+and native resume relationships are not lost.
+
+The scan `10431655` recorded `nas8:/data/user_data/aydanh` at 2.0T used, 15M
+free, and 100% inodes. This is shared-mount headroom, not a personal 500GB quota
+balance; the export does not answer the standard `quota` query. The top-level
+read-only scan `10431744` is being allowed to finish before any narrow,
+owner-checked cache cleanup is considered. Scientific outputs, audit records and
+other owners' files are not candidates for deletion.
 
 This record is a concrete scientific limitation, not a successful candidate.
 Expectations remain **partially met**: v2.1 Full Results20 is a supported
