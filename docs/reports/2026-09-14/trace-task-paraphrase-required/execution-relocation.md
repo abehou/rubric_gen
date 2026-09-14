@@ -174,4 +174,23 @@ made by these jobs. The frozen study remains 16/18 completed, with only
 `da-11-1` Full rep-001 and rep-002 pending; no active Dev3 job is running while
 the exact seed source is unreadable. NAS1 relocation is therefore the right
 execution direction, but it cannot safely complete the run until the missing
-NAS8 seed content is readable or an already sealed exact copy is found.
+ NAS8 seed content is readable or an already sealed exact copy is found.
+
+At 12:58 EDT, the one-shot exact tar mirror `10440592` reached a compute node
+with NAS1 mounted read-write but failed while enumerating the NAS8 source
+(`tar: ... rep-001: Cannot savedir: Unknown error 512`). Its partial temporary
+directory was removed by the provider-free compute-node cleanup probe
+`10440640`; no source bytes were accepted as a seed mirror and no model call
+was made. The same probe confirmed that `/home/aydanh` is `rw` on the Slurm
+compute node `babel-m5-24` and that a write/remove round trip in the candidate
+root succeeds. The controller view can show the parent export as read-only
+while the repository submount remains writable; this is a session/mount-view
+difference, so launch readiness must be checked on the compute node.
+
+NAS1 input relocation is directionally correct and removes the NAS8 read path
+for any bytes that can be copied and hash-verified. It does not solve an
+unavailable source by itself: the two pending Full assignments still depend on
+exact da-11-1 seed trees (including sealed elicitation and judgment records),
+and those rep-001/rep-003 bytes are not yet available on a writable persistent
+mirror. The study remains 16/18 complete; no scientific configuration, request
+identity, or completed output changed.

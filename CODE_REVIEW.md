@@ -678,3 +678,7 @@
 ## 2026-09-14 12:50 EDT — Frozen input relocation
 
 - NAS1 is healthy enough for the remaining Dev3 outputs, and a hash-verified task/paraphrase mirror plus user-namespace bind capability provide a safe execution path. Do not treat the partial seed mirror as valid: rep-001/rep-003 seed bytes and source-reuse metadata still require exact reads from NAS8 or an existing sealed copy. The one-shot `10440592` tar copy is provider-free and will either produce a complete byte-preserving mirror or leave the scientific run unchanged; no method, prompt, or request identity is altered.
+
+## 2026-09-14 13:06 EDT — Compute-path write check
+
+- Compute-node probe `10440640` confirms NAS1 is writable in the actual Slurm environment even though the controller's parent mount can appear read-only. This removes a controller-view ambiguity but does not relax source integrity: failed exact NAS8 seed copies remain unusable, and no new scientific call may start until all pending seed bytes and source-reuse records are verifiably mirrored.
