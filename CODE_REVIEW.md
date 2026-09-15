@@ -682,3 +682,6 @@
 ## 2026-09-14 13:06 EDT — Compute-path write check
 
 - Compute-node probe `10440640` confirms NAS1 is writable in the actual Slurm environment even though the controller's parent mount can appear read-only. This removes a controller-view ambiguity but does not relax source integrity: failed exact NAS8 seed copies remain unusable, and no new scientific call may start until all pending seed bytes and source-reuse records are verifiably mirrored.
+## 2026-09-15 — Version-scoped diagnosis dispatch
+
+- 01:35 EDT: New completion-aware RTT requests dispatch only through the explicit `attack_defense_v2.1_task_paraphrase_required_completion` prompt module; legacy v2.1 and prior candidate identities remain unchanged. Focused tests cover the new prompt identity and stage dispatch; clean-run wrappers keep new durable state on NAS1 and disposable caches on job scratch.

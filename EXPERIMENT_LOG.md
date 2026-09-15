@@ -2430,3 +2430,6 @@ The latest available `sacct` query still shows all BioMNIBench recovery/audit/re
 ## 2026-09-14 21:35 EDT — Provisional task-required audit complete
 
 The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 valid assignments: User 9/9 and Full 7/9. Missing-only Sol+Opus audit recovery completed every configured stage (zero missing models); the six da-11-1 overload-missing calls were the only new retry scope, while malformed records and direct windows were replayed/reused. Provider-free outcomes show User RH full 27.78%→16.67% and S−H 0.61→−1.22, but W−S widens 7.50→9.11 and da-11-1 still has one nonconstructive omission case. The candidate remains a development hypothesis; the next step is a fresh matched canonical Dev3 from documented benchmark data, not historical NAS8 seeds.
+## 2026-09-15 — Clean RTT Dev3 preparation
+
+- 01:35 EDT: The one-time 16/18 forensic review identified diagnosis/compilation abstraction as the earliest failure; the versioned diagnosis-only completion clarification was committed as `d43ee1e`. A new four-condition matched Dev3 (36 assignments) is prepared from fresh official BioMNIBench data on NAS1; historical run data will not be used after retirement.
