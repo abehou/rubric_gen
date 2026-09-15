@@ -130,6 +130,12 @@ static/trace states. Completion gate `10448528` and audit `10448529` remain
 dependency-controlled. The prior `10448489` failure and its blocked children
 made no provider turn and are not part of the scientific cohort.
 
+At 06:18 EDT, the frozen revision `10448523` reached the halfway milestone:
+18/36 assignment states are terminal-completed and 26 assignment manifests have
+been created, with eight workers still active. No assignment failure artifact or
+timeout is present. The clean root is approximately 6.7G with about 8.3G free on
+NAS1; storage remains adequate for the remaining study and audit.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,

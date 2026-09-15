@@ -2476,3 +2476,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 05:25 EDT — frozen revision running
 
 - Execution-only key fix `fa2b0a2` is pushed. Replacement revision `10448523` is running with the required `revise` argument and valid preflight `10448487`; assignment work has started after pretreatment. Completion `10448528` and audit `10448529` remain dependency-controlled. The failed 10448489 path made no model turn and is not mixed into results.
+
+## 2026-09-15 06:18 EDT — frozen Dev3 halfway milestone
+
+- Revision 10448523 has 18/36 terminal-completed assignments and 26 manifests; eight workers remain active with no failure artifacts or timeout. Clean root is 6.7G and NAS1 has about 8.3G free. Completion 10448528 and audit 10448529 remain dependency-controlled.
