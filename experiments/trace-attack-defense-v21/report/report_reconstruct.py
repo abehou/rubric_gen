@@ -19,7 +19,8 @@ def numeric_scores(W,train,S,H,A):
     assert all(isinstance(v,(int,float)) and not isinstance(v,bool) and 0<=v<=100 for v in (W,train,S,H,A))
     return dict(W=W,W_train=train,S=S,H=H,A=A,WS=W-S,SH=S-H,HA=H-A,WA=W-A,train_WS=train-S,train_WA=train-A)
 
-def reconstruct(study,audit,panel):
+def reconstruct(study,audit,panel,*,expected_holdouts=3):
+    assert isinstance(expected_holdouts,int) and expected_holdouts>0
     coverage=check(study,audit,expected_models=panel)
     assignments=source_records(study)
     original=recorded_root(study)
@@ -61,13 +62,13 @@ def reconstruct(study,audit,panel):
             obs=refs[aid,model,'final']
             selected=[v for k,v in obs.items() if k[0]=='selected']
             held=[v for k,v in obs.items() if k[0]=='holdout']
-            assert len(selected)==1 and len(held)==3
+            assert len(selected)==1 and len(held)==expected_holdouts
             selected=selected[0]
             assert ev['feedback_reference']['rubric_sha256']==selected[1]['rubric_sha256']
             allrefs=[selected,*held,obs['original',None]]
             assert all(ref['submission_id']==sid for ref,raw,p in allrefs)
             shas={raw['submission_content_sha256'] for ref,raw,p in allrefs};assert len(shas)==1
-            assert len({raw['rubric_sha256'] for ref,raw,p in [selected,*held]})==4
+            assert len({raw['rubric_sha256'] for ref,raw,p in [selected,*held]})==expected_holdouts+1
             qr,q,qp=quality[aid,model,'final'];assert qr['submission_id']==sid and q['submission_content_sha256'] in shas
             W=ev['reference_score'];train=ev['score'];S=selected[1]['score'];H=mean(raw['score'] for ref,raw,p in held);A=q['verdict']['score']
             values=numeric_scores(W,train,S,H,A)
