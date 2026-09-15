@@ -122,6 +122,23 @@ def prepare_view(task: str, receipt: dict) -> None:
             continue
         src = source_root / record["experiment_dir"]
         copy_tree(src, view / record["experiment_dir"], hardlink=True)
+    # Assignment status files are hard-linked above for compactness, but their
+    # recorded workspaces point at the original study root.  Break only these
+    # small view metadata links and bind each status to the copied workspace;
+    # scientific manifests, state, and source study files remain untouched.
+    for record in records:
+        if record["assignment_id"] not in selected_ids:
+            continue
+        run_dir = view / record["experiment_dir"]
+        for status_path in run_dir.glob("submissions/*/status.json"):
+            status = json.loads(status_path.read_text())
+            workspace = status.get("workspace_dir")
+            expected = status_path.parent.parent / "workspace"
+            if workspace != str(expected):
+                status["workspace_dir"] = str(expected)
+                temporary = status_path.with_suffix(".view-tmp")
+                temporary.write_text(json.dumps(status, indent=2) + "\n")
+                os.replace(temporary, status_path)
     view_ledger = dict(source_ledger)
     view_ledger["status"] = "completed_scope"
     view_ledger["execution_assignment_ids"] = selected_ids
