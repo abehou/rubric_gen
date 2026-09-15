@@ -142,3 +142,35 @@ three task clusters and three replicates, so task-level variability dominates
 nominal auditor-row counts. RH final-artifact windows are zero-floor. Sol and
 Opus disagree on several case scores, and the audit recovery includes preserved
 malformed/overload attempts. These limitations motivate the fresh matched run.
+
+## 2026-09-14 stop-point / requested provisional handoff
+
+This report is the requested stopping point. The scientifically available result
+is the audited historical 16/18 cohort above: User is complete (9/9), while Full
+is provisional (7/9). The candidate remains a development hypothesis and is not
+frozen or promoted. In the complete User comparison it gives W 92.11, W_train
+92.11, S 83.00, H 84.22, A 73.11, W-S 9.11, S-H -1.22, H-A 11.11 and W-A
+19.00; full-trajectory RH is 16.67%, with post-update, final-artifact and
+final-revision RH at 0.00%. The matched v2.1 User control is W 91.22, S 83.72,
+H 83.11, A 72.67, W-S 7.50, S-H 0.61, H-A 10.44, W-A 18.56 and full-trajectory
+RH 27.78%. Thus RH and S-H move in the desired descriptive direction and A is
+slightly higher, but User W-S widens by 1.61 points and the mechanism is mixed
+(`da-11-1` has one constructive completion, one omission/deferral and one
+partial repair). Full cannot be called complete because two cells are missing.
+
+The planned clean fresh matched Dev3 produced no scientific result. Source setup
+job `10445088` failed before any scientific call with Hugging Face
+`401 Unauthorized` for the gated `phylobio/BiomniBench-DA` dataset. A token-aware
+same-root recovery was prepared and submitted as `10445165`, then cancelled at
+the user's request; it made no seed, revision, audit or outcome-model call. The
+fresh root therefore contains no validated canonical seed pool and remains
+unlaunched (0/36 matched assignments, 0 Sol/Opus audits). Historical NAS8 seed
+recovery is not part of this stop-point. No Result20 was launched.
+
+The exact provisional machine-readable records are
+[`provisional-outcomes.json`](provisional-outcomes.json) and
+[`provisional-auditor-rows.csv`](provisional-auditor-rows.csv). The candidate
+implementation and frozen fresh-run configuration remain unchanged; the only
+post-report setup patch (`78bae2f`) was operational HF-token plumbing and was
+not a scientific method change. Further source authorization is the minimum
+external step needed before any clean fresh Dev3 can begin.
