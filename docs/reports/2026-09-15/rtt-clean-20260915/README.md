@@ -115,6 +115,13 @@ block; it then completed successfully and all 9 seed manifests validated. The
 provider-free preflight is now 10448487, frozen revision 10448489, completion
 gate 10448490, and audit 10448491. No historical inputs are involved.
 
+Revision 10448489 then failed before its first provider turn because the stage
+wrapper did not export `OPENAI_API_KEY` to pairwise rubric induction
+(`RubricProposerProviderError`, four key-check failures). The preflight
+10448487 passed and no assignment output was created. The execution-only stage
+wrapper now loads the existing key for `revise`; the failed revision will be
+resumed with native `--resume`, preserving all frozen inputs and settings.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,

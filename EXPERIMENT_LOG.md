@@ -2468,3 +2468,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 05:08 EDT — fresh seed pool validated
 
 - Seed 10448435 produced eight valid blocks; `da-18-1/rep-002` failed because the Luna workspace omitted `trace.md` after an invalid tool patch. Native missing-only recovery 10448467 reran only that block and completed; all 9 manifests now validate. Paraphrase 10448421 remains valid. New provider-free preflight 10448487, revision 10448489, completion 10448490, and audit 10448491 are queued; no historical inputs are used.
+
+## 2026-09-15 05:15 EDT — revision credential wiring recovery
+
+- Revision 10448489 reached pairwise induction but failed before any model turn because `OPENAI_API_KEY` was absent from `clean_stage.sbatch`; all four retries were key checks. Preflight 10448487 passed and no assignment output was created. The wrapper now loads the existing key only for `revise`; native `--resume` will recover the failed stage without changing the frozen recipe.
