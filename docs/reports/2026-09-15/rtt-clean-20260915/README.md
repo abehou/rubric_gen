@@ -57,9 +57,9 @@ stage references NAS8 or historical run outputs.
 
 ## Current operational state
 
-The new YAML and stage wrappers are ready locally. Historical home-run retirement
-is queued as Slurm job 10447107; the read-only inventory job was canceled before
-execution because it remained pending. The clean source setup is submitted as
+The new YAML and stage wrappers are ready locally. The read-only inventory and
+home-retirement helpers were canceled before execution after their bounded
+cleanup attempt. The clean source setup is submitted as
 Slurm job 10447181, with the smoke, seed, paraphrase, preflight, revision,
 completion and audit stages held behind native dependencies (10447192,
 10447267/10447268, 10447270, 10447271, 10447273 and 10447274). No candidate
@@ -68,7 +68,7 @@ all downstream stages are `PENDING (Dependency)`.
 
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
-runtime failure. NAS1 remains writable with about 13 GiB free and 5% inode use,
+runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,
 and the clean root has not yet been created.
 
 At 02:15 EDT, the explicitly scoped old home-root cleanup removed the complete
@@ -78,8 +78,10 @@ whose nested files reject deletion under the current permissions; no chmod/chown
 or broad retry was attempted. NAS1 now reports about 15 GiB free and 4% inode
 use. The cleanup and inventory jobs were canceled after this bounded result so
 they cannot interfere with the clean chain; no clean scientific output has been
-written yet.
+written yet. Later test-only checks for the same preempt CPU request forecast
+the next available slot around 2026-09-16 06:17 EDT. The existing job remains
+scheduler-owned and was not resubmitted; this is a capacity/priority delay, not
+a scientific or provider failure.
 
-The canonical GitHub SSH push is currently unavailable from Babel
-(`github.com` DNS/public-key failure). The scientific commit remains locally
-on `aydan-red-team`; push will be retried when the route is available.
+The latest milestones through `c3bef1b` are pushed to the canonical GitHub
+`aydan-red-team` branch.
