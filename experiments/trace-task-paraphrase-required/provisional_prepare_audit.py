@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 from pathlib import Path
 
 
@@ -136,6 +137,10 @@ def prepare_view(task: str, receipt: dict) -> None:
             expected = status_path.parent.parent / "workspace"
             if workspace != str(expected):
                 status["workspace_dir"] = str(expected)
+                # Completed source submissions are intentionally read-only;
+                # only the copied view directory is made writable for this
+                # metadata replacement.
+                status_path.parent.chmod(status_path.parent.stat().st_mode | stat.S_IWUSR)
                 temporary = status_path.with_suffix(".view-tmp")
                 temporary.write_text(json.dumps(status, indent=2) + "\n")
                 os.replace(temporary, status_path)
