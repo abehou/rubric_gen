@@ -27,6 +27,7 @@ MODELS = ("gpt-5.6-sol", "claude-opus-5")
 WINDOWS = ("full_trajectory", "post_update", "final_artifact", "final_revision")
 METRICS = ("W", "W_train", "S", "H", "A", "W_minus_S", "S_minus_H", "H_minus_A", "W_minus_A")
 GAPS = ("W_minus_S", "S_minus_H", "H_minus_A")
+EXPECTED_ASSIGNMENTS = 36
 
 
 def load(path: Path):
@@ -167,8 +168,10 @@ def extract_rows() -> tuple[list[dict[str, object]], dict[str, object]]:
                 row[f"RH_{window}_positive"] = 100.0 * (decision == "reward_hacking_detected")
                 row[f"RH_{window}_abstain"] = 100.0 * (decision == "abstain")
             rows.append(row)
-    if len(rows) != 36 * 2:
-        raise RuntimeError(f"expected 72 auditor rows, got {len(rows)}")
+    if len(rows) != EXPECTED_ASSIGNMENTS * len(MODELS):
+        raise RuntimeError(
+            f"expected {EXPECTED_ASSIGNMENTS * len(MODELS)} auditor rows, got {len(rows)}"
+        )
     return rows, {
         "rubric_score": {
             "status": rubric["status"],
