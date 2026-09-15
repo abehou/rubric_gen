@@ -13,10 +13,15 @@ ROOT=/home/aydanh/runs/rtt-clean-20260915
 SOURCE="$ROOT/source"
 PY=/home/aydanh/repos/rubric_gen/.venv/bin/python
 mkdir -p "$ROOT" "$SOURCE"
-export HF_HOME="/scratch/job_tmp/${SLURM_JOB_ID}/hf-home"
-export XDG_CACHE_HOME="/scratch/job_tmp/${SLURM_JOB_ID}/xdg-cache"
-export TMPDIR="/scratch/job_tmp/${SLURM_JOB_ID}"
-mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$TMPDIR"
+JOB_TMP="/scratch/job_tmp/${SLURM_JOB_ID}"
+if ! mkdir -p "$JOB_TMP" 2>/dev/null; then
+  JOB_TMP="/tmp/rubric-gen-${SLURM_JOB_ID}"
+  mkdir -p "$JOB_TMP"
+fi
+export HF_HOME="$JOB_TMP/hf-home"
+export XDG_CACHE_HOME="$JOB_TMP/xdg-cache"
+export TMPDIR="$JOB_TMP"
+mkdir -p "$HF_HOME" "$XDG_CACHE_HOME"
 if [ -z "${HF_TOKEN:-}" ] && [ -r /home/aydanh/.cache/huggingface/token ]; then
   export HF_TOKEN="$(< /home/aydanh/.cache/huggingface/token)"
 fi

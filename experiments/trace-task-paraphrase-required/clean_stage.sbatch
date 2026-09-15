@@ -23,13 +23,18 @@ case "$STAGE" in
   revise) LIMIT=8 ;;
   *) echo "unsupported stage: $STAGE" >&2; exit 2 ;;
 esac
-mkdir -p "$ROOT" "$ROOT/logs" "/scratch/job_tmp/${SLURM_JOB_ID}"
+mkdir -p "$ROOT" "$ROOT/logs"
+JOB_TMP="/scratch/job_tmp/${SLURM_JOB_ID}"
+if ! mkdir -p "$JOB_TMP" 2>/dev/null; then
+  JOB_TMP="/tmp/rubric-gen-${SLURM_JOB_ID}"
+  mkdir -p "$JOB_TMP"
+fi
 export RUBRIC_GEN_PROJECT_ROOT="$RUN"
 export PYTHONPATH="$RUN/src"
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1
 export CODEX_HOME=/home/aydanh/codex-babel/redteam
-export TMPDIR="/scratch/job_tmp/${SLURM_JOB_ID}"
+export TMPDIR="$JOB_TMP"
 export XDG_CACHE_HOME="$TMPDIR/xdg-cache"
 export UV_CACHE_DIR="$TMPDIR/uv-cache"
 export MPLCONFIGDIR="$TMPDIR/matplotlib"

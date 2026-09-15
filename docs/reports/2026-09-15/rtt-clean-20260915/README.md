@@ -69,6 +69,15 @@ seed/paraphrase 10448333/10448334, preflight 10448335, revision 10448336,
 completion 10448337, audit 10448338. Downstream jobs remain native-dependency
 controlled; source is currently `PENDING (Priority)`.
 
+The replacement source 10448331 has since completed cleanly: official revision
+`e1c8ca5e11a620087bc48d97888eb69176a1f235`, 722/722 files, and valid source
+manifests. Smoke 10448332 then failed before any model turn because its assigned
+node (`babel-l5-32`) rejected `/scratch/job_tmp/10448332` with `Permission
+denied`; seed/paraphrase therefore never ran. The source is durable on NAS1.
+The wrappers now try `/scratch/job_tmp/$SLURM_JOB_ID` and fall back to a local
+`/tmp/rubric-gen-$SLURM_JOB_ID` directory on nodes where the scratch root is not
+writable. This is execution-only; no scientific request or identity changes.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,
@@ -86,5 +95,5 @@ the next available slot around 2026-09-16 06:17 EDT. The existing job remains
 scheduler-owned and was not resubmitted; this is a capacity/priority delay, not
 a scientific or provider failure.
 
-The latest milestones through `c3bef1b` are pushed to the canonical GitHub
+The latest milestones through `c827908` are pushed to the canonical GitHub
 `aydan-red-team` branch.

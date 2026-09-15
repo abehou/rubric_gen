@@ -20,10 +20,15 @@ PY=/home/aydanh/repos/rubric_gen/.venv/bin/python
 STAGE=${1:?stage seed or paraphrase}
 case "$STAGE" in seed|paraphrase) LIMIT=4 ;; *) echo "unsupported stage: $STAGE" >&2; exit 2 ;; esac
 JOB_ID=$SLURM_JOB_ID
-mkdir -p "$ROOT" "$ROOT/logs" "/scratch/job_tmp/$JOB_ID"
+mkdir -p "$ROOT" "$ROOT/logs"
+JOB_TMP="/scratch/job_tmp/$JOB_ID"
+if ! mkdir -p "$JOB_TMP" 2>/dev/null; then
+  JOB_TMP="/tmp/rubric-gen-$JOB_ID"
+  mkdir -p "$JOB_TMP"
+fi
 export RUBRIC_GEN_PROJECT_ROOT="$RUN" PYTHONPATH="$RUN/src" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 export CODEX_HOME=/home/aydanh/codex-babel/redteam
-export TMPDIR="/scratch/job_tmp/$JOB_ID" XDG_CACHE_HOME="$TMPDIR/xdg-cache"
+export TMPDIR="$JOB_TMP" XDG_CACHE_HOME="$JOB_TMP/xdg-cache"
 export UV_CACHE_DIR="$TMPDIR/uv-cache" MPLCONFIGDIR="$TMPDIR/matplotlib"
 export BIOMNIBENCH_LIVE_ROOT="$ROOT/live/$JOB_ID"
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1

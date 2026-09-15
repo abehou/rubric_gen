@@ -2441,6 +2441,10 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 
 - Source job 10447181 successfully fetched all 722 official dataset files and recorded revision `e1c8ca5e11a620087bc48d97888eb69176a1f235`, then failed only because a literal `\\n` made `source-access.json` invalid JSON. No model call occurred. After a focused newline fix (`8df2b35`), the failed dependency chain was canceled and resubmitted as source 10448331 → smoke 10448332 → seed/paraphrase 10448333/10448334 → preflight 10448335 → revision 10448336 → completion 10448337 → audit 10448338.
 
+## 2026-09-15 — clean smoke temp-path recovery (08:38 EDT)
+
+- Source 10448331 completed with valid official data, but smoke 10448332 failed before a model turn on `babel-l5-32` because `/scratch/job_tmp/10448332` was not writable. No scientific provider call occurred. All clean wrappers now fall back to `/tmp/rubric-gen-$SLURM_JOB_ID` when per-job scratch creation fails; `bash -n`, fallback simulation and the 14 focused RTT tests pass. The dependency chain is being resubmitted missing-only.
+
 ## 2026-09-15 — bounded old-root cleanup (02:15 EDT)
 
 - The explicitly scoped home cleanup removed the complete fresh-20260914 root and most of the older 20260914 root; nested protected scientific files left 621 MiB because deletion returned permission errors. No chmod/chown or broad retry was attempted. NAS1 now has about 15 GiB free and 4% inode use; pending retirement/inventory jobs were canceled, and the clean chain remains unchanged.

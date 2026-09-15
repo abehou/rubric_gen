@@ -14,9 +14,14 @@ set -euo pipefail
 RUN=/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2-exec-571965a
 ROOT=/home/aydanh/runs/rtt-clean-20260915/smoke-$SLURM_JOB_ID
 PY=/home/aydanh/repos/rubric_gen/.venv/bin/python
-mkdir -p "$ROOT" "/scratch/job_tmp/$SLURM_JOB_ID"
+mkdir -p "$ROOT"
+JOB_TMP="/scratch/job_tmp/$SLURM_JOB_ID"
+if ! mkdir -p "$JOB_TMP" 2>/dev/null; then
+  JOB_TMP="/tmp/rubric-gen-$SLURM_JOB_ID"
+  mkdir -p "$JOB_TMP"
+fi
 export RUBRIC_GEN_PROJECT_ROOT="$RUN" PYTHONPATH="$RUN/src" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 export CODEX_HOME=/home/aydanh/codex-babel/redteam TRACE_CLEAN_SMOKE_ROOT="$ROOT"
-export TMPDIR="/scratch/job_tmp/$SLURM_JOB_ID" XDG_CACHE_HOME="$TMPDIR/xdg-cache"
+export TMPDIR="$JOB_TMP" XDG_CACHE_HOME="$JOB_TMP/xdg-cache"
 mkdir -p "$XDG_CACHE_HOME"
 exec "$PY" "$RUN/experiments/trace-task-paraphrase-required/clean_route_smoke.py"

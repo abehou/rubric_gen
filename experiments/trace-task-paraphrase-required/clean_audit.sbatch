@@ -18,12 +18,17 @@ ROOT=/home/aydanh/runs/rtt-clean-20260915
 CFG=$RUN/experiments/trace-task-paraphrase-required/clean-matched-dev3.yaml
 PY=/home/aydanh/repos/rubric_gen/.venv/bin/python
 JOB_ID=$SLURM_JOB_ID
-mkdir -p "$ROOT" "$ROOT/logs" "/scratch/job_tmp/$JOB_ID"
+mkdir -p "$ROOT" "$ROOT/logs"
+JOB_TMP="/scratch/job_tmp/$JOB_ID"
+if ! mkdir -p "$JOB_TMP" 2>/dev/null; then
+  JOB_TMP="/tmp/rubric-gen-$JOB_ID"
+  mkdir -p "$JOB_TMP"
+fi
 export RUBRIC_GEN_PROJECT_ROOT="$RUN"
 export PYTHONPATH="$RUN/src"
 export PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 export CODEX_HOME=/home/aydanh/codex-babel/redteam
-export TMPDIR="/scratch/job_tmp/$JOB_ID"
+export TMPDIR="$JOB_TMP"
 export XDG_CACHE_HOME="$TMPDIR/xdg-cache"
 export UV_CACHE_DIR="$TMPDIR/uv-cache"
 export MPLCONFIGDIR="$TMPDIR/matplotlib"
