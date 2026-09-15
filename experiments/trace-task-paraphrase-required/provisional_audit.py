@@ -8,6 +8,7 @@ completed records are presented through the scoped ledgers.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import subprocess
@@ -36,6 +37,12 @@ BASE = Path("/home/aydanh/runs/trace-task-paraphrase-required-20260914")
 PROVISIONAL = BASE / "provisional-audit"
 TASKS = ("da-3-4", "da-11-1", "da-18-1")
 PANEL = ("gpt-5.6-sol", "claude-opus-5")
+REUSE_SOURCES = (
+    Path("/home/aydanh/repos/rubric_gen/runs/autonomous-dev3-20260907/"
+         "isolation-cachefix-smoke/audit/biomnibench-da-factorial-r3-3686c8965c2e"),
+    Path("/home/aydanh/repos/rubric_gen/runs/autonomous-dev3-20260907/"
+         "baseline-da11/audit/biomnibench-da-factorial-r3-ac929d893d67"),
+)
 
 
 def _identity_mismatches(view: Path, exp) -> dict[str, object]:
@@ -63,6 +70,18 @@ def configure_credentials() -> None:
         if not values.get(key):
             raise RuntimeError(f"configured {key} is absent")
         os.environ[key] = str(values[key])
+
+
+def install_exact_reuse() -> None:
+    """Install the existing exact semantic reuse adapter with absolute sources."""
+    adapter_path = ROOT / "experiments/trace-attack-defense-v21/audit_reuse.py"
+    spec = importlib.util.spec_from_file_location("trace_v21_audit_reuse", adapter_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load exact reuse adapter: {adapter_path}")
+    adapter = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(adapter)
+    adapter.SOURCES = list(REUSE_SOURCES)
+    adapter.install()
 
 
 def run_task(task: str) -> dict[str, object]:
@@ -161,6 +180,7 @@ def main() -> None:
         print(json.dumps({"stage": "provisional_audit_preflight_complete", "tasks": list(tasks), "assignments": sum(r["assignments"] for r in rows)}), flush=True)
         return
     configure_credentials()
+    install_exact_reuse()
     receipt = {
         "kind": "provisional-16-assignment-sol-opus-audit",
         "candidate": "attack_defense_v2.1_task_paraphrase_required",
