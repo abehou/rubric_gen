@@ -40,6 +40,6 @@ COMMIT=$(git -C "$RUN" rev-parse HEAD)
 "$PY" - <<PY
 import json
 from pathlib import Path
-Path("$ROOT/logs/audit-$JOB_ID.launch.json").write_text(json.dumps({"job":"$JOB_ID","commit":"$COMMIT","config":"$CFG","root":"$ROOT","cpus":int("$SLURM_CPUS_PER_TASK"),"models":["gpt-5.6-sol","claude-opus-5"],"time":"$(date -Is)"},indent=2)+"\\n")
+Path("$ROOT/logs/audit-$JOB_ID.launch.json").write_text(json.dumps({"job":"$JOB_ID","commit":"$COMMIT","config":"$CFG","root":"$ROOT","cpus":int("$SLURM_CPUS_PER_TASK"),"models":["gpt-5.6-sol","claude-opus-5"],"time":"$(date -Is)"},indent=2)+"\n")
 PY
 exec "$PY" -m rubric_gen.cli detect --experiment "$CFG" --max-concurrency 8 --resume

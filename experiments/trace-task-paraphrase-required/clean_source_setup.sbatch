@@ -35,9 +35,9 @@ try:
     rec={'repo_id':'phylobio/BiomniBench-DA','access':'success','revision':info.sha,'timestamp':datetime.now(timezone.utc).isoformat()}
 except Exception as exc:
     rec={'repo_id':'phylobio/BiomniBench-DA','access':'failure','error_type':type(exc).__name__,'error':str(exc)[:300], 'timestamp':datetime.now(timezone.utc).isoformat()}
-    (root/'source-access.json').write_text(json.dumps(rec,indent=2)+'\\n')
+    (root/'source-access.json').write_text(json.dumps(rec,indent=2)+'\n')
     raise
-(root/'source-access.json').write_text(json.dumps(rec,indent=2)+'\\n')
+(root/'source-access.json').write_text(json.dumps(rec,indent=2)+'\n')
 print(json.dumps({k:rec[k] for k in ('repo_id','access','revision')}))
 PY
 # A partial current download is disposable; never mix it with old data.
@@ -63,7 +63,7 @@ for task in sorted(expected):
     checks[task]={'instruction_bytes':(t/'instruction.md').stat().st_size,'rubric_bytes':(t/'tests'/'rubric.txt').stat().st_size,'data_entries':sum(1 for p in (t/'environment'/'data').rglob('*') if p.is_file())}
 access=json.loads((root/'source-access.json').read_text())
 manifest={'repo_id':'phylobio/BiomniBench-DA','revision':access['revision'],'source_script_sha256':hashlib.sha256((root/'download_biomni.py').read_bytes()).hexdigest(),'data_root':str(data),'tasks':sorted(expected),'checks':checks}
-(root/'source-manifest.json').write_text(json.dumps(manifest,indent=2)+'\\n')
-(root/'source-complete.json').write_text(json.dumps({'status':'complete','manifest':str(root/'source-manifest.json'),'revision':access['revision']},indent=2)+'\\n')
+(root/'source-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+(root/'source-complete.json').write_text(json.dumps({'status':'complete','manifest':str(root/'source-manifest.json'),'revision':access['revision']},indent=2)+'\n')
 print(json.dumps({'status':'complete','revision':access['revision'],'tasks':sorted(expected),'checks':checks}))
 PY

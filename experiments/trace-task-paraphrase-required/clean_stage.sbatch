@@ -41,7 +41,7 @@ COMMIT=$(git -C "$RUN" rev-parse HEAD)
 "$PY" - <<PY
 import json
 from pathlib import Path
-Path("$ROOT/logs/stage-${STAGE}-${SLURM_JOB_ID}.launch.json").write_text(json.dumps({"job":"$SLURM_JOB_ID","stage":"$STAGE","commit":"$COMMIT","config":"$CFG","root":"$ROOT","cpus":int("$SLURM_CPUS_PER_TASK"),"time":"$(date -Is)"},indent=2)+"\\n")
+Path("$ROOT/logs/stage-${STAGE}-${SLURM_JOB_ID}.launch.json").write_text(json.dumps({"job":"$SLURM_JOB_ID","stage":"$STAGE","commit":"$COMMIT","config":"$CFG","root":"$ROOT","cpus":int("$SLURM_CPUS_PER_TASK"),"time":"$(date -Is)"},indent=2)+"\n")
 PY
 if [ "$STAGE" = revise ]; then
   exec "$PY" -m rubric_gen.cli revise --experiment "$CFG" --max-concurrency "$LIMIT" --assignment-workers 8 --resume
