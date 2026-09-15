@@ -217,7 +217,10 @@ def project_rubric_feedback(
 
     reference = CompleteRubric.from_content(reference_rubric_text)
     expected_render = render_augmented_rubric
-    if getattr(generation, "red_team_trace_version", None) == "attack_defense_v2.1_task_paraphrase_required":
+    if getattr(generation, "red_team_trace_version", None) in {
+        "attack_defense_v2.1_task_paraphrase_required",
+        "attack_defense_v2.1_task_paraphrase_required_completion",
+    }:
         # The opt-in RTT candidate has one additional criterion scope (an
         # explicitly task-required omission).  Legacy generations continue to
         # use the pinned renderer byte-for-byte.

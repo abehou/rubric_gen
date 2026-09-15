@@ -11,6 +11,7 @@ from .evolution_provider import RubricProposerProviderError, RubricProposerInput
 from .evolution_stage import PROVIDER_FAILURE_MAX_RETRIES, maximum_stage_attempts
 from .trace_defense_evidence_v2 import EvidenceContractError
 from .task_paraphrase_required_schema import ResponseContract
+from importlib import import_module
 from . import task_paraphrase_required_prompts as prompts
 
 STAGE_CONTRACT_VERSION = 'trace-defense-v2-task-required-stage-1'
@@ -21,12 +22,16 @@ def contract_source_hashes(version=None):
     names = (
         'trace_defense_evidence_v2.py', 'trace_defense_v2_schema.py', 'trace_defense_v2_stage.py',
         'trace_defense_v2_prompts.py', 'trace_defense.py', 'trace_defense_schema.py')
-    if version in {'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required'}:
+    if version in {'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion'}:
         names += ('trace_defense_v21.py',)
     if version == 'attack_defense_v2.1_task_paraphrase_grounded':
         names += ('task_paraphrase_grounded.py', 'task_paraphrase_prompts.py', 'task_paraphrase_stage.py')
     if version == 'attack_defense_v2.1_task_paraphrase_required':
         names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_completion':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_completion_prompts.py',
                   'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py')
     return {name: sha256_file(root/name) for name in names}
 
@@ -36,9 +41,11 @@ class TraceStagesV2:
         self.proposer, self.root, self.read_only = proposer, root, read_only
         self.version = proposer.red_team_trace_version
         from .trace_defense_registry import recipe
-        if recipe(self.version).family != 'v2':
+        selected_recipe = recipe(self.version)
+        if selected_recipe.family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
-        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required'}:
+        self.prompts = import_module('.' + selected_recipe.prompts_module, __package__)
+        if self.version not in {self.prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
         self._recorded_requests = None
@@ -47,10 +54,10 @@ class TraceStagesV2:
         if validator.stage != stage:
             raise ValueError('response validator stage differs from request')
         return {'red_team_trace_version': self.version, 'stage': stage,
-                'prompt_version': prompts.PROMPT_VERSION, 'prompt': prompts.STAGES[stage],
-                'prompt_sha256': prompts.prompt_hashes()[stage],
-                'locator_repair_prompt': prompts.LOCATOR_REPAIR_V2,
-                'locator_repair_prompt_sha256': prompts.prompt_hashes()['locator_repair'],
+                'prompt_version': self.prompts.PROMPT_VERSION, 'prompt': self.prompts.STAGES[stage],
+                'prompt_sha256': self.prompts.prompt_hashes()[stage],
+                'locator_repair_prompt': self.prompts.LOCATOR_REPAIR_V2,
+                'locator_repair_prompt_sha256': self.prompts.prompt_hashes()['locator_repair'],
                 'stage_contract_version': STAGE_CONTRACT_VERSION,
                 'validation_source_sha256s': contract_source_hashes(self.version),
                 'evidence': canonical_json(evidence), 'schema': validator.schema,
@@ -139,7 +146,7 @@ class TraceStagesV2:
                                'source_binding_status': 'not_valid', 'validation_errors': last_errors}
                     break
                 kind = state['repair_kind'] if state is not None else 'schema_repair' if invalid else 'initial'
-                instructions = prompts.LOCATOR_REPAIR_V2 if kind == 'locator_repair' else prompts.STAGES[stage]
+                instructions = self.prompts.LOCATOR_REPAIR_V2 if kind == 'locator_repair' else self.prompts.STAGES[stage]
                 if state is not None:
                     payload = {'original_public_inputs': load_json_object(request['evidence'], 'request evidence'),
                                'previous_response': state['previous_response'], 'validation_errors': last_errors,

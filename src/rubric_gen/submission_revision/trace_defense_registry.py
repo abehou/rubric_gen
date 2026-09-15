@@ -40,6 +40,12 @@ _V21_TASK_PARAPHRASE = TraceRecipe(
 _V21_TASK_REQUIRED = TraceRecipe(
     'v2', 'task_paraphrase_required_prompts', 'task_paraphrase_required',
     'trace_defense_v2_attack', 'attack-record-v2.json')
+# One diagnosis-only follow-up.  Every other stage remains the preceding
+# task-required implementation; the distinct prompt module preserves request
+# identity for the new scientific recipe.
+_V21_TASK_REQUIRED_COMPLETION = TraceRecipe(
+    'v2', 'task_paraphrase_required_completion_prompts', 'task_paraphrase_required',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
 # v3 keeps the complete v2.1 attack/learning path.  Its only scientific
 # difference is the User-simulator delivery adapter, selected in controller
 # scoring; the learning recipe remains the pinned v2.1 implementation.
@@ -52,6 +58,7 @@ RECIPES = {
     'attack_defense_v2.1': _V21,
     'attack_defense_v2.1_task_paraphrase_grounded': _V21_TASK_PARAPHRASE,
     'attack_defense_v2.1_task_paraphrase_required': _V21_TASK_REQUIRED,
+    'attack_defense_v2.1_task_paraphrase_required_completion': _V21_TASK_REQUIRED_COMPLETION,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,

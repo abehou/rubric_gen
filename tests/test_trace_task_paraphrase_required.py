@@ -7,6 +7,7 @@ import pytest
 
 from rubric_gen.submission_revision import trace_defense_v2_prompts as legacy_prompts
 from rubric_gen.submission_revision import task_paraphrase_required_prompts as prompts
+from rubric_gen.submission_revision import task_paraphrase_required_completion_prompts as completion_prompts
 from rubric_gen.submission_revision import task_paraphrase_required_schema as schema
 from rubric_gen.submission_revision.rubric_generation import ElicitedCriterion
 from rubric_gen.submission_revision.task_paraphrase_required import (
@@ -20,6 +21,7 @@ from test_rubric_evolution import _development_rubric, _rubric
 
 
 VERSION = "attack_defense_v2.1_task_paraphrase_required"
+COMPLETION_VERSION = "attack_defense_v2.1_task_paraphrase_required_completion"
 
 
 def _proposer(version=VERSION):
@@ -97,3 +99,27 @@ def test_candidate_request_does_not_introduce_heldout_context():
                        "semantic": prompts.SEMANTIC_V2}).lower()
     assert "heldout rubric text" in text
     assert "outcome-heldout" not in text
+
+
+def test_completion_revision_changes_only_diagnosis_prompt_identity():
+    assert recipe(COMPLETION_VERSION).learning_module == "task_paraphrase_required"
+    assert completion_prompts.PROMPT_VERSION == COMPLETION_VERSION
+    assert completion_prompts.STAGES["diagnosis"] != prompts.STAGES["diagnosis"]
+    for name in ("quality", "rubric_view", "compilation", "semantic", "application", "attack",
+                 "locator_repair", "corrective", "anticipatory"):
+        left = completion_prompts.prompt_hashes()[name]
+        right = prompts.prompt_hashes()[name]
+        assert left == right, name
+    assert "preliminary" in completion_prompts.DIAGNOSIS_V2
+    assert "NO_SUPPORTED_RELATION" in completion_prompts.DIAGNOSIS_V2
+
+
+def test_completion_stage_dispatch_is_version_scoped():
+    validator = schema.ResponseContract("diagnosis", schema.diagnosis_schema((), {
+        "preferred": SimpleNamespace(source_id="preferred", lines=("x",), content_sha256="0" * 64),
+        "rejected": SimpleNamespace(source_id="rejected", lines=("x",), content_sha256="0" * 64),
+    }))
+    request = TraceStagesV2(_proposer(COMPLETION_VERSION), ".").request("diagnosis", {"task": "x"}, validator)
+    assert request["prompt_version"] == COMPLETION_VERSION
+    assert request["prompt"] == completion_prompts.DIAGNOSIS_V2
+    assert request["prompt"] != prompts.DIAGNOSIS_V2
