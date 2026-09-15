@@ -38,6 +38,25 @@ TASKS = ("da-3-4", "da-11-1", "da-18-1")
 PANEL = ("gpt-5.6-sol", "claude-opus-5")
 
 
+def _identity_mismatches(view: Path, exp) -> dict[str, object]:
+    """Return source-study identity fields that would reject native resolution."""
+    ledger = json.loads((view / "study.json").read_text())
+    root = view.resolve()
+    expected = {
+        "kind": "rubric-gen-randomized-revision-study",
+        "experiment_id": exp.experiment_id,
+        "experiment_path": str(exp.path),
+        "seed_run_dir": str(Path(exp.dag["seed"]["output_dir"]).resolve()),
+        "paraphrase_run_dir": str(Path(exp.dag["paraphrase"]["output_dir"]).resolve()),
+        "pretreatment_rubric_root": str(root / "pretreatment-rubrics"),
+    }
+    return {
+        key: {"ledger": ledger.get(key), "expected": value}
+        for key, value in expected.items()
+        if ledger.get(key) != value
+    }
+
+
 def configure_credentials() -> None:
     values = dotenv_values("/home/aydanh/repos/rubric_gen/.env.local")
     for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
@@ -54,6 +73,9 @@ def run_task(task: str) -> dict[str, object]:
     if tuple(exp.outcome_audit["models"]) != PANEL:
         raise RuntimeError(f"unexpected audit panel in {config_path}")
     ledger = json.loads((view / "study.json").read_text())
+    mismatches = _identity_mismatches(view, exp)
+    if mismatches:
+        raise RuntimeError(f"source identity mismatch diagnostics for {task}: {json.dumps(mismatches, sort_keys=True)}")
     completed = terminal_records(exp, ledger)
     expected = 6 if task != "da-11-1" else 4
     if len(completed) != expected or any(r["status"] != "completed" for r in completed):
@@ -93,6 +115,9 @@ def preflight_task(task: str) -> dict[str, object]:
     output = PROVISIONAL / "audit" / task
     exp = load_experiment(config_path)
     exp.dag["detect"]["output_dir"] = str(output)
+    mismatches = _identity_mismatches(view, exp)
+    if mismatches:
+        raise RuntimeError(f"source identity mismatch diagnostics for {task}: {json.dumps(mismatches, sort_keys=True)}")
     sources = resolve_study_sources(view, exp)
     common = dict(experiment=exp, study_dir=view,
                   paraphrase_dir=Path(str(exp.dag["paraphrase"]["output_dir"])),

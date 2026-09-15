@@ -125,6 +125,10 @@ def prepare_view(task: str, receipt: dict) -> None:
     view_ledger = dict(source_ledger)
     view_ledger["status"] = "completed_scope"
     view_ledger["execution_assignment_ids"] = selected_ids
+    # This is a scoped consumer view: native source resolution binds the
+    # pretreatment rubric root to the view itself, while all other source
+    # identities remain those of the original experiment.
+    view_ledger["pretreatment_rubric_root"] = str(view / "pretreatment-rubrics")
     view_ledger["finished_at"] = view_ledger.get("finished_at") or "provisional-audit"
     # Keep all original rows, identities and recorded paths.  Only the scoped
     # consumer root and terminal selection differ in this audit view.
