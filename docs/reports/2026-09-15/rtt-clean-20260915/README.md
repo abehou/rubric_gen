@@ -122,6 +122,14 @@ wrapper did not export `OPENAI_API_KEY` to pairwise rubric induction
 wrapper now loads the existing key for `revise`; the failed revision will be
 resumed with native `--resume`, preserving all frozen inputs and settings.
 
+The key fix was committed as `fa2b0a2` and pushed. The replacement revision
+`10448523` is now running from preflight `10448487` with the required `revise`
+argument and the existing key loaded privately. Its 36-assignment study has
+entered pretreatment/assignment work; early files show valid Full and User
+static/trace states. Completion gate `10448528` and audit `10448529` remain
+dependency-controlled. The prior `10448489` failure and its blocked children
+made no provider turn and are not part of the scientific cohort.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,

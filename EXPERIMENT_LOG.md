@@ -2472,3 +2472,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 05:15 EDT — revision credential wiring recovery
 
 - Revision 10448489 reached pairwise induction but failed before any model turn because `OPENAI_API_KEY` was absent from `clean_stage.sbatch`; all four retries were key checks. Preflight 10448487 passed and no assignment output was created. The wrapper now loads the existing key only for `revise`; native `--resume` will recover the failed stage without changing the frozen recipe.
+
+## 2026-09-15 05:25 EDT — frozen revision running
+
+- Execution-only key fix `fa2b0a2` is pushed. Replacement revision `10448523` is running with the required `revise` argument and valid preflight `10448487`; assignment work has started after pretreatment. Completion `10448528` and audit `10448529` remain dependency-controlled. The failed 10448489 path made no model turn and is not mixed into results.
