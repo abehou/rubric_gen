@@ -18,6 +18,17 @@ export HF_HOME="/scratch/job_tmp/${SLURM_JOB_ID}/hf-home"
 export XDG_CACHE_HOME="/scratch/job_tmp/${SLURM_JOB_ID}/xdg-cache"
 export TMPDIR="/scratch/job_tmp/${SLURM_JOB_ID}"
 mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" "$TMPDIR"
+# The dataset is gated.  Reuse the stopped user's existing Hugging Face
+# credential without printing or persisting it in the experiment log.  Keeping
+# HF_HOME on scratch preserves the durable source root as the only new source
+# artifact; HF_TOKEN is read-only credential plumbing for this setup stage.
+if [ -z "${HF_TOKEN:-}" ] && [ -r /home/aydanh/.cache/huggingface/token ]; then
+  export HF_TOKEN="$(< /home/aydanh/.cache/huggingface/token)"
+fi
+if [ -z "${HF_TOKEN:-}" ]; then
+  echo 'Hugging Face token unavailable; refusing an unauthenticated source attempt' >&2
+  exit 2
+fi
 cd "$ROOT"
 /home/aydanh/repos/rubric_gen/.venv/bin/python download_biomni.py
 /home/aydanh/repos/rubric_gen/.venv/bin/python - <<'PY'
