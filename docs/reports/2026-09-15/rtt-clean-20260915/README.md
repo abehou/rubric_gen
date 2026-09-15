@@ -101,6 +101,13 @@ loads the existing key only for both provider-backed input stages (`seed` and
 `paraphrase`); only the failed seed stage will be resubmitted, while the valid
 source, smoke, and completed paraphrase are preserved.
 
+Corrected seed recovery 10448435 is now running. The completed paraphrase
+10448421 is preserved. Provider-free preflight 10448442, revision 10448444,
+completion gate 10448447, and audit 10448448 are queued in that order; revision
+cannot start until preflight validates the seed. A transient shell-quoting error
+while attaching dependencies submitted only the single intended revision job;
+no duplicate completion or audit job was created.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,

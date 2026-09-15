@@ -2460,3 +2460,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 04:55 EDT — seed credential wiring recovery
 
 - Preserved seed job 10448380 failed all nine blocks because its optimizer-judge subprocesses also lacked `OPENAI_API_KEY`; no seed manifest became valid. The same execution-only wrapper fix now loads the existing key for seed and paraphrase, without changing scientific requests. Only the failed seed stage will be resubmitted; source, smoke, and completed paraphrase remain preserved.
+
+## 2026-09-15 04:57 EDT — frozen clean chain resubmitted
+
+- Corrected seed recovery 10448435 is running; completed paraphrase 10448421 is preserved. Provider-free preflight 10448442, revision 10448444, completion gate 10448447, and audit 10448448 are queued behind it. A transient dependency-command quoting error created no duplicate stage beyond the one intended revision job; no provider calls were made by that command.
