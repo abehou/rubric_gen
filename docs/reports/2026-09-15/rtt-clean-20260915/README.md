@@ -66,8 +66,13 @@ the launch script wrote a literal backslash-n into `source-access.json`
 jobs were canceled and the same frozen chain was resubmitted after fixing only
 that receipt serialization bug: source 10448331, smoke 10448332,
 seed/paraphrase 10448333/10448334, preflight 10448335, revision 10448336,
-completion 10448337, audit 10448338. Downstream jobs remain native-dependency
-controlled; source is currently `PENDING (Priority)`.
+completion 10448337, audit 10448338. Source 10448331 completed validly, while
+smoke 10448332 then failed before a model turn because its node denied
+`/scratch/job_tmp/10448332`; no scientific call occurred. The tested local-temp
+fallback was committed and the dependency-blocked jobs were replaced without
+repeating source: smoke 10448379, seed/paraphrase 10448380/10448381, preflight
+10448382, revision 10448383, completion 10448384, audit 10448385. The resumed
+smoke is currently `PENDING (Priority)`.
 
 The replacement source 10448331 has since completed cleanly: official revision
 `e1c8ca5e11a620087bc48d97888eb69176a1f235`, 722/722 files, and valid source

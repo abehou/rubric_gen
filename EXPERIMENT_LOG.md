@@ -2445,6 +2445,10 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 
 - Source 10448331 completed with valid official data, but smoke 10448332 failed before a model turn on `babel-l5-32` because `/scratch/job_tmp/10448332` was not writable. No scientific provider call occurred. All clean wrappers now fall back to `/tmp/rubric-gen-$SLURM_JOB_ID` when per-job scratch creation fails; `bash -n`, fallback simulation and the 14 focused RTT tests pass. The dependency chain is being resubmitted missing-only.
 
+## 2026-09-15 — clean chain resumed after smoke fix (04:42 EDT)
+
+- Source 10448331 is preserved as the valid 722-file official install. Failed smoke/dependency jobs were replaced without repeating source: 10448379 → 10448380/10448381 → 10448382 → 10448383 → 10448384 → 10448385. The new smoke uses the tested scratch-to-local-temp fallback and is pending scheduler priority; no candidate assignment call has started.
+
 ## 2026-09-15 — bounded old-root cleanup (02:15 EDT)
 
 - The explicitly scoped home cleanup removed the complete fresh-20260914 root and most of the older 20260914 root; nested protected scientific files left 621 MiB because deletion returned permission errors. No chmod/chown or broad retry was attempted. NAS1 now has about 15 GiB free and 4% inode use; pending retirement/inventory jobs were canceled, and the clean chain remains unchanged.
