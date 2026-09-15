@@ -92,6 +92,14 @@ commit `4c6fef2`. The submitted dependency chain is:
 | missing-only outcome audit | `10454087` | `afterok:10454082` | Sol + Opus |
 | derived candidate tables | `10454386` | `afterok:10454087` | none |
 
-At submission the preflight was pending for scheduler priority. No candidate
-provider call had started. Coverage, complete metrics, case mechanisms, gap/RH
-ranks and costs will be added after the frozen run.
+The exact provider-free preflight completed from the lightweight login
+controller after job `10454047` could not backfill. It validated all 18
+assignments, both condition IDs, nine frozen seeds, the paraphrase pool,
+candidate identity and new output root and persisted
+`/home/aydanh/runs/rtt-completion-pass-dev3-20260915/preflight.json` with
+`provider_calls=0`. The still-pending duplicate preflight was then cancelled
+and revision `10454080` made eligible directly. Pending limits were tightened
+to measured needs (revision 4 hours, audit 2 hours); scientific settings and
+memory requests did not change. No candidate provider call had started at that
+point. Coverage, complete metrics, case mechanisms, gap/RH ranks and costs will
+be added after the frozen run.

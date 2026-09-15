@@ -1,5 +1,6 @@
 ## 2026-09-15 — RTT task-required pass-boundary Dev3
 
+- 18:12 EDT: Exact zero-call preflight passed in the login controller after its 1-CPU Slurm owner could not backfill: 18 assignments, nine frozen seeds, paraphrases, candidate/version and output ownership all validate. Cancelled only pending duplicate `10454047`, made revision `10454080` eligible, and tightened pending revision/audit time limits to evidence-based 4h/2h; downstream gate/audit/analysis dependencies remain intact.
 - 17:33 EDT: Froze and pushed `attack_defense_v2.1_task_paraphrase_required_completion_pass` after saved clean-Dev3 traces showed that task-required A levels repeatedly allowed disclosed unperformed work to pass; 71/71 focused tests pass and selector/admission/delivery/solver/judges remain unchanged. Submitted provider-free preflight `10454047`, revision `10454080`, gate `10454082`, and audit `10454087` as an `afterok` chain; no new provider call had started at submission ([report](docs/reports/2026-09-15/rtt-task-required-pass-boundary/README.md)).
 
 ## 2026-09-12 — Final corrected PaperBench static Results20 complete
