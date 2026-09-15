@@ -134,7 +134,7 @@ def prepare_view(task: str, receipt: dict) -> None:
         for status_path in run_dir.glob("submissions/*/status.json"):
             status = json.loads(status_path.read_text())
             workspace = status.get("workspace_dir")
-            expected = status_path.parent.parent / "workspace"
+            expected = status_path.parent / "workspace"
             if workspace != str(expected):
                 status["workspace_dir"] = str(expected)
                 # Completed source submissions are intentionally read-only;
