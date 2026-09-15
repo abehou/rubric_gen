@@ -1338,3 +1338,6 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-12 — PaperBench current handoff
 
 - 13:59 EDT: PaperBench non-trace state was rechecked after the prior session ended. There are no active PaperBench jobs; failed prerequisites for the cancelled dependency chains were identified, and no replacement was submitted while provider authentication is revoked. Current condition-level coverage and exact native resume commands are in docs/reports/2026-09-12/paperbench-nontrace-results20/current-status.json and current-condition-status.csv.
+## 2026-09-15 — RTT completion-pass Dev3 ownership
+
+- 17:21 EDT: Branch `codex/rtt-dev3-next-20260915` owns exactly 18 new trace assignments for experiment `biomnibench-da-factorial-r10-a55245afa8c8` at `/home/aydanh/runs/rtt-completion-pass-dev3-20260915/`; frozen clean seeds/paraphrases are read-only inputs, and the existing 18 fixed plus 18 completion-parent cells remain comparison evidence. Config and recovery entrypoints are under `experiments/trace-task-paraphrase-required/completion_pass_*`; no Result20 job is in scope.

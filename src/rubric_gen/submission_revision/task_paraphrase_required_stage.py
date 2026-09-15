@@ -22,7 +22,7 @@ def contract_source_hashes(version=None):
     names = (
         'trace_defense_evidence_v2.py', 'trace_defense_v2_schema.py', 'trace_defense_v2_stage.py',
         'trace_defense_v2_prompts.py', 'trace_defense.py', 'trace_defense_schema.py')
-    if version in {'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion'}:
+    if version in {'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion', 'attack_defense_v2.1_task_paraphrase_required_completion_pass'}:
         names += ('trace_defense_v21.py',)
     if version == 'attack_defense_v2.1_task_paraphrase_grounded':
         names += ('task_paraphrase_grounded.py', 'task_paraphrase_prompts.py', 'task_paraphrase_stage.py')
@@ -32,6 +32,11 @@ def contract_source_hashes(version=None):
     if version == 'attack_defense_v2.1_task_paraphrase_required_completion':
         names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
                   'task_paraphrase_required_completion_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_completion_pass':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_completion_prompts.py',
+                  'task_paraphrase_required_completion_pass_prompts.py',
                   'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py')
     return {name: sha256_file(root/name) for name in names}
 
@@ -45,7 +50,7 @@ class TraceStagesV2:
         if selected_recipe.family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
         self.prompts = import_module('.' + selected_recipe.prompts_module, __package__)
-        if self.version not in {self.prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion'}:
+        if self.version not in {self.prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion', 'attack_defense_v2.1_task_paraphrase_required_completion_pass'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
         self._recorded_requests = None

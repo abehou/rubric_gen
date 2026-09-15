@@ -2489,3 +2489,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 10:10 EDT — Dev3 scientific decision
 
 - Provider-free analysis reports User trace gains in S/H/A and narrower W-S/S-H, but Full trace loses H/A and widens S-H; User early RH worsens and Full improves. The candidate is not promoted as a joint winner; `attack_defense_v2.1` remains incumbent. Report: `docs/reports/2026-09-15/rtt-clean-20260915/README.md`.
+## 2026-09-15 — RTT task-required pass-boundary follow-up
+
+- 17:21 EDT: Clean-Dev3 forensics locate the earliest repeated failure in compilation: task-required A levels let honestly unperformed work pass, producing zero learned penalty in Full da-11-1 rep-001 and withdrawal rather than completion in User rep-002; User rep-001 completion preceded the relevant admitted rule and carried two-auditor RH contamination.
+- 17:21 EDT: Fix one frozen hypothesis with `attack_defense_v2.1_task_paraphrase_required_completion_pass`: task-required A requires performed/captured work, while honest noncompletion is non-A and executed valid zero/non-estimable results remain passable; all common models, simulator, selector, admission, delivery, penalties, solver, stopping and judges stay fixed.

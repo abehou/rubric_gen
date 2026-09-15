@@ -8,6 +8,7 @@ import pytest
 from rubric_gen.submission_revision import trace_defense_v2_prompts as legacy_prompts
 from rubric_gen.submission_revision import task_paraphrase_required_prompts as prompts
 from rubric_gen.submission_revision import task_paraphrase_required_completion_prompts as completion_prompts
+from rubric_gen.submission_revision import task_paraphrase_required_completion_pass_prompts as completion_pass_prompts
 from rubric_gen.submission_revision import task_paraphrase_required_schema as schema
 from rubric_gen.submission_revision.rubric_generation import ElicitedCriterion
 from rubric_gen.submission_revision.task_paraphrase_required import (
@@ -22,6 +23,7 @@ from test_rubric_evolution import _development_rubric, _rubric
 
 VERSION = "attack_defense_v2.1_task_paraphrase_required"
 COMPLETION_VERSION = "attack_defense_v2.1_task_paraphrase_required_completion"
+COMPLETION_PASS_VERSION = "attack_defense_v2.1_task_paraphrase_required_completion_pass"
 
 
 def _proposer(version=VERSION):
@@ -123,3 +125,45 @@ def test_completion_stage_dispatch_is_version_scoped():
     assert request["prompt_version"] == COMPLETION_VERSION
     assert request["prompt"] == completion_prompts.DIAGNOSIS_V2
     assert request["prompt"] != prompts.DIAGNOSIS_V2
+
+
+def test_completion_pass_revision_changes_only_task_required_pass_stages():
+    assert recipe(COMPLETION_PASS_VERSION).learning_module == "task_paraphrase_required"
+    assert completion_pass_prompts.PROMPT_VERSION == COMPLETION_PASS_VERSION
+    for name in ("attack", "quality", "rubric_view", "diagnosis", "locator_repair",
+                 "corrective", "anticipatory"):
+        assert completion_pass_prompts.prompt_hashes()[name] == completion_prompts.prompt_hashes()[name], name
+    for name in ("compilation", "semantic", "application"):
+        assert completion_pass_prompts.prompt_hashes()[name] != completion_prompts.prompt_hashes()[name], name
+    guidance = completion_pass_prompts.TASK_REQUIRED_PASS_GUIDANCE
+    assert "actually performed" in guidance
+    assert "applicable non-A failure" in guidance
+    assert "zero, negative, or non-estimable result may pass" in guidance
+    assert "does not change claim_conditional criteria" in guidance
+
+
+def test_completion_pass_actual_stage_dispatch_uses_versioned_instructions():
+    docs = {
+        "artifact": SimpleNamespace(source_id="artifact", lines=("x",), content_sha256="0" * 64),
+    }
+    validator = schema.ResponseContract(
+        "application",
+        schema.application_schema(("A", "B", "C"), docs, obligation_mode="task_required"),
+        docs,
+        {"artifact": "artifact"},
+        labels=("A", "B", "C"),
+    )
+    request = TraceStagesV2(_proposer(COMPLETION_PASS_VERSION), ".").request(
+        "application", {"task": "x"}, validator
+    )
+    assert request["prompt_version"] == COMPLETION_PASS_VERSION
+    assert request["prompt"] == completion_pass_prompts.APPLICATION_V2
+    assert "non-A level" in request["prompt"]
+    assert request["schema"]["properties"]["applicability"]["enum"] == ["applicable", "undecidable"]
+
+
+def test_completion_pass_preserves_legacy_and_parent_request_identity():
+    assert prompt_hashes("attack_defense_v2.1") == legacy_prompts.prompt_hashes()
+    assert prompt_hashes(COMPLETION_VERSION) == completion_prompts.prompt_hashes()
+    assert completion_pass_prompts.DIAGNOSIS_V2 == completion_prompts.DIAGNOSIS_V2
+    assert completion_pass_prompts.ATTACK_V2 == completion_prompts.ATTACK_V2

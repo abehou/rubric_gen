@@ -1436,3 +1436,6 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-12 — Added-task heldout authority
 
 - 12:39 EDT: User authorizes the committed rigorous-V2 prompt (47463ca) for newly generated expansion heldouts; preserve the historical twenty-task pool and report the old/new generation difference. This resolves the heldout-policy hold; no task membership or treatment recipe changes.
+## 2026-09-15 — Current RTT development round
+
+Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_required_completion_pass`, whose only hypothesis is that a task-required zero-penalty A level must require performed/captured work rather than honest noncompletion. Reuse the frozen clean seeds/paraphrases and completed static/completion-parent evidence; audit the new Full/User trace arms with unchanged Sol+Opus and all four RH windows, then stop or run at most one further Dev3 only if a complete result identifies another concrete earliest RTT failure. Results10/20/30/45 remain out of scope.
