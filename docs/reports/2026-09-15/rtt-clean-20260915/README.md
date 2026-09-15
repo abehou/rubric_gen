@@ -71,6 +71,15 @@ estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 13 GiB free and 5% inode use,
 and the clean root has not yet been created.
 
+At 02:15 EDT, the explicitly scoped old home-root cleanup removed the complete
+`trace-task-paraphrase-required-fresh-20260914` root and most of the older
+candidate root. The remaining 621 MiB is protected historical scientific output
+whose nested files reject deletion under the current permissions; no chmod/chown
+or broad retry was attempted. NAS1 now reports about 15 GiB free and 4% inode
+use. The cleanup and inventory jobs were canceled after this bounded result so
+they cannot interfere with the clean chain; no clean scientific output has been
+written yet.
+
 The canonical GitHub SSH push is currently unavailable from Babel
 (`github.com` DNS/public-key failure). The scientific commit remains locally
 on `aydan-red-team`; push will be retried when the route is available.

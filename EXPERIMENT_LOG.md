@@ -2436,3 +2436,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 — clean Dev3 queue status (02:07 EDT)
 
 - The fresh NAS1 source stage is submitted as 10447181; smoke 10447192, fresh seed/paraphrase 10447267/10447268, preflight 10447270, revision 10447271, completion 10447273 and audit 10447274 are dependency-controlled. All remain pending for scheduler priority/dependencies with zero new scientific provider calls; NAS1 has about 13 GiB free and 5% inode use.
+
+## 2026-09-15 — bounded old-root cleanup (02:15 EDT)
+
+- The explicitly scoped home cleanup removed the complete fresh-20260914 root and most of the older 20260914 root; nested protected scientific files left 621 MiB because deletion returned permission errors. No chmod/chown or broad retry was attempted. NAS1 now has about 15 GiB free and 4% inode use; pending retirement/inventory jobs were canceled, and the clean chain remains unchanged.
