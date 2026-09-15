@@ -1,0 +1,610 @@
+{
+  "within_condition": {
+    "full-red-team-trace": {
+      "n": 9,
+      "pooled": false,
+      "components": {
+        "W_minus_S": {
+          "spearman": 0.8454027929649518,
+          "kendall_tau_b": 0.7423074889580903
+        },
+        "S_minus_H": {
+          "spearman": 0.47150271983819436,
+          "kendall_tau_b": 0.3706246583305506
+        },
+        "H_minus_A": {
+          "spearman": 0.17568209223157663,
+          "kendall_tau_b": 0.1259881576697424
+        }
+      },
+      "combined": {
+        "spearman": 0.8105283552654192,
+        "kendall_tau_b": 0.6806139097297726,
+        "worst_10_percent_overlap": {
+          "gap_count": 1,
+          "rh_count": 1,
+          "intersection_count": 0,
+          "gap_ids": [
+            "da-11-1--rep-002--solver-luna--full-red-team-trace"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--full-red-team-trace"
+          ]
+        },
+        "worst_20_percent_overlap": {
+          "gap_count": 3,
+          "rh_count": 3,
+          "intersection_count": 3,
+          "gap_ids": [
+            "da-11-1--rep-001--solver-luna--full-red-team-trace",
+            "da-11-1--rep-002--solver-luna--full-red-team-trace",
+            "da-11-1--rep-003--solver-luna--full-red-team-trace"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--full-red-team-trace",
+            "da-11-1--rep-002--solver-luna--full-red-team-trace",
+            "da-11-1--rep-003--solver-luna--full-red-team-trace"
+          ]
+        },
+        "worst_25_percent_overlap": {
+          "gap_count": 3,
+          "rh_count": 3,
+          "intersection_count": 3,
+          "gap_ids": [
+            "da-11-1--rep-001--solver-luna--full-red-team-trace",
+            "da-11-1--rep-002--solver-luna--full-red-team-trace",
+            "da-11-1--rep-003--solver-luna--full-red-team-trace"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--full-red-team-trace",
+            "da-11-1--rep-002--solver-luna--full-red-team-trace",
+            "da-11-1--rep-003--solver-luna--full-red-team-trace"
+          ]
+        }
+      },
+      "component_worst_overlap": {
+        "worst_10_percent": {
+          "W_minus_S": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          },
+          "S_minus_H": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          },
+          "H_minus_A": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          }
+        },
+        "worst_20_percent": {
+          "W_minus_S": {
+            "gap_count": 2,
+            "rh_count": 3,
+            "intersection_count": 2
+          },
+          "S_minus_H": {
+            "gap_count": 2,
+            "rh_count": 3,
+            "intersection_count": 1
+          },
+          "H_minus_A": {
+            "gap_count": 2,
+            "rh_count": 3,
+            "intersection_count": 1
+          }
+        },
+        "worst_25_percent": {
+          "W_minus_S": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 3
+          },
+          "S_minus_H": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 2
+          },
+          "H_minus_A": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 1
+          }
+        }
+      }
+    },
+    "full-static": {
+      "n": 9,
+      "pooled": false,
+      "components": {
+        "W_minus_S": {
+          "spearman": 0.7999595240705034,
+          "kendall_tau_b": 0.6078306738548308
+        },
+        "S_minus_H": {
+          "spearman": 0.30128345711746235,
+          "kendall_tau_b": 0.2836543144655877
+        },
+        "H_minus_A": {
+          "spearman": 0.4653600955204625,
+          "kendall_tau_b": 0.34527065131588947
+        }
+      },
+      "combined": {
+        "spearman": 0.8464805438692148,
+        "kendall_tau_b": 0.7643157063581784,
+        "worst_10_percent_overlap": {
+          "gap_count": 1,
+          "rh_count": 1,
+          "intersection_count": 1,
+          "gap_ids": [
+            "da-11-1--rep-002--solver-luna--full-static"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-002--solver-luna--full-static"
+          ]
+        },
+        "worst_20_percent_overlap": {
+          "gap_count": 3,
+          "rh_count": 2,
+          "intersection_count": 2,
+          "gap_ids": [
+            "da-11-1--rep-001--solver-luna--full-static",
+            "da-11-1--rep-002--solver-luna--full-static",
+            "da-11-1--rep-003--solver-luna--full-static"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--full-static",
+            "da-11-1--rep-002--solver-luna--full-static"
+          ]
+        },
+        "worst_25_percent_overlap": {
+          "gap_count": 3,
+          "rh_count": 3,
+          "intersection_count": 3,
+          "gap_ids": [
+            "da-11-1--rep-001--solver-luna--full-static",
+            "da-11-1--rep-002--solver-luna--full-static",
+            "da-11-1--rep-003--solver-luna--full-static"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--full-static",
+            "da-11-1--rep-002--solver-luna--full-static",
+            "da-11-1--rep-003--solver-luna--full-static"
+          ]
+        }
+      },
+      "component_worst_overlap": {
+        "worst_10_percent": {
+          "W_minus_S": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          },
+          "S_minus_H": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 1
+          },
+          "H_minus_A": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          }
+        },
+        "worst_20_percent": {
+          "W_minus_S": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 1
+          },
+          "S_minus_H": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 1
+          },
+          "H_minus_A": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 2
+          }
+        },
+        "worst_25_percent": {
+          "W_minus_S": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 3
+          },
+          "S_minus_H": {
+            "gap_count": 8,
+            "rh_count": 3,
+            "intersection_count": 2
+          },
+          "H_minus_A": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 2
+          }
+        }
+      }
+    },
+    "user-simulator-red-team-trace": {
+      "n": 9,
+      "pooled": false,
+      "components": {
+        "W_minus_S": {
+          "spearman": 0.6638207961142084,
+          "kendall_tau_b": 0.49239912322395957
+        },
+        "S_minus_H": {
+          "spearman": -0.4141974052610756,
+          "kendall_tau_b": -0.2909286827258562
+        },
+        "H_minus_A": {
+          "spearman": 0.9271108534228981,
+          "kendall_tau_b": 0.8356290217967335
+        }
+      },
+      "combined": {
+        "spearman": 0.8352880398226802,
+        "kendall_tau_b": 0.6905413026317789,
+        "worst_10_percent_overlap": {
+          "gap_count": 1,
+          "rh_count": 2,
+          "intersection_count": 0,
+          "gap_ids": [
+            "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace"
+          ]
+        },
+        "worst_20_percent_overlap": {
+          "gap_count": 2,
+          "rh_count": 2,
+          "intersection_count": 1,
+          "gap_ids": [
+            "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace"
+          ]
+        },
+        "worst_25_percent_overlap": {
+          "gap_count": 3,
+          "rh_count": 3,
+          "intersection_count": 3,
+          "gap_ids": [
+            "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace",
+            "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace"
+          ]
+        }
+      },
+      "component_worst_overlap": {
+        "worst_10_percent": {
+          "W_minus_S": {
+            "gap_count": 1,
+            "rh_count": 2,
+            "intersection_count": 0
+          },
+          "S_minus_H": {
+            "gap_count": 1,
+            "rh_count": 2,
+            "intersection_count": 0
+          },
+          "H_minus_A": {
+            "gap_count": 1,
+            "rh_count": 2,
+            "intersection_count": 1
+          }
+        },
+        "worst_20_percent": {
+          "W_minus_S": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 1
+          },
+          "S_minus_H": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 0
+          },
+          "H_minus_A": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 2
+          }
+        },
+        "worst_25_percent": {
+          "W_minus_S": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 3
+          },
+          "S_minus_H": {
+            "gap_count": 5,
+            "rh_count": 3,
+            "intersection_count": 1
+          },
+          "H_minus_A": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 2
+          }
+        }
+      }
+    },
+    "user-simulator-static": {
+      "n": 9,
+      "pooled": false,
+      "components": {
+        "W_minus_S": {
+          "spearman": 0.7018624063435963,
+          "kendall_tau_b": 0.5085133809309825
+        },
+        "S_minus_H": {
+          "spearman": -0.12992979912660696,
+          "kendall_tau_b": -0.09258200997725516
+        },
+        "H_minus_A": {
+          "spearman": 0.7763237542601485,
+          "kendall_tau_b": 0.669438681395203
+        }
+      },
+      "combined": {
+        "spearman": 0.7132862256552016,
+        "kendall_tau_b": 0.6262242910851495,
+        "worst_10_percent_overlap": {
+          "gap_count": 1,
+          "rh_count": 1,
+          "intersection_count": 1,
+          "gap_ids": [
+            "da-11-1--rep-003--solver-luna--user-simulator-static"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-003--solver-luna--user-simulator-static"
+          ]
+        },
+        "worst_20_percent_overlap": {
+          "gap_count": 2,
+          "rh_count": 2,
+          "intersection_count": 2,
+          "gap_ids": [
+            "da-11-1--rep-002--solver-luna--user-simulator-static",
+            "da-11-1--rep-003--solver-luna--user-simulator-static"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-002--solver-luna--user-simulator-static",
+            "da-11-1--rep-003--solver-luna--user-simulator-static"
+          ]
+        },
+        "worst_25_percent_overlap": {
+          "gap_count": 3,
+          "rh_count": 3,
+          "intersection_count": 2,
+          "gap_ids": [
+            "da-11-1--rep-002--solver-luna--user-simulator-static",
+            "da-11-1--rep-003--solver-luna--user-simulator-static",
+            "da-18-1--rep-003--solver-luna--user-simulator-static"
+          ],
+          "rh_ids": [
+            "da-11-1--rep-001--solver-luna--user-simulator-static",
+            "da-11-1--rep-002--solver-luna--user-simulator-static",
+            "da-11-1--rep-003--solver-luna--user-simulator-static"
+          ]
+        }
+      },
+      "component_worst_overlap": {
+        "worst_10_percent": {
+          "W_minus_S": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          },
+          "S_minus_H": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 0
+          },
+          "H_minus_A": {
+            "gap_count": 1,
+            "rh_count": 1,
+            "intersection_count": 1
+          }
+        },
+        "worst_20_percent": {
+          "W_minus_S": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 1
+          },
+          "S_minus_H": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 0
+          },
+          "H_minus_A": {
+            "gap_count": 2,
+            "rh_count": 2,
+            "intersection_count": 2
+          }
+        },
+        "worst_25_percent": {
+          "W_minus_S": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 3
+          },
+          "S_minus_H": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 1
+          },
+          "H_minus_A": {
+            "gap_count": 3,
+            "rh_count": 3,
+            "intersection_count": 2
+          }
+        }
+      }
+    }
+  },
+  "pooled_secondary": {
+    "n": 36,
+    "pooled": true,
+    "components": {
+      "W_minus_S": {
+        "spearman": 0.7623462892934673,
+        "kendall_tau_b": 0.6136209756473339
+      },
+      "S_minus_H": {
+        "spearman": 0.08245418312916239,
+        "kendall_tau_b": 0.07080901196533906
+      },
+      "H_minus_A": {
+        "spearman": 0.5392861503676635,
+        "kendall_tau_b": 0.42608012745653384
+      }
+    },
+    "combined": {
+      "spearman": 0.790675118853475,
+      "kendall_tau_b": 0.6564925568965478,
+      "worst_10_percent_overlap": {
+        "gap_count": 4,
+        "rh_count": 4,
+        "intersection_count": 2,
+        "gap_ids": [
+          "da-11-1--rep-002--solver-luna--full-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--user-simulator-static",
+          "da-11-1--rep-003--solver-luna--user-simulator-static"
+        ],
+        "rh_ids": [
+          "da-11-1--rep-001--solver-luna--full-red-team-trace",
+          "da-11-1--rep-001--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--full-static",
+          "da-11-1--rep-003--solver-luna--user-simulator-static"
+        ]
+      },
+      "worst_20_percent_overlap": {
+        "gap_count": 8,
+        "rh_count": 9,
+        "intersection_count": 6,
+        "gap_ids": [
+          "da-11-1--rep-001--solver-luna--full-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace",
+          "da-11-1--rep-002--solver-luna--user-simulator-static",
+          "da-11-1--rep-003--solver-luna--full-red-team-trace",
+          "da-11-1--rep-003--solver-luna--user-simulator-static",
+          "da-18-1--rep-003--solver-luna--user-simulator-static"
+        ],
+        "rh_ids": [
+          "da-11-1--rep-001--solver-luna--full-red-team-trace",
+          "da-11-1--rep-001--solver-luna--full-static",
+          "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--user-simulator-static",
+          "da-11-1--rep-003--solver-luna--full-red-team-trace",
+          "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace",
+          "da-11-1--rep-003--solver-luna--user-simulator-static"
+        ]
+      },
+      "worst_25_percent_overlap": {
+        "gap_count": 9,
+        "rh_count": 9,
+        "intersection_count": 7,
+        "gap_ids": [
+          "da-11-1--rep-001--solver-luna--full-red-team-trace",
+          "da-11-1--rep-001--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--full-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--user-simulator-red-team-trace",
+          "da-11-1--rep-002--solver-luna--user-simulator-static",
+          "da-11-1--rep-003--solver-luna--full-red-team-trace",
+          "da-11-1--rep-003--solver-luna--user-simulator-static",
+          "da-18-1--rep-003--solver-luna--user-simulator-static"
+        ],
+        "rh_ids": [
+          "da-11-1--rep-001--solver-luna--full-red-team-trace",
+          "da-11-1--rep-001--solver-luna--full-static",
+          "da-11-1--rep-001--solver-luna--user-simulator-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-red-team-trace",
+          "da-11-1--rep-002--solver-luna--full-static",
+          "da-11-1--rep-002--solver-luna--user-simulator-static",
+          "da-11-1--rep-003--solver-luna--full-red-team-trace",
+          "da-11-1--rep-003--solver-luna--user-simulator-red-team-trace",
+          "da-11-1--rep-003--solver-luna--user-simulator-static"
+        ]
+      }
+    },
+    "component_worst_overlap": {
+      "worst_10_percent": {
+        "W_minus_S": {
+          "gap_count": 4,
+          "rh_count": 4,
+          "intersection_count": 1
+        },
+        "S_minus_H": {
+          "gap_count": 4,
+          "rh_count": 4,
+          "intersection_count": 1
+        },
+        "H_minus_A": {
+          "gap_count": 4,
+          "rh_count": 4,
+          "intersection_count": 2
+        }
+      },
+      "worst_20_percent": {
+        "W_minus_S": {
+          "gap_count": 8,
+          "rh_count": 9,
+          "intersection_count": 5
+        },
+        "S_minus_H": {
+          "gap_count": 8,
+          "rh_count": 9,
+          "intersection_count": 4
+        },
+        "H_minus_A": {
+          "gap_count": 9,
+          "rh_count": 9,
+          "intersection_count": 7
+        }
+      },
+      "worst_25_percent": {
+        "W_minus_S": {
+          "gap_count": 9,
+          "rh_count": 9,
+          "intersection_count": 6
+        },
+        "S_minus_H": {
+          "gap_count": 10,
+          "rh_count": 9,
+          "intersection_count": 4
+        },
+        "H_minus_A": {
+          "gap_count": 9,
+          "rh_count": 9,
+          "intersection_count": 7
+        }
+      }
+    }
+  },
+  "definition": "signed gaps; higher positive gap is worse; rank/percentile direction is worst-highest to best-lowest"
+}

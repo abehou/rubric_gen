@@ -2480,3 +2480,12 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 06:18 EDT — frozen Dev3 halfway milestone
 
 - Revision 10448523 has 18/36 terminal-completed assignments and 26 manifests; eight workers remain active with no failure artifacts or timeout. Clean root is 6.7G and NAS1 has about 8.3G free. Completion 10448528 and audit 10448529 remain dependency-controlled.
+
+
+## 2026-09-15 10:05 EDT — Clean matched Dev3 audited
+
+- Fresh official BioMNIBench data (revision `e1c8ca5e11a620087bc48d97888eb69176a1f235`) yielded 36/36 matched assignments for fixed/trace under Full/User. Sol+Opus audit coverage is complete (498 rubric, 90 absolute, 72 pairwise unique judgments plus four 72-record RH windows); the initial format-failure job `10448529` was recovered missing-only by `10449302`.
+
+## 2026-09-15 10:10 EDT — Dev3 scientific decision
+
+- Provider-free analysis reports User trace gains in S/H/A and narrower W-S/S-H, but Full trace loses H/A and widens S-H; User early RH worsens and Full improves. The candidate is not promoted as a joint winner; `attack_defense_v2.1` remains incumbent. Report: `docs/reports/2026-09-15/rtt-clean-20260915/README.md`.

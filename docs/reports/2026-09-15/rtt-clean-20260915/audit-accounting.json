@@ -1,0 +1,99 @@
+{
+  "rubric_score": {
+    "status": "completed",
+    "configured_assignments": 36,
+    "evaluated_assignments": 36,
+    "planned_unique_judgments": 498,
+    "successful_unique_judgments": 498,
+    "failed_unique_judgments": 0,
+    "assignment_reference_records": 774
+  },
+  "absolute_score": {
+    "status": "completed",
+    "configured_assignments": 36,
+    "evaluated_assignments": 36,
+    "planned_unique_judgments": 90,
+    "successful_unique_judgments": 90,
+    "failed_unique_judgments": 0,
+    "assignment_reference_records": 144
+  },
+  "pairwise_preference": {
+    "status": "completed",
+    "configured_assignments": 36,
+    "evaluated_assignments": 36,
+    "planned_unique_judgments": 72,
+    "successful_unique_judgments": 72,
+    "failed_unique_judgments": 0,
+    "assignment_reference_records": 72
+  },
+  "direct_rh_costs": {
+    "full_trajectory": {
+      "observed_api_usd": 114.48525900000003,
+      "observed_by_model_usd": {
+        "claude-opus-5": 68.16818500000004,
+        "gpt-5.6-sol": 46.317074000000005
+      },
+      "pricing_as_of": "2026-08-18",
+      "pricing_sources": {
+        "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "google": "https://ai.google.dev/gemini-api/docs/pricing",
+        "openai": "https://developers.openai.com/api/docs/pricing"
+      }
+    },
+    "post_update": {
+      "observed_api_usd": 55.55549124999998,
+      "observed_by_model_usd": {
+        "claude-opus-5": 32.92401374999999,
+        "gpt-5.6-sol": 22.631477500000006
+      },
+      "pricing_as_of": "2026-08-18",
+      "pricing_sources": {
+        "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "google": "https://ai.google.dev/gemini-api/docs/pricing",
+        "openai": "https://developers.openai.com/api/docs/pricing"
+      }
+    },
+    "final_artifact": {
+      "observed_api_usd": 2.1350357499999997,
+      "observed_by_model_usd": {
+        "claude-opus-5": 1.29488075,
+        "gpt-5.6-sol": 0.8401549999999999
+      },
+      "pricing_as_of": "2026-08-18",
+      "pricing_sources": {
+        "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "google": "https://ai.google.dev/gemini-api/docs/pricing",
+        "openai": "https://developers.openai.com/api/docs/pricing"
+      }
+    },
+    "final_revision": {
+      "observed_api_usd": 11.533651499999992,
+      "observed_by_model_usd": {
+        "claude-opus-5": 6.913451000000002,
+        "gpt-5.6-sol": 4.620200500000001
+      },
+      "pricing_as_of": "2026-08-18",
+      "pricing_sources": {
+        "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "google": "https://ai.google.dev/gemini-api/docs/pricing",
+        "openai": "https://developers.openai.com/api/docs/pricing"
+      }
+    }
+  },
+  "reuse": {
+    "absolute_score_judgments_reused": 90,
+    "pairwise_preference_judgments_reused": 72,
+    "direct_rh_records_reused_per_window": 72,
+    "direct_rh_windows": 4,
+    "provider_calls_from_analysis": 0
+  },
+  "usage_estimates": {
+    "direct_rh_total_usd": 183.7094375,
+    "semantic_absolute_score_usd": 3.996631,
+    "semantic_pairwise_preference_usd": 3.87549,
+    "semantic_rubric_score_usd": 35.36163,
+    "identifiable_total_usd": 226.9431885,
+    "pricing_as_of": "2026-08-18",
+    "basis": "repository usage-derived estimates; not an account invoice"
+  }
+}
