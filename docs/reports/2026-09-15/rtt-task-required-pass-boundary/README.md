@@ -80,6 +80,17 @@ contain such a treatment. No Result20 run is authorized by this plan.
 
 ## Status
 
-The focused provider-free prompt/dispatch tests pass. Execution and audit job
-IDs, coverage, complete metrics, case mechanisms, gap/RH ranks and costs will be
-added after the frozen run.
+The focused provider-free prompt/dispatch tests pass (71/71). Scientific source
+and configuration are frozen at `0b29dd6`; the provider-free input/scope gate is
+commit `4c6fef2`. The submitted dependency chain is:
+
+| stage | Slurm job | dependency | provider work |
+|---|---:|---|---|
+| frozen-input preflight | `10454047` | none | none |
+| 18-assignment revision | `10454080` | `afterok:10454047` | Luna |
+| completion/lineage gate | `10454082` | `afterok:10454080` | none |
+| missing-only outcome audit | `10454087` | `afterok:10454082` | Sol + Opus |
+
+At submission the preflight was pending for scheduler priority. No candidate
+provider call had started. Coverage, complete metrics, case mechanisms, gap/RH
+ranks and costs will be added after the frozen run.

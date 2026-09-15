@@ -1,3 +1,7 @@
+## 2026-09-15 — RTT task-required pass-boundary Dev3
+
+- 17:33 EDT: Froze and pushed `attack_defense_v2.1_task_paraphrase_required_completion_pass` after saved clean-Dev3 traces showed that task-required A levels repeatedly allowed disclosed unperformed work to pass; 71/71 focused tests pass and selector/admission/delivery/solver/judges remain unchanged. Submitted provider-free preflight `10454047`, revision `10454080`, gate `10454082`, and audit `10454087` as an `afterok` chain; no new provider call had started at submission ([report](docs/reports/2026-09-15/rtt-task-required-pass-boundary/README.md)).
+
 ## 2026-09-12 — Final corrected PaperBench static Results20 complete
 
 - 12:27 EDT: Native local replay10415061 and finalizer10415098 closed900/900 Sol and900/900 Opus with120 valid revisions, zero new providers and no changed protected files. Final S−H is Full+0.9389 (task-cluster95%CI−1.5423 to3.5317), User+0.4466 (−0.7481 to1.6489); [final report](docs/reports/2026-09-12/paperbench-static/selected-neutral-heldout-rigorous-results20-final.md), with the remaining14 non-trace conditions retaining existing owners.
