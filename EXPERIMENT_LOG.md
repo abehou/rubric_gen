@@ -2456,3 +2456,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 04:46 EDT — paraphrase credential wiring recovery
 
 - Replacement paraphrase job 10448381 failed before any model call because `OPENAI_API_KEY` was not exported by the clean input wrapper. Source 10448331 and smoke 10448379 remain valid, and seed 10448380 is still running. A scoped wrapper fix loads the existing key only for paraphrase, with no scientific or request-identity change; failed paraphrase/downstream jobs will be resubmitted missing-only.
+
+## 2026-09-15 04:55 EDT — seed credential wiring recovery
+
+- Preserved seed job 10448380 failed all nine blocks because its optimizer-judge subprocesses also lacked `OPENAI_API_KEY`; no seed manifest became valid. The same execution-only wrapper fix now loads the existing key for seed and paraphrase, without changing scientific requests. Only the failed seed stage will be resubmitted; source, smoke, and completed paraphrase remain preserved.

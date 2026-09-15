@@ -93,6 +93,14 @@ stage, without logging it or changing scientific requests. The failed
 paraphrase and dependency-blocked downstream jobs will be replaced missing-only
 after this fix is pushed; source, smoke and seed will not be rerun.
 
+The preserved seed stage 10448380 then failed for all nine blocks after making
+no durable seed manifests: its optimizer-jury subprocesses reached
+`RuntimeError: OPENAI_API_KEY must be set`. This is the same wrapper credential
+omission, with no new scientific calls beyond the failed attempts. The fix now
+loads the existing key only for both provider-backed input stages (`seed` and
+`paraphrase`); only the failed seed stage will be resubmitted, while the valid
+source, smoke, and completed paraphrase are preserved.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,

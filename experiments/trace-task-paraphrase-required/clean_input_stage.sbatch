@@ -31,9 +31,9 @@ export CODEX_HOME=/home/aydanh/codex-babel/redteam
 export TMPDIR="$JOB_TMP" XDG_CACHE_HOME="$JOB_TMP/xdg-cache"
 export UV_CACHE_DIR="$TMPDIR/uv-cache" MPLCONFIGDIR="$TMPDIR/matplotlib"
 export BIOMNIBENCH_LIVE_ROOT="$ROOT/live/$JOB_ID"
-if [ "$STAGE" = paraphrase ] && [ -z "${OPENAI_API_KEY:-}" ]; then
+if { [ "$STAGE" = seed ] || [ "$STAGE" = paraphrase ]; } && [ -z "${OPENAI_API_KEY:-}" ]; then
   OPENAI_API_KEY=$("$PY" -c "from dotenv import dotenv_values; import sys; print(dotenv_values('/home/aydanh/repos/rubric_gen/.env.local').get(sys.argv[1]) or '')" OPENAI_API_KEY)
-  [ -n "$OPENAI_API_KEY" ] || { echo 'OPENAI_API_KEY unavailable for paraphrase stage' >&2; exit 2; }
+  [ -n "$OPENAI_API_KEY" ] || { echo "OPENAI_API_KEY unavailable for $STAGE stage" >&2; exit 2; }
   export OPENAI_API_KEY
 fi
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
