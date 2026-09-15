@@ -2464,3 +2464,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 04:57 EDT — frozen clean chain resubmitted
 
 - Corrected seed recovery 10448435 is running; completed paraphrase 10448421 is preserved. Provider-free preflight 10448442, revision 10448444, completion gate 10448447, and audit 10448448 are queued behind it. A transient dependency-command quoting error created no duplicate stage beyond the one intended revision job; no provider calls were made by that command.
+
+## 2026-09-15 05:08 EDT — fresh seed pool validated
+
+- Seed 10448435 produced eight valid blocks; `da-18-1/rep-002` failed because the Luna workspace omitted `trace.md` after an invalid tool patch. Native missing-only recovery 10448467 reran only that block and completed; all 9 manifests now validate. Paraphrase 10448421 remains valid. New provider-free preflight 10448487, revision 10448489, completion 10448490, and audit 10448491 are queued; no historical inputs are used.

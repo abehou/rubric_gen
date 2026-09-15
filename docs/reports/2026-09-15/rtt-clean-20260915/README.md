@@ -108,6 +108,13 @@ cannot start until preflight validates the seed. A transient shell-quoting error
 while attaching dependencies submitted only the single intended revision job;
 no duplicate completion or audit job was created.
 
+Seed recovery 10448435 produced eight valid blocks, but only
+`da-18-1/rep-002` failed its required `trace.md` validation after an invalid
+`apply_patch` tool hunk. Native missing-only recovery 10448467 reran only that
+block; it then completed successfully and all 9 seed manifests validated. The
+provider-free preflight is now 10448487, frozen revision 10448489, completion
+gate 10448490, and audit 10448491. No historical inputs are involved.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,
