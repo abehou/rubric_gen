@@ -45,4 +45,3 @@ payload={'status':'pass','provider_calls':0,'experiment_id':exp.experiment_id,'c
 (root/'preflight.json').write_text(json.dumps(payload,indent=2)+'\n')
 print(json.dumps(payload,sort_keys=True))
 PY
-

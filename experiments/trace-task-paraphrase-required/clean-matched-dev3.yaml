@@ -100,4 +100,3 @@ dag:
   detect:
     depends_on: [revise, paraphrase]
     output_dir: /home/aydanh/runs/rtt-clean-20260915/detect/{experiment_id}
-

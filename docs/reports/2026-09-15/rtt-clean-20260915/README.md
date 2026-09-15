@@ -66,4 +66,3 @@ still waiting on the cleanup allocation.
 The canonical GitHub SSH push is currently unavailable from Babel
 (`github.com` DNS/public-key failure). The scientific commit remains locally
 on `aydan-red-team`; push will be retried when the route is available.
-

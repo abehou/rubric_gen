@@ -21,4 +21,3 @@ finally: driver.close()
 (root/"result.json").write_text(json.dumps(rec,indent=2)+"\n")
 print(json.dumps({k:rec[k] for k in ("worker_access","model","exit_code","outputs") if k in rec}))
 raise SystemExit(0 if rec["worker_access"]=="available" and rec.get("outputs") else 2)
-

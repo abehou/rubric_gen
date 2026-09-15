@@ -20,4 +20,3 @@ export CODEX_HOME=/home/aydanh/codex-babel/redteam TRACE_CLEAN_SMOKE_ROOT="$ROOT
 export TMPDIR="/scratch/job_tmp/$SLURM_JOB_ID" XDG_CACHE_HOME="$TMPDIR/xdg-cache"
 mkdir -p "$XDG_CACHE_HOME"
 exec "$PY" "$RUN/experiments/trace-task-paraphrase-required/clean_route_smoke.py"
-

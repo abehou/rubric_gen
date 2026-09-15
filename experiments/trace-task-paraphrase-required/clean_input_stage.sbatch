@@ -36,4 +36,3 @@ from pathlib import Path
 Path("$ROOT/logs/input-$STAGE-$JOB_ID.launch.json").write_text(json.dumps({"job":"$JOB_ID","stage":"$STAGE","commit":"$COMMIT","config":"$CFG","root":"$ROOT","cpus":int("$SLURM_CPUS_PER_TASK"),"time":"$(date -Is)"},indent=2)+"\\n")
 PY
 exec "$PY" -m rubric_gen.cli "$STAGE" --experiment "$CFG" --max-concurrency "$LIMIT"
-
