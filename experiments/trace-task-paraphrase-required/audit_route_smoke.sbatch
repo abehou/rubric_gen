@@ -17,5 +17,8 @@ export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_TH
 export TOKENIZERS_PARALLELISM=false RAYON_NUM_THREADS=1
 export TMPDIR=/scratch/job_tmp/${SLURM_JOB_ID}
 mkdir -p "$TMPDIR"
-exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
-  experiments/trace-task-paraphrase-required/audit_route_smoke.py
+exec unshare -Urm /bin/bash -c '
+  set -euo pipefail
+  exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
+    experiments/trace-task-paraphrase-required/audit_route_smoke.py
+'

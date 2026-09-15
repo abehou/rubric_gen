@@ -26,7 +26,9 @@ mkdir -p "$XDG_CACHE_HOME" "$TMPDIR"
 # only those reads to validated NAS1 copies.  A private namespace avoids any
 # mutation of the real /data/user_data mount.
 export TRACE_MIRROR="$MIRROR"
-exec unshare -Urnm /bin/bash -c '
+ # Keep the network namespace so provider calls use the validated worker route;
+ # user/mount isolation still protects the NAS8 view from mutation.
+exec unshare -Urm /bin/bash -c '
   set -euo pipefail
   mount --make-rprivate /
   mount -t tmpfs -o size=64M trace-audit-inputs /data/user_data
