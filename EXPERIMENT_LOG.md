@@ -2426,3 +2426,7 @@ The latest available `sacct` query still shows all BioMNIBench recovery/audit/re
 ## 2026-09-14 12:50 EDT — NAS1 input relocation attempt
 
 - NAS1 `/home/aydanh` now reports approximately 15 GiB free and 4% inode use; the frozen candidate tree is about 1.8 GiB. A provider-free mirror contains hash-verified local da-11-1 task bytes (about 104 MiB) and the selected/development paraphrases. The exact da-11-1 seed payload remains unreadable on NAS8 for rep-001/rep-003 after bounded native probes; rep-002 metadata was recovered without rewriting it. One final bounded tar mirror job (`10440592`) was submitted to test exact byte staging; no model/provider call is involved. The frozen study remains 16/18 complete, with only two Full assignments pending, and all completed outputs are preserved.
+
+## 2026-09-14 21:35 EDT — Provisional task-required audit complete
+
+The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 valid assignments: User 9/9 and Full 7/9. Missing-only Sol+Opus audit recovery completed every configured stage (zero missing models); the six da-11-1 overload-missing calls were the only new retry scope, while malformed records and direct windows were replayed/reused. Provider-free outcomes show User RH full 27.78%→16.67% and S−H 0.61→−1.22, but W−S widens 7.50→9.11 and da-11-1 still has one nonconstructive omission case. The candidate remains a development hypothesis; the next step is a fresh matched canonical Dev3 from documented benchmark data, not historical NAS8 seeds.
