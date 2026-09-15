@@ -83,6 +83,16 @@ The wrappers now try `/scratch/job_tmp/$SLURM_JOB_ID` and fall back to a local
 `/tmp/rubric-gen-$SLURM_JOB_ID` directory on nodes where the scratch root is not
 writable. This is execution-only; no scientific request or identity changes.
 
+At 04:43 EDT, replacement paraphrase stage 10448381 failed after setup because
+the wrapper did not export `OPENAI_API_KEY` on the compute node
+(`RuntimeError: OPENAI_API_KEY must be set`). It reached no scientific model
+turn and produced no valid paraphrase outputs. Source 10448331 and smoke
+10448379 remain valid; seed 10448380 is still running. The narrowly scoped
+execution fix loads the existing key from `.env.local` only for the paraphrase
+stage, without logging it or changing scientific requests. The failed
+paraphrase and dependency-blocked downstream jobs will be replaced missing-only
+after this fix is pushed; source, smoke and seed will not be rerun.
+
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
 runtime failure. NAS1 remains writable with about 15 GiB free and 4% inode use,

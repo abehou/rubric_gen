@@ -2452,3 +2452,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 — bounded old-root cleanup (02:15 EDT)
 
 - The explicitly scoped home cleanup removed the complete fresh-20260914 root and most of the older 20260914 root; nested protected scientific files left 621 MiB because deletion returned permission errors. No chmod/chown or broad retry was attempted. NAS1 now has about 15 GiB free and 4% inode use; pending retirement/inventory jobs were canceled, and the clean chain remains unchanged.
+
+## 2026-09-15 04:46 EDT — paraphrase credential wiring recovery
+
+- Replacement paraphrase job 10448381 failed before any model call because `OPENAI_API_KEY` was not exported by the clean input wrapper. Source 10448331 and smoke 10448379 remain valid, and seed 10448380 is still running. A scoped wrapper fix loads the existing key only for paraphrase, with no scientific or request-identity change; failed paraphrase/downstream jobs will be resubmitted missing-only.
