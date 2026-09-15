@@ -2433,3 +2433,6 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-15 — Clean RTT Dev3 preparation
 
 - 01:35 EDT: The one-time 16/18 forensic review identified diagnosis/compilation abstraction as the earliest failure; the versioned diagnosis-only completion clarification was committed as `d43ee1e`. A new four-condition matched Dev3 (36 assignments) is prepared from fresh official BioMNIBench data on NAS1; historical run data will not be used after retirement.
+## 2026-09-15 — clean Dev3 queue status (02:07 EDT)
+
+- The fresh NAS1 source stage is submitted as 10447181; smoke 10447192, fresh seed/paraphrase 10447267/10447268, preflight 10447270, revision 10447271, completion 10447273 and audit 10447274 are dependency-controlled. All remain pending for scheduler priority/dependencies with zero new scientific provider calls; NAS1 has about 13 GiB free and 5% inode use.

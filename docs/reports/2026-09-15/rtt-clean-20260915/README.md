@@ -59,9 +59,17 @@ stage references NAS8 or historical run outputs.
 
 The new YAML and stage wrappers are ready locally. Historical home-run retirement
 is queued as Slurm job 10447107; the read-only inventory job was canceled before
-execution because it remained pending. No candidate scientific job is running.
-The clean source setup job has not yet been submitted because the scheduler is
-still waiting on the cleanup allocation.
+execution because it remained pending. The clean source setup is submitted as
+Slurm job 10447181, with the smoke, seed, paraphrase, preflight, revision,
+completion and audit stages held behind native dependencies (10447192,
+10447267/10447268, 10447270, 10447271, 10447273 and 10447274). No candidate
+scientific provider call has started: source is still `PENDING (Priority)` and
+all downstream stages are `PENDING (Dependency)`.
+
+At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
+estimated source-stage start around 07:48 EDT; this is queue priority, not a
+runtime failure. NAS1 remains writable with about 13 GiB free and 5% inode use,
+and the clean root has not yet been created.
 
 The canonical GitHub SSH push is currently unavailable from Babel
 (`github.com` DNS/public-key failure). The scientific commit remains locally
