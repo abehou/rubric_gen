@@ -90,6 +90,7 @@ commit `4c6fef2`. The submitted dependency chain is:
 | 18-assignment revision | `10454080` | `afterok:10454047` | Luna |
 | completion/lineage gate | `10454082` | `afterok:10454080` | none |
 | missing-only outcome audit | `10454087` | `afterok:10454082` | Sol + Opus |
+| derived candidate tables | `10454386` | `afterok:10454087` | none |
 
 At submission the preflight was pending for scheduler priority. No candidate
 provider call had started. Coverage, complete metrics, case mechanisms, gap/RH

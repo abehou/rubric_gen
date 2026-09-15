@@ -1,6 +1,6 @@
 ## RTT completion-pass Dev3 — 2026-09-15 17:33 EDT
 
-Source/config owner is commit `0b29dd6` in `runs/babel-code/rtt-dev3-next-20260915`; execution root is `/home/aydanh/runs/rtt-completion-pass-dev3-20260915/`, experiment `biomnibench-da-factorial-r10-a55245afa8c8`, with the validated clean NAS1 seed/paraphrase pool read-only. Jobs are preflight `10454047` -> revision `10454080` -> provider-free gate `10454082` -> missing-only Sol+Opus audit `10454087`; resume only this namespace and never rerun the matched fixed or completion-parent cells.
+Source/config owner is commit `0b29dd6` in `runs/babel-code/rtt-dev3-next-20260915`; execution root is `/home/aydanh/runs/rtt-completion-pass-dev3-20260915/`, experiment `biomnibench-da-factorial-r10-a55245afa8c8`, with the validated clean NAS1 seed/paraphrase pool read-only. Jobs are preflight `10454047` -> revision `10454080` -> provider-free gate `10454082` -> missing-only Sol+Opus audit `10454087` -> provider-free derived tables `10454386`; resume only this namespace and never rerun the matched fixed or completion-parent cells.
 
 ## 2026-09-12 — Completed PaperBench recovery ownership retired
 
