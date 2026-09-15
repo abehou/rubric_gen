@@ -30,6 +30,7 @@ from rubric_gen.submission_revision.detection_windows import RevisionDetectionWi
 from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
 from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
 from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner, RubricFreeScoreRunner
+from rubric_gen.submission_revision.evaluation import rubric_judge
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -83,6 +84,43 @@ def install_exact_reuse() -> None:
     spec.loader.exec_module(adapter)
     adapter.SOURCES = list(REUSE_SOURCES)
     adapter.install()
+
+
+def install_overload_recovery() -> None:
+    """Treat a saved/provider overload as transient without rewriting evidence.
+
+    Anthropic's overloaded-server APIError did not expose a status code and was
+    therefore classified as structural by the generic classifier.  This
+    opt-in recovery shim changes only the in-memory category used by this audit
+    invocation; original attempt JSON remains byte-for-byte preserved.
+    """
+    original_category = rubric_judge.failure_category
+
+    def classify(error: BaseException) -> str:
+        category = original_category(error)
+        message = str(error).lower()
+        if category == "structural" and (
+            "servers are currently overloaded" in message
+            or "temporarily overloaded" in message
+        ):
+            return "transient_provider"
+        return category
+
+    rubric_judge.failure_category = classify
+    original_read = rubric_judge.RubricScoreJudge._read_json
+
+    def read(path: Path) -> dict[str, object]:
+        value = original_read(path)
+        if (
+            path.name.startswith("attempt-")
+            and value.get("failure_category") == "structural"
+            and "overloaded" in str(value.get("error", "")).lower()
+        ):
+            value = dict(value)
+            value["failure_category"] = "transient_provider"
+        return value
+
+    rubric_judge.RubricScoreJudge._read_json = staticmethod(read)
 
 
 def run_task(task: str) -> dict[str, object]:
@@ -182,6 +220,8 @@ def main() -> None:
         return
     configure_credentials()
     install_exact_reuse()
+    if os.environ.get("TRACE_AUDIT_RETRY_OVERLOAD") == "1":
+        install_overload_recovery()
     receipt = {
         "kind": "provisional-16-assignment-sol-opus-audit",
         "candidate": "attack_defense_v2.1_task_paraphrase_required",
