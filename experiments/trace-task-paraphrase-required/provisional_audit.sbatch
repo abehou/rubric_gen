@@ -13,6 +13,7 @@
 set -euo pipefail
 ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/attack-defense-v2-exec-571965a
 MIRROR=/home/aydanh/runs/trace-task-paraphrase-required-20260914/provisional-audit/input-mirror
+export TRACE_PROVISIONAL_AUDIT_ROOT=${TRACE_PROVISIONAL_AUDIT_ROOT:-/home/aydanh/runs/trace-task-paraphrase-required-20260914/provisional-audit/audit}
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src" PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1

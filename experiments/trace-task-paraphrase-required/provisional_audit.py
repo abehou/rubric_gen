@@ -35,6 +35,7 @@ from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner, 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = Path("/home/aydanh/runs/trace-task-paraphrase-required-20260914")
 PROVISIONAL = BASE / "provisional-audit"
+AUDIT_ROOT = Path(os.environ.get("TRACE_PROVISIONAL_AUDIT_ROOT", str(PROVISIONAL / "audit")))
 TASKS = ("da-3-4", "da-11-1", "da-18-1")
 PANEL = ("gpt-5.6-sol", "claude-opus-5")
 REUSE_SOURCES = (
@@ -87,7 +88,7 @@ def install_exact_reuse() -> None:
 def run_task(task: str) -> dict[str, object]:
     config_path = ROOT / "experiments/trace-task-paraphrase-required/canonical" / f"{task}.yaml"
     view = PROVISIONAL / "views" / task
-    output = PROVISIONAL / "audit" / task
+    output = AUDIT_ROOT / task
     exp = load_experiment(config_path)
     if tuple(exp.outcome_audit["models"]) != PANEL:
         raise RuntimeError(f"unexpected audit panel in {config_path}")
@@ -131,7 +132,7 @@ def preflight_task(task: str) -> dict[str, object]:
     """Load and prepare every native audit stage without executing a call."""
     config_path = ROOT / "experiments/trace-task-paraphrase-required/canonical" / f"{task}.yaml"
     view = PROVISIONAL / "views" / task
-    output = PROVISIONAL / "audit" / task
+    output = AUDIT_ROOT / task
     exp = load_experiment(config_path)
     exp.dag["detect"]["output_dir"] = str(output)
     mismatches = _identity_mismatches(view, exp)
