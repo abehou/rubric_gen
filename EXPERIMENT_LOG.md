@@ -2437,6 +2437,10 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 
 - The fresh NAS1 source stage is submitted as 10447181; smoke 10447192, fresh seed/paraphrase 10447267/10447268, preflight 10447270, revision 10447271, completion 10447273 and audit 10447274 are dependency-controlled. All remain pending for scheduler priority/dependencies with zero new scientific provider calls; NAS1 has about 13 GiB free and 5% inode use.
 
+## 2026-09-15 — clean source receipt recovery (07:10 EDT)
+
+- Source job 10447181 successfully fetched all 722 official dataset files and recorded revision `e1c8ca5e11a620087bc48d97888eb69176a1f235`, then failed only because a literal `\\n` made `source-access.json` invalid JSON. No model call occurred. After a focused newline fix (`8df2b35`), the failed dependency chain was canceled and resubmitted as source 10448331 → smoke 10448332 → seed/paraphrase 10448333/10448334 → preflight 10448335 → revision 10448336 → completion 10448337 → audit 10448338.
+
 ## 2026-09-15 — bounded old-root cleanup (02:15 EDT)
 
 - The explicitly scoped home cleanup removed the complete fresh-20260914 root and most of the older 20260914 root; nested protected scientific files left 621 MiB because deletion returned permission errors. No chmod/chown or broad retry was attempted. NAS1 now has about 15 GiB free and 4% inode use; pending retirement/inventory jobs were canceled, and the clean chain remains unchanged.

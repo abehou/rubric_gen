@@ -59,12 +59,15 @@ stage references NAS8 or historical run outputs.
 
 The new YAML and stage wrappers are ready locally. The read-only inventory and
 home-retirement helpers were canceled before execution after their bounded
-cleanup attempt. The clean source setup is submitted as
-Slurm job 10447181, with the smoke, seed, paraphrase, preflight, revision,
-completion and audit stages held behind native dependencies (10447192,
-10447267/10447268, 10447270, 10447271, 10447273 and 10447274). No candidate
-scientific provider call has started: source is still `PENDING (Priority)` and
-all downstream stages are `PENDING (Dependency)`.
+cleanup attempt. The first clean source setup (10447181) ran after queue delay
+and downloaded all 722 files, but failed post-download JSON validation because
+the launch script wrote a literal backslash-n into `source-access.json`
+(`JSONDecodeError: Extra data`). No model/provider call occurred. Its dependent
+jobs were canceled and the same frozen chain was resubmitted after fixing only
+that receipt serialization bug: source 10448331, smoke 10448332,
+seed/paraphrase 10448333/10448334, preflight 10448335, revision 10448336,
+completion 10448337, audit 10448338. Downstream jobs remain native-dependency
+controlled; source is currently `PENDING (Priority)`.
 
 At the latest check (2026-09-15 02:07 EDT), the preempt CPU scheduler reported an
 estimated source-stage start around 07:48 EDT; this is queue priority, not a
