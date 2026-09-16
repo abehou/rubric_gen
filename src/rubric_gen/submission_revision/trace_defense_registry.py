@@ -40,6 +40,26 @@ _V21_TASK_PARAPHRASE = TraceRecipe(
 _V21_TASK_REQUIRED = TraceRecipe(
     'v2', 'task_paraphrase_required_prompts', 'task_paraphrase_required',
     'trace_defense_v2_attack', 'attack-record-v2.json')
+# The next development candidate preserves the task-required pairwise learner
+# and adds one absolute, execution-grounded enforcement review per checkpoint.
+_V21_TASK_REQUIRED_ENFORCED = TraceRecipe(
+    'v2', 'task_required_enforced_prompts', 'task_paraphrase_required',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY = TraceRecipe(
+    'v2', 'task_required_enforced_requirement_only_prompts', 'task_paraphrase_required',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_SOURCE_BOUND = TraceRecipe(
+    'v2', 'task_required_enforced_requirement_only_source_bound_prompts',
+    'task_paraphrase_required', 'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_WITNESS_FROZEN = TraceRecipe(
+    'v2', 'task_required_enforced_requirement_only_witness_frozen_prompts',
+    'task_paraphrase_required', 'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE = TraceRecipe(
+    'v2', 'task_required_enforced_requirement_only_durable_prompts',
+    'task_paraphrase_required', 'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE_DELIVERY = TraceRecipe(
+    'v2', 'task_required_enforced_requirement_only_durable_delivery_prompts',
+    'task_paraphrase_required', 'trace_defense_v2_attack', 'attack-record-v2.json')
 # v3 keeps the complete v2.1 attack/learning path.  Its only scientific
 # difference is the User-simulator delivery adapter, selected in controller
 # scoring; the learning recipe remains the pinned v2.1 implementation.
@@ -52,6 +72,12 @@ RECIPES = {
     'attack_defense_v2.1': _V21,
     'attack_defense_v2.1_task_paraphrase_grounded': _V21_TASK_PARAPHRASE,
     'attack_defense_v2.1_task_paraphrase_required': _V21_TASK_REQUIRED,
+    'attack_defense_v2.1_task_paraphrase_required_enforced': _V21_TASK_REQUIRED_ENFORCED,
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY,
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_SOURCE_BOUND,
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_WITNESS_FROZEN,
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE,
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE_DELIVERY,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,

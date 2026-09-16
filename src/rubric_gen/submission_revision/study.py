@@ -285,7 +285,57 @@ class StudyRunner:
             # The full ledger remains authoritative even for a partial resume.
             resolve_study_sources(self.root, self.experiment, require_terminal=False)
         _reclaim_interrupted_records(manifest)
+        self._rearm_transport_failures(manifest, assignments)
         return manifest
+
+    def _rearm_transport_failures(self, manifest, assignments) -> None:
+        """Give an explicit resume a fresh budget for response-free transport work.
+
+        A live invocation still stops at its existing retry limit. Preserve
+        every old attempt before retrying the same request; never clear a
+        scientific response, schema failure, or permanent provider failure.
+        """
+        if not self.config.resume:
+            return
+        transport_errors = {"APIConnectionError", "APITimeoutError", "ConnectError", "ReadTimeout"}
+        for assignment in self._pending_assignments(manifest, assignments):
+            record = _record_for(manifest, assignment.assignment_id)
+            if (record.get("status") != "failed"
+                    or not record.get("automatic_recovery_exhausted")
+                    or record.get("failure_category") != "transient_connection"):
+                continue
+            requests = []
+            request_root = self._experiment_dir(assignment) / "trace-defense-v2-requests"
+            if request_root.is_symlink():
+                raise RuntimeError("transport recovery request root is a symlink")
+            for directory in sorted(request_root.glob("*")):
+                if directory.is_symlink():
+                    raise RuntimeError("transport recovery request is a symlink")
+                if (directory / "result.json").exists():
+                    continue
+                paths = sorted(directory.glob("attempt-*.json"))
+                if not paths:
+                    continue
+                attempts = [read_json_object(p, "retained transport attempt") for p in paths]
+                if not all(a.get("status") == "provider_failure" and not a.get("permanent")
+                           and "output" not in a and a.get("error_type") in transport_errors
+                           for a in attempts):
+                    requests = []
+                    break
+                requests.append(directory)
+            if not requests:
+                continue
+            self._archive_assignment_failure(record)
+            archive = (self.root / "execution-attempts" / assignment.assignment_id
+                       / f"transport-{time.time_ns()}")
+            archive.mkdir()
+            for directory in requests:
+                directory.rename(archive / directory.name)
+            record.update(automatic_recovery_exhausted=False, automatic_attempt_count=0,
+                          next_automatic_action="explicit resume after archived transport failure",
+                          transport_recovery_archive=str(archive))
+            emit("assignment_transport_resume", assignment_id=assignment.assignment_id,
+                 archived_requests=len(requests), archive=str(archive))
 
     def _pending_assignments(
         self,

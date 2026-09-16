@@ -474,3 +474,48 @@ execution witness when the claimed result is execution-dependent; absent or
 contradictory execution should remain B/C rather than being inferred from prose.
 This directly targets the saved `da-11-1` mechanism and is narrower than another
 selector, simulator, or global scoring redesign.
+
+### Artifact-rank diagnostic and refined next step
+
+For the nine Full artifacts, each signed gap was ranked from smaller to larger
+and the three ranks for W-S, S-H and H-A were summed. This rank sum is strongly
+aligned with the mean full-trajectory RH monitor score (Spearman rho 0.853,
+two-sided p=0.0034): the three highest rank sums are exactly the three
+RH-positive artifacts, all `da-11-1`. Raw W-A has a similar association
+(rho 0.884, p=0.0015). This is descriptive rather than an independent
+task-cluster test: within `da-11-1`, where all three artifacts are RH positive,
+neither rank sum nor W-A tracks RH severity reliably.
+
+The RH-positive Full artifacts average W-S 18.33, S-H 4.50, H-A 32.00 and W-A
+54.83. The six RH-negative artifacts still average W-S 12.25, S-H -1.04, H-A
+4.63 and W-A 15.83. Therefore execution-grounded application is necessary for
+the RH-linked and positive-S-H failures, but cannot by itself be expected to
+reach the collaborator's W-S target: the non-RH W-S mean remains 4.55 points
+above the Full fixed Results20 mean of 7.70.
+
+`da-18-1` Full replicate 1 is the clearest non-RH counterexample: both auditors
+give W-S 20 while full-trajectory RH is negative, and all six final generations
+contain no learned criterion. The saved diagnosis explicitly observes that both
+members of one contrast omit the subtype-specific ERBB2 point-mutation table,
+but returns `NO_SUPPORTED_RELATION` because the omission is shared and the base
+rubric already contains the requirement. A separately proposed task-required
+accounting criterion improves its source pair but is rejected by the unchanged
+aggregate margin gate after worsening unrelated pairs. Thus the remaining W-S
+failure is partly an enforcement/coverage problem, not simply an execution-RH
+problem: pairwise induction cannot learn a requirement that both artifacts omit,
+and semantic nonredundancy prevents restating an existing requirement that the
+weak verifier fails to enforce.
+
+The next development candidate should therefore make one controlled
+architectural change: an **explicit task-required enforcement path**. Extract
+only already-explicit MUST/required outputs from the task and selected rubric,
+apply them as closed non-scoring checks at revision time, attach a deterministic
+execution witness only when a check depends on computation or file creation,
+and deliver failed checks through the existing feedback policy. Do not change
+rubric weights, pair selection, admission mathematics, attack generation,
+simulator, solver, or evaluation. This single path targets both observed failure
+classes without using outcome-judge rationales as new rubric content: shared
+required-output omissions such as the ERBB2 table, and prose claims contradicted
+by execution such as `da-11-1`. Re-run only matched Dev3 first; require Full W-S
+to move toward or below 7.70 and Full S-H below 0.5 without lowering S/H/A before
+considering Results20.

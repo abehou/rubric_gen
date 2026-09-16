@@ -84,7 +84,6 @@ from rubric_gen.submission_revision.rubric_generation_store import (
     rubric_generation_directory,
 )
 
-
 _NON_VALIDATION_STAGE_COUNT = 4
 
 
@@ -125,17 +124,23 @@ def rubric_generation_implementation_sha256(red_team_trace_version: str | None =
                        if recipe(red_team_trace_version).family == 'v2' or 'v2' not in p.stem)
         if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_grounded':
             # This opt-in recipe has deliberately separate filenames so that
-            # historical v2/v2.1 identities remain byte-stable.  Include its
-            # actual learning and prompt modules in the new recipe's existing
-            # implementation fingerprint.
+            # historical v2/v2.1 identities remain byte-stable; include its
+            # actual learning and prompt modules in this implementation fingerprint.
             paths += (package_root / 'task_paraphrase_grounded.py',
                       package_root / 'task_paraphrase_prompts.py',
                       package_root / 'task_paraphrase_stage.py')
-        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required':
+        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}:
             paths += (package_root / 'task_paraphrase_required.py',
                       package_root / 'task_paraphrase_required_prompts.py',
                       package_root / 'task_paraphrase_required_schema.py',
                       package_root / 'task_paraphrase_required_stage.py')
+        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}:
+            paths += tuple(package_root / name for name in ('task_required_enforced_prompts.py', 'task_required_enforced_schema.py', 'task_required_enforcement.py'))
+        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}: paths += (package_root / 'task_required_enforced_requirement_only_prompts.py',)
+        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound': paths += (package_root / 'task_required_enforced_requirement_only_source_bound_prompts.py',)
+        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen': paths += (package_root / 'task_required_enforced_requirement_only_witness_frozen_prompts.py',)
+        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable': paths += (package_root / 'task_required_enforced_requirement_only_durable_prompts.py',)
+        if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery': paths += (package_root / 'task_required_enforced_requirement_only_durable_delivery_prompts.py',)
     digest = hashlib.sha256()
     for path in paths:
         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))
@@ -143,7 +148,6 @@ def rubric_generation_implementation_sha256(red_team_trace_version: str | None =
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
-
 
 @dataclass(frozen=True)
 class _ProductionResult:

@@ -31,6 +31,14 @@ TASK_REQUIRED_PREFIX = (
     'output is a failure; do not treat that omission as not applicable. '
 )
 OBLIGATION_MODES = ('claim_conditional', 'task_required')
+ENFORCED_VERSIONS = {
+    'attack_defense_v2.1_task_paraphrase_required_enforced',
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only',
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound',
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen',
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable',
+    'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery',
+}
 
 
 def criterion_obligation_mode(criterion):
@@ -49,6 +57,16 @@ def _encode_compiled_criterion(compiled, obligation_mode):
         if len(encoded['requirement']) > 650:
             raise ValueError('task-required criterion requirement exceeds native limit')
     return encoded
+
+
+def _encode_supported_compiled_criterion(compiled, obligation_mode):
+    """Reject one overlong task rule without failing the whole update."""
+    try:
+        return _encode_compiled_criterion(compiled, obligation_mode)
+    except ValueError as error:
+        if str(error) == 'task-required criterion requirement exceeds native limit':
+            return None
+        raise
 
 
 def render_task_required_rubric(original_rubric: CompleteRubric, elicited_criteria):
@@ -267,6 +285,33 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
     ids = assessment.validation_artifact_ids_from_history(history)
     failures, diagnostics, compilations, proposed, reviews, validations, admissions = [], [], [], [], [], [], []
     structural_rejections = []
+    enforcement_record = None
+    if version in ENFORCED_VERSIONS:
+        from .task_required_enforcement import current_submission_artifact, enforcement_request
+        live_artifact, source_binding = current_submission_artifact(
+            history=history, output_dir=output_dir,
+            source_checkpoint=source_checkpoint)
+        source_id = f'live:s{source_checkpoint:03d}'
+        enforcement_input, enforcement_contract, witness_record = enforcement_request(
+            instruction=instruction, original_rubric=original_rubric,
+            development_rubric=development_rubric, artifact=live_artifact,
+            output_dir=output_dir, source_checkpoint=source_checkpoint,
+            freeze_witness=(version in {
+                'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen',
+                'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable',
+                'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}))
+        witness_record['source_binding'] = source_binding
+        enforcement = stages.call('enforcement', enforcement_input, enforcement_contract)
+        enforcement_record = {
+            'source_artifact_id': live_artifact.artifact_id,
+            'source_id': source_id,
+            'witness': witness_record,
+            'response': enforcement,
+            'resolved_evidence': enforcement_contract.validate(enforcement) if enforcement else {},
+            'status': 'valid_result' if enforcement else 'contract_exhausted',
+        }
+        if enforcement is None:
+            failures.append({'stage': 'enforcement', 'reason': 'contract_exhausted'})
     accepted, accepted_validations, reserved = [], [], set()
     duplicates = {canonical_sha256({'title': c.title, 'requirement': c.requirement,
         'levels': [{'label': l, 'description': d} for l, _, d in c.levels]})
@@ -337,7 +382,14 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
                 failures.append({'stage': 'compilation', 'pair_id': pair.pair_id,
                                  'reason': 'obligation_mode_changed'})
                 continue
-            encoded = _encode_compiled_criterion(compiled['criteria'][0], mode)
+            encoded = _encode_supported_compiled_criterion(compiled['criteria'][0], mode)
+            if encoded is None:
+                reason = 'task_required_requirement_exceeds_native_limit'
+                rejection = {'stage': 'compilation', 'pair_id': pair.pair_id,
+                             'reason': reason}
+                failures.append(rejection)
+                structural_rejections.append(rejection)
+                continue
             raw = native_criterion_payload(encoded, witness_pair_id=pair.pair_id,
                                             action=diagnosis['action'], active_learned_ids=available_ids)
             proposed.append({**raw, 'obligation_mode': mode})
@@ -400,7 +452,8 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
                 reserved.update(candidate.replaces)
     active = protocol.update_criteria(current_generation, tuple(accepted))
     _assert_final_title_invariant(original_rubric, active)
-    logical_ceiling = len(history.pairs)+2*len(ids)+3*len(selected)+len(selected)*len(ids)
+    logical_ceiling = (len(history.pairs)+2*len(ids)+3*len(selected)+len(selected)*len(ids)
+                       + (1 if version in ENFORCED_VERSIONS else 0))
     budget = logical_ceiling*maximum_stage_attempts(proposer.max_retries)
     if len(stages.records)>logical_ceiling or sum(x['actual_calls'] for x in stages.records)>budget:
         raise RuntimeError('trace learning exceeded its logical/attempt budget')
@@ -435,6 +488,8 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
         'actual_calls': sum(x['actual_calls'] for x in stages.records), 'cache_hits': sum(x['cache_hit'] for x in stages.records),
         'requests': sorted(stages.records, key=lambda x: (x['stage'], x['request_sha256'])),
         'scoring_feasibility': validate_generation_scoring_structure(generation, benchmark=proposer.benchmark)}
+    if version in ENFORCED_VERSIONS:
+        metadata['task_required_enforcement'] = enforcement_record
     if completed:
         if loaded != generation:
             raise RuntimeError('replayed v2 trace generation changed')

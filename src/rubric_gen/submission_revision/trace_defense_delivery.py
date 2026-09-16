@@ -18,10 +18,22 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
     record_dir=root/'trace-defense-reminders'
     prior_records=[read_json_object(record_dir/f's{i:03d}.json','prior trace reminder') for i in range(checkpoint)]
     reminded={r['selection']['criterion_id'] for r in prior_records if r['selection'] is not None}
+    task_numbers=numeric_literals(instruction)
+    if getattr(generation, 'red_team_trace_version', None) in {
+            'attack_defense_v2.1_task_paraphrase_required_enforced',
+            'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only',
+            'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}:
+        from .task_required_enforcement import select_enforcement
+        selection, enforcement_skipped = select_enforcement(
+            generation=generation, root=root, instruction=instruction,
+            numeric_literals=numeric_literals)
+        if selection is not None:
+            return selection, enforcement_skipped
+    else:
+        enforcement_skipped = []
     validation=read_json_object(score_validation_path,'score validation')
     _,_,_,scores=_validate_score_record(validation,generation.rubric.content,generation.rubric.content_sha256)
     offset=len(scores)-len(generation.elicited_criteria)+1
-    task_numbers=numeric_literals(instruction)
     eligible=[]; skipped=[]
     for index,c in enumerate(generation.elicited_criteria,offset):
         points=scores[f'criterion_{index}']
@@ -44,7 +56,7 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
         selection={'criterion_id':identity,'source_generation':c.source_generation,'category':category,
                    'points':points,'previously_reminded':identity in reminded,'corrective':corrective,
                    'requirement':c.requirement}
-    return selection, skipped
+    return selection, enforcement_skipped + skipped
 
 
 def appendix_mode(version, feedback_policy):

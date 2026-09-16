@@ -28,6 +28,40 @@ def contract_source_hashes(version=None):
     if version == 'attack_defense_v2.1_task_paraphrase_required':
         names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
                   'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_schema.py',
+                  'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_source_bound_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_witness_frozen_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_durable_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_durable_delivery_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
     return {name: sha256_file(root/name) for name in names}
 
 
@@ -38,8 +72,9 @@ class TraceStagesV2:
         from .trace_defense_registry import recipe
         if recipe(self.version).family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
-        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required'}:
+        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
+        self.prompts = recipe(self.version).prompts
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
         self._recorded_requests = None
 
@@ -47,10 +82,10 @@ class TraceStagesV2:
         if validator.stage != stage:
             raise ValueError('response validator stage differs from request')
         return {'red_team_trace_version': self.version, 'stage': stage,
-                'prompt_version': prompts.PROMPT_VERSION, 'prompt': prompts.STAGES[stage],
-                'prompt_sha256': prompts.prompt_hashes()[stage],
-                'locator_repair_prompt': prompts.LOCATOR_REPAIR_V2,
-                'locator_repair_prompt_sha256': prompts.prompt_hashes()['locator_repair'],
+                'prompt_version': self.prompts.PROMPT_VERSION, 'prompt': self.prompts.STAGES[stage],
+                'prompt_sha256': self.prompts.prompt_hashes()[stage],
+                'locator_repair_prompt': self.prompts.LOCATOR_REPAIR_V2,
+                'locator_repair_prompt_sha256': self.prompts.prompt_hashes()['locator_repair'],
                 'stage_contract_version': STAGE_CONTRACT_VERSION,
                 'validation_source_sha256s': contract_source_hashes(self.version),
                 'evidence': canonical_json(evidence), 'schema': validator.schema,
@@ -139,7 +174,7 @@ class TraceStagesV2:
                                'source_binding_status': 'not_valid', 'validation_errors': last_errors}
                     break
                 kind = state['repair_kind'] if state is not None else 'schema_repair' if invalid else 'initial'
-                instructions = prompts.LOCATOR_REPAIR_V2 if kind == 'locator_repair' else prompts.STAGES[stage]
+                instructions = self.prompts.LOCATOR_REPAIR_V2 if kind == 'locator_repair' else self.prompts.STAGES[stage]
                 if state is not None:
                     payload = {'original_public_inputs': load_json_object(request['evidence'], 'request evidence'),
                                'previous_response': state['previous_response'], 'validation_errors': last_errors,
