@@ -2498,3 +2498,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 
 - 17:21 EDT: Clean-Dev3 forensics locate the earliest repeated failure in compilation: task-required A levels let honestly unperformed work pass, producing zero learned penalty in Full da-11-1 rep-001 and withdrawal rather than completion in User rep-002; User rep-001 completion preceded the relevant admitted rule and carried two-auditor RH contamination.
 - 17:21 EDT: Fix one frozen hypothesis with `attack_defense_v2.1_task_paraphrase_required_completion_pass`: task-required A requires performed/captured work, while honest noncompletion is non-A and executed valid zero/non-estimable results remain passable; all common models, simulator, selector, admission, delivery, penalties, solver, stopping and judges stay fixed.
+
+## 2026-09-16 — Babel user-data cleanup
+
+- 05:20 EDT: Compute-node inspection confirms `/data/user_data/aydanh` is a dedicated 2.0 TiB NAS8 export that was effectively full; exact-path cleanup removed 11.37 GiB of stale Triton cache and 54 MiB of TorchInductor cache, and is removing reconstructible package/container temporaries without touching scientific results. The old Apptainer build tree contains root-owned remnants that the user account cannot delete; bounded attribution and admin-ready evidence are being retained in `docs/reports/2026-09-16/babel-storage-cleanup/README.md`.
