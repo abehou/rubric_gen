@@ -12,9 +12,12 @@ The current development split is:
   executable handoff. The thread URI is a coordination reference, not scientific
   provenance.
 
-No Result20 experiment is authorized or running at this checkpoint. The failed
-completion-pass Dev3 chain (`10454080`, OOM; downstream jobs cancelled) is retired
-and must not be resumed as the future Result20 source.
+This document began as the pre-execution staging record. The authorized
+Results20 validation has now completed from promoted candidate
+`attack_defense_v2.1_execution_verified_proactive_provenance`; its authoritative
+outcome is the [Results20 report](../../2026-09-17/trace-v21-execution-verified-provenance-result20/README.md).
+The failed completion-pass Dev3 chain (`10454080`, OOM; downstream jobs
+cancelled) remained retired and was not used as the Results20 source.
 
 ## Storage layout
 
@@ -94,9 +97,16 @@ memory and provider occupancy. It should reduce only the affected stage if
 measured pressure or provider limits require it, without changing scientific
 semantics.
 
-## Promotion handoff
+## Executed promotion handoff
 
-Before Babel makes any Result20 provider call:
+The promoted run used revision job `10478084` and one provider-partitioned audit
+owner, job `10479921`, followed by missing-only recovery `10480179`. Revision
+remained aggregate-60 with internal RTT fanout four. Audit reached 60 concurrent
+Sol requests and 60 concurrent Opus requests, for 120 total; it did not retain
+the older shared-total-60 assumption. Assignment coverage is 120/120 and the
+final Sol+Opus audit contains 3,678/3,678 semantic judgments.
+
+The executed handoff followed these checks:
 
 1. fetch the Mac-promoted commit from `origin/aydan-red-team`;
 2. verify the committed Dev3 report identifies a clear positive signal and exact

@@ -1,0 +1,174 @@
+{
+  "current_full": {
+    "final_artifact": {
+      "n": 60,
+      "spearman": 0.04770216760279137,
+      "kendall_tau_b": 0.0407159128018359,
+      "components": {
+        "W_minus_S": {
+          "spearman": -0.03078902737731668,
+          "kendall_tau_b": -0.026437042619115253
+        },
+        "S_minus_H": {
+          "spearman": -0.1700193626484651,
+          "kendall_tau_b": -0.13572916150856734
+        },
+        "H_minus_A": {
+          "spearman": 0.3702117741409052,
+          "kendall_tau_b": 0.2884395900651819
+        }
+      },
+      "worst_overlap": {
+        "0.1": {
+          "gap_count": 6,
+          "rh_count": 6,
+          "intersection_count": 2,
+          "union_count": 10,
+          "jaccard": 0.2
+        },
+        "0.2": {
+          "gap_count": 12,
+          "rh_count": 14,
+          "intersection_count": 4,
+          "union_count": 22,
+          "jaccard": 0.18181818181818182
+        },
+        "0.25": {
+          "gap_count": 15,
+          "rh_count": 46,
+          "intersection_count": 11,
+          "union_count": 50,
+          "jaccard": 0.22
+        }
+      }
+    },
+    "full_trajectory": {
+      "n": 60,
+      "spearman": 0.16930395116003769,
+      "kendall_tau_b": 0.1264632989431441,
+      "components": {
+        "W_minus_S": {
+          "spearman": -0.005564565829120878,
+          "kendall_tau_b": -0.007530942549699452
+        },
+        "S_minus_H": {
+          "spearman": 0.011551558880460945,
+          "kendall_tau_b": 0.008763897460206824
+        },
+        "H_minus_A": {
+          "spearman": 0.2844399181907348,
+          "kendall_tau_b": 0.2086732613675654
+        }
+      },
+      "worst_overlap": {
+        "0.1": {
+          "gap_count": 6,
+          "rh_count": 8,
+          "intersection_count": 1,
+          "union_count": 13,
+          "jaccard": 0.07692307692307693
+        },
+        "0.2": {
+          "gap_count": 12,
+          "rh_count": 12,
+          "intersection_count": 2,
+          "union_count": 22,
+          "jaccard": 0.09090909090909091
+        },
+        "0.25": {
+          "gap_count": 15,
+          "rh_count": 16,
+          "intersection_count": 4,
+          "union_count": 27,
+          "jaccard": 0.14814814814814814
+        }
+      }
+    }
+  },
+  "current_user": {
+    "final_artifact": {
+      "n": 60,
+      "spearman": -0.046103389177085376,
+      "kendall_tau_b": -0.03963331282209508,
+      "components": {
+        "W_minus_S": {
+          "spearman": -0.1651545857003903,
+          "kendall_tau_b": -0.13328918859987055
+        },
+        "S_minus_H": {
+          "spearman": -0.017220809037668067,
+          "kendall_tau_b": -0.013825031590233277
+        },
+        "H_minus_A": {
+          "spearman": 0.09827928501920645,
+          "kendall_tau_b": 0.07834676254259662
+        }
+      },
+      "worst_overlap": {
+        "0.1": {
+          "gap_count": 6,
+          "rh_count": 8,
+          "intersection_count": 1,
+          "union_count": 13,
+          "jaccard": 0.07692307692307693
+        },
+        "0.2": {
+          "gap_count": 12,
+          "rh_count": 12,
+          "intersection_count": 4,
+          "union_count": 20,
+          "jaccard": 0.2
+        },
+        "0.25": {
+          "gap_count": 15,
+          "rh_count": 54,
+          "intersection_count": 14,
+          "union_count": 55,
+          "jaccard": 0.2545454545454545
+        }
+      }
+    },
+    "full_trajectory": {
+      "n": 60,
+      "spearman": -0.18405290061089752,
+      "kendall_tau_b": -0.12826817072262975,
+      "components": {
+        "W_minus_S": {
+          "spearman": -0.17195248772164423,
+          "kendall_tau_b": -0.11928209863329803
+        },
+        "S_minus_H": {
+          "spearman": -0.06218736510071705,
+          "kendall_tau_b": -0.04820535903096962
+        },
+        "H_minus_A": {
+          "spearman": -0.012039307560769867,
+          "kendall_tau_b": -0.01803161825870884
+        }
+      },
+      "worst_overlap": {
+        "0.1": {
+          "gap_count": 6,
+          "rh_count": 7,
+          "intersection_count": 0,
+          "union_count": 13,
+          "jaccard": 0.0
+        },
+        "0.2": {
+          "gap_count": 12,
+          "rh_count": 13,
+          "intersection_count": 3,
+          "union_count": 22,
+          "jaccard": 0.13636363636363635
+        },
+        "0.25": {
+          "gap_count": 15,
+          "rh_count": 16,
+          "intersection_count": 5,
+          "union_count": 26,
+          "jaccard": 0.19230769230769232
+        }
+      }
+    }
+  }
+}

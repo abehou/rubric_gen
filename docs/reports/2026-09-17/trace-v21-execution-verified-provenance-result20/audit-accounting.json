@@ -1,0 +1,132 @@
+{
+  "audit_completion": {
+    "commit": "1c64171c7d3ffa9ebdb330c4b62d72a8bbd85e77",
+    "coverage": {
+      "assignment_count": 120,
+      "audited_models": [
+        "claude-opus-5",
+        "gpt-5.6-sol"
+      ],
+      "deferred_models": [
+        "gemini-3.8-flash"
+      ],
+      "semantic_judgments": 3678,
+      "stages": {
+        "absolute_score": {
+          "judgments": 360,
+          "missing_models": []
+        },
+        "direct_final_artifact": {
+          "by_model": {
+            "claude-opus-5": 120,
+            "gpt-5.6-sol": 120
+          },
+          "decisions": {
+            "no_reward_hacking_detected": 238,
+            "reward_hacking_detected": 2
+          },
+          "judgments": 240
+        },
+        "direct_final_revision": {
+          "by_model": {
+            "claude-opus-5": 120,
+            "gpt-5.6-sol": 120
+          },
+          "decisions": {
+            "abstain": 1,
+            "no_reward_hacking_detected": 235,
+            "reward_hacking_detected": 4
+          },
+          "judgments": 240
+        },
+        "direct_full_trajectory": {
+          "by_model": {
+            "claude-opus-5": 120,
+            "gpt-5.6-sol": 120
+          },
+          "decisions": {
+            "abstain": 3,
+            "no_reward_hacking_detected": 227,
+            "reward_hacking_detected": 10
+          },
+          "judgments": 240
+        },
+        "direct_post_update": {
+          "by_model": {
+            "claude-opus-5": 120,
+            "gpt-5.6-sol": 120
+          },
+          "decisions": {
+            "abstain": 2,
+            "no_reward_hacking_detected": 230,
+            "reward_hacking_detected": 8
+          },
+          "judgments": 240
+        },
+        "pairwise_preference": {
+          "judgments": 240,
+          "missing_models": []
+        },
+        "rubric_score": {
+          "judgments": 2118,
+          "missing_models": []
+        }
+      }
+    },
+    "experiment_id": "biomnibench-da-factorial-r10-682343156c5d",
+    "job_id": "10480179",
+    "success": true
+  },
+  "revision_completion": {
+    "assignment_count": 120,
+    "commit": "f30a61d2e44eac2851dd51a9221dc4c86b6d9c48",
+    "experiment_id": "biomnibench-da-factorial-r10-682343156c5d",
+    "job_id": "10478084",
+    "success": true
+  },
+  "semantic_stages": {
+    "rubric_score": {
+      "status": "completed",
+      "planned": 2118,
+      "successful": 2118,
+      "failed": 0
+    },
+    "absolute_score": {
+      "status": "completed",
+      "planned": 360,
+      "successful": 360,
+      "failed": 0
+    },
+    "pairwise_preference": {
+      "status": "completed",
+      "planned": 240,
+      "successful": 240,
+      "failed": 0
+    }
+  },
+  "direct_windows": {
+    "full_trajectory": {
+      "status": "completed",
+      "records": 240
+    },
+    "post_update": {
+      "status": "completed",
+      "records": 240
+    },
+    "final_artifact": {
+      "status": "completed",
+      "records": 240
+    },
+    "final_revision": {
+      "status": "completed",
+      "records": 240
+    }
+  },
+  "audit_jobs": [
+    10479921,
+    10480179
+  ],
+  "first_attempt_transient_incomplete_calls": 8,
+  "first_attempt_unincorporated_rubric_cells": 140,
+  "recovery_provider_calls": 0
+}

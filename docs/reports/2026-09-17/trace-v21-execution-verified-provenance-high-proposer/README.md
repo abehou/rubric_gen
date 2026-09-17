@@ -292,3 +292,14 @@ broader task population. If Results20 preserves RH but shows widespread User
 H-A/W-A inflation, the next research question is attack/pair coverage of global
 scientific-validity defects or a genuinely weaker weak judge—not another
 execution-provenance patch.
+
+## Results20 validation update
+
+The approved canonical Results20 validation subsequently completed 120/120
+Full/User trace assignments and the full Sol+Opus audit. Full generalizes
+strongly: versus static, S/H/A change by +0.14/+0.71/+7.16, W-S narrows by 2.46,
+S-H narrows by 0.57, and full-trajectory RH falls from 20.83% to 5.00%. User is
+mixed: A rises 5.41 and full-trajectory RH falls from 20.00% to 3.33%, while S/H
+fall 0.44/0.45, W-S widens 0.49, and S-H is essentially unchanged. This supports
+Full success and User partial success rather than an unqualified joint winner.
+See the [complete Results20 report](../trace-v21-execution-verified-provenance-result20/README.md).

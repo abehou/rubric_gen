@@ -1,0 +1,660 @@
+{
+  "pricing_registry_date": "2026-08-18",
+  "stages": [
+    {
+      "stage": "audit_absolute_score",
+      "model": "claude-opus-5",
+      "saved_responses": 180,
+      "reused_exact": 0,
+      "fresh_saved_responses": 180,
+      "usage_available": 180,
+      "input_tokens": 1527896,
+      "output_tokens": 144047,
+      "cached_input_tokens": 113811,
+      "cache_write_input_tokens": 1929,
+      "usage_based_usd": 10.73091675
+    },
+    {
+      "stage": "audit_absolute_score",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 180,
+      "reused_exact": 0,
+      "fresh_saved_responses": 180,
+      "usage_available": 180,
+      "input_tokens": 965542,
+      "output_tokens": 33724,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 5.83943
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "claude-opus-5",
+      "saved_responses": 120,
+      "reused_exact": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1088340,
+      "output_tokens": 15560,
+      "cached_input_tokens": 314506,
+      "cache_write_input_tokens": 29792,
+      "usage_based_usd": 4.452663
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 120,
+      "reused_exact": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 690315,
+      "output_tokens": 10455,
+      "cached_input_tokens": 180310,
+      "cache_write_input_tokens": 25052,
+      "usage_based_usd": 2.985145
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "claude-opus-5",
+      "saved_responses": 121,
+      "reused_exact": 0,
+      "fresh_saved_responses": 121,
+      "usage_available": 121,
+      "input_tokens": 6173438,
+      "output_tokens": 13986,
+      "cached_input_tokens": 346846,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 29.656033
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 120,
+      "reused_exact": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 4165843,
+      "output_tokens": 9376,
+      "cached_input_tokens": 205362,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 20.186366
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "claude-opus-5",
+      "saved_responses": 474,
+      "reused_exact": 0,
+      "fresh_saved_responses": 474,
+      "usage_available": 474,
+      "input_tokens": 56369873,
+      "output_tokens": 65338,
+      "cached_input_tokens": 1403688,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 277.166219
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 441,
+      "reused_exact": 0,
+      "fresh_saved_responses": 441,
+      "usage_available": 441,
+      "input_tokens": 38729993,
+      "output_tokens": 37023,
+      "cached_input_tokens": 775863,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 191.2692715
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "claude-opus-5",
+      "saved_responses": 268,
+      "reused_exact": 0,
+      "fresh_saved_responses": 268,
+      "usage_available": 268,
+      "input_tokens": 29063912,
+      "output_tokens": 35046,
+      "cached_input_tokens": 759917,
+      "cache_write_input_tokens": 38943,
+      "usage_based_usd": 142.82476225
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 252,
+      "reused_exact": 0,
+      "fresh_saved_responses": 252,
+      "usage_available": 252,
+      "input_tokens": 19881686,
+      "output_tokens": 20418,
+      "cached_input_tokens": 437397,
+      "cache_write_input_tokens": 9175,
+      "usage_based_usd": 98.06415225
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "claude-opus-5",
+      "saved_responses": 120,
+      "reused_exact": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1611253,
+      "output_tokens": 70067,
+      "cached_input_tokens": 70064,
+      "cache_write_input_tokens": 2416,
+      "usage_based_usd": 9.495672
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 120,
+      "reused_exact": 0,
+      "fresh_saved_responses": 120,
+      "usage_available": 120,
+      "input_tokens": 1022688,
+      "output_tokens": 12681,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 5.49387
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "claude-opus-5",
+      "saved_responses": 1059,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1059,
+      "usage_available": 1059,
+      "input_tokens": 10921288,
+      "output_tokens": 1033955,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 80.455315
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 1059,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1059,
+      "usage_available": 1059,
+      "input_tokens": 6653007,
+      "output_tokens": 348770,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 6649830,
+      "usage_based_usd": 52.0404225
+    },
+    {
+      "stage": "optimizer_judge",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 1561,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1561,
+      "usage_available": 1561,
+      "input_tokens": 10197356,
+      "output_tokens": 541456,
+      "cached_input_tokens": 10550,
+      "cache_write_input_tokens": 10174320,
+      "usage_based_usd": 3.1960354
+    },
+    {
+      "stage": "simulator",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 455,
+      "reused_exact": 0,
+      "fresh_saved_responses": 455,
+      "usage_available": 455,
+      "input_tokens": 8948146,
+      "output_tokens": 81356,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 1.8872564
+    },
+    {
+      "stage": "trace_application",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 6447,
+      "reused_exact": 0,
+      "fresh_saved_responses": 6447,
+      "usage_available": 6447,
+      "input_tokens": 40287172,
+      "output_tokens": 2425578,
+      "cached_input_tokens": 38189,
+      "cache_write_input_tokens": 40223986,
+      "usage_based_usd": 12.97245328
+    },
+    {
+      "stage": "trace_compilation",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 604,
+      "reused_exact": 0,
+      "fresh_saved_responses": 604,
+      "usage_available": 604,
+      "input_tokens": 10399499,
+      "output_tokens": 221988,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 10397687,
+      "usage_based_usd": 2.86616975
+    },
+    {
+      "stage": "trace_diagnosis",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 1015,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1015,
+      "usage_available": 1015,
+      "input_tokens": 28497823,
+      "output_tokens": 3172042,
+      "cached_input_tokens": 1006741,
+      "cache_write_input_tokens": 27488037,
+      "usage_based_usd": 10.69920347
+    },
+    {
+      "stage": "trace_enforcement",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 1109,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1109,
+      "usage_available": 1109,
+      "input_tokens": 38808486,
+      "output_tokens": 528215,
+      "cached_input_tokens": 1943447,
+      "cache_write_input_tokens": 36861712,
+      "usage_based_usd": 9.88882034
+    },
+    {
+      "stage": "trace_quality",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 1949,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1949,
+      "usage_available": 1949,
+      "input_tokens": 23299318,
+      "output_tokens": 1126865,
+      "cached_input_tokens": 3228063,
+      "cache_write_input_tokens": 20065408,
+      "usage_based_usd": 6.43432066
+    },
+    {
+      "stage": "trace_rubric_view",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 6215,
+      "reused_exact": 0,
+      "fresh_saved_responses": 6215,
+      "usage_available": 6215,
+      "input_tokens": 46292325,
+      "output_tokens": 3305916,
+      "cached_input_tokens": 5204902,
+      "cache_write_input_tokens": 41061908,
+      "usage_based_usd": 14.341777239999999
+    },
+    {
+      "stage": "trace_semantic",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 598,
+      "reused_exact": 0,
+      "fresh_saved_responses": 598,
+      "usage_available": 598,
+      "input_tokens": 5626950,
+      "output_tokens": 188073,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 5625156,
+      "usage_based_usd": 1.6323353999999999
+    }
+  ],
+  "agents": [
+    {
+      "stage": "attack_sidecar",
+      "streams": 762,
+      "threads_with_usage": 762,
+      "events": {
+        "thread.started": 762,
+        "turn.started": 762,
+        "item.started": 12362,
+        "item.completed": 12358,
+        "codex.item.agentMessage.delta": 262827,
+        "codex.turn.diff.updated": 4002,
+        "turn.completed": 762,
+        "codex.item.commandExecution.outputDelta": 604
+      },
+      "usage_totals": {
+        "cached_input_tokens": 92870912,
+        "input_tokens": 114862158,
+        "output_tokens": 2231856,
+        "reasoning_output_tokens": 663969,
+        "total_tokens": 117094014
+      },
+      "usage_based_usd": 8.933899
+    },
+    {
+      "stage": "solver",
+      "streams": 762,
+      "threads_with_usage": 120,
+      "events": {
+        "thread.started": 762,
+        "turn.started": 762,
+        "item.started": 8555,
+        "item.completed": 8554,
+        "codex.item.agentMessage.delta": 134469,
+        "codex.item.commandExecution.outputDelta": 13556,
+        "codex.turn.diff.updated": 3914,
+        "turn.completed": 762,
+        "codex.item.commandExecution.terminalInteraction": 17
+      },
+      "usage_totals": {
+        "cached_input_tokens": 172044288,
+        "input_tokens": 182381078,
+        "output_tokens": 1882066,
+        "reasoning_output_tokens": 173484,
+        "total_tokens": 184263144
+      },
+      "usage_based_usd": 7.766721
+    }
+  ],
+  "failed_learning_attempts": 22,
+  "runtime_failures": [
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676282.8382094
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676298.132469
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676402.2216272
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676429.7597408
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676438.833584
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676521.097955
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676529.0512016
+    },
+    {
+      "job_id": "10479921",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789676591.8461728
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660142.001828
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660146.6794775
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660159.356571
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660492.2732272
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660706.6492035
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789660821.755882
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660909.3951528
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789660954.8403375
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789661354.1838973
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789661474.4503152
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789661608.1932077
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789662107.0188985
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663140.2431388
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663140.6882465
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663141.1809592
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663141.5859685
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663141.6561995
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663141.9186435
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663145.36079
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663146.9525278
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789663158.7867653
+    },
+    {
+      "job_id": "10478084",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789664537.8572834
+    }
+  ],
+  "operations": {
+    "token-count": {
+      "records": 5380,
+      "events": {
+        "operation_started": 2690,
+        "operation_completed": 2690
+      },
+      "elapsed_seconds": 469.48245613183826
+    },
+    "hosted-generation": {
+      "records": 5944,
+      "events": {
+        "operation_started": 2972,
+        "operation_completed": 2972
+      },
+      "elapsed_seconds": 15303.10236610286
+    },
+    "rubric-audit": {
+      "records": 5414,
+      "events": {
+        "operation_started": 2707,
+        "operation_completed": 2699,
+        "operation_failed": 8
+      },
+      "elapsed_seconds": 30032.060487662908
+    },
+    "solver-turn": {
+      "records": 3048,
+      "events": {
+        "operation_started": 1524,
+        "operation_completed": 1524
+      },
+      "elapsed_seconds": 115227.3703386779
+    },
+    "evolution-generation": {
+      "records": 35918,
+      "events": {
+        "operation_started": 17959,
+        "operation_completed": 17937,
+        "operation_failed": 22
+      },
+      "elapsed_seconds": 137090.56146829575
+    }
+  },
+  "audit_maximum_active_by_provider": {
+    "openai": 60,
+    "anthropic": 60
+  },
+  "jobs": [
+    "10477917",
+    "10478084",
+    "10478161",
+    "10479921",
+    "10480179"
+  ],
+  "response_usage_based_usd": 994.57861019,
+  "agent_usage_based_usd": 16.70062,
+  "total_identifiable_usage_based_usd": 1011.2792301899999,
+  "limitations": [
+    "Usage-based estimates are not provider invoices.",
+    "Failed calls without returned usage have unknown cost.",
+    "Agent usage is cumulative per saved thread and uses the maximum terminal total.",
+    "Reused exact judgments are excluded from fresh cost even though their original historical generation had a cost."
+  ]
+}
