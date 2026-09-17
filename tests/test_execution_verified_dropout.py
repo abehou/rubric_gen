@@ -13,6 +13,14 @@ import pytest
 
 from rubric_gen.submission_revision.experiment import load_experiment
 from rubric_gen.submission_revision.artifacts import revision_manifest_keys
+from rubric_gen.submission_revision.execution_verified_proactive_prompts import (
+    PROMPT_VERSION as PROACTIVE_VERSION,
+    SOLVER_EXECUTION_TRUTHFULNESS,
+)
+from rubric_gen.submission_revision.feedback import (
+    FeedbackPolicy,
+    render_revision_prompt,
+)
 from rubric_gen.submission_revision.rubric_dropout import (
     DropoutProjectedFeedback,
     EXECUTION_VERIFIED_VERSION,
@@ -43,7 +51,10 @@ from rubric_gen.submission_revision.trace_defense_delivery import (
     execution_issue_block,
 )
 from rubric_gen.submission_revision.trace_defense_evidence_v2 import PublicDocument
-from rubric_gen.submission_revision.trace_defense_registry import SOURCE_SCHEDULE
+from rubric_gen.submission_revision.trace_defense_registry import (
+    SOURCE_SCHEDULE,
+    prompt_hashes,
+)
 from rubric_gen.submission_revision.evolution import RubricProposer
 from rubric_gen.submission_revision.task_paraphrase_required_stage import TraceStagesV2
 from rubric_gen.benchmarks import SubmissionBenchmarkId
@@ -54,6 +65,20 @@ def _local_runner_module():
         "experiments/trace-v21-execution-verified-dropout/run_local.py"
     )
     spec = importlib.util.spec_from_file_location("execution_verified_run_local", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _proactive_runner_module():
+    path = Path(__file__).parents[1] / (
+        "experiments/trace-v21-execution-verified-proactive-high-proposer/"
+        "run_local.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "execution_verified_proactive_run_local", path
+    )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -192,6 +217,140 @@ def test_high_allocation_changes_only_attack_pair_quality_and_diagnosis(tmp_path
         request = stages.request(stage, {"case": "frozen"}, Validator(stage))
         expected = "high" if stage in {"quality", "diagnosis"} else "low"
         assert request["provider"]["reasoning_effort"] == expected
+
+
+def test_proactive_candidate_changes_only_diagnosis_reasoning_and_solver_guidance(
+    tmp_path,
+):
+    experiment = load_experiment(
+        Path(
+            "experiments/trace-v21-execution-verified-proactive-high-proposer/"
+            "dev3.yaml"
+        )
+    )
+    assert len(experiment.execution_assignments) == 18
+    assert {item.task_id for item in experiment.execution_assignments} == {
+        "da-3-4", "da-11-1", "da-18-1",
+    }
+    assert experiment.payload["randomization"] == {
+        "seed": 20260806, "replicates": 3,
+    }
+    assert experiment.seed_agent_config().reasoning_effort == "low"
+    assert experiment.red_team_agent_config().reasoning_effort == "low"
+    assert {
+        experiment.solver_config(item.solver_id).reasoning_effort
+        for item in experiment.execution_assignments
+    } == {"low"}
+    assert experiment.protocol["red_team_trace_version"] == PROACTIVE_VERSION
+    assert experiment.protocol["rubric_proposer_reasoning_effort_by_stage"] == {
+        "diagnosis": "high",
+    }
+    assert {
+        item.condition_id for item in experiment.execution_assignments
+    } == {
+        "full-red-team-trace-execution-verified-proactive-high-proposer",
+        "user-simulator-red-team-trace-execution-verified-proactive-high-proposer",
+    }
+    assert experiment.payload["execution_audit_models"] == [
+        "gpt-5.6-sol", "claude-opus-5",
+    ]
+
+    proposer = RubricProposer(
+        benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
+        model="gpt-5.6-luna",
+        red_team_trace_version=PROACTIVE_VERSION,
+        reasoning_effort_by_stage={"diagnosis": "high"},
+    )
+    stages = TraceStagesV2(proposer, tmp_path)
+
+    class Validator:
+        schema = {"type": "object"}
+
+        def __init__(self, stage):
+            self.stage = stage
+
+        def identity(self):
+            return {"stage": self.stage}
+
+    for stage in (
+        "quality", "rubric_view", "diagnosis", "compilation",
+        "semantic", "application", "enforcement",
+    ):
+        request = stages.request(stage, {"case": "frozen"}, Validator(stage))
+        expected = "high" if stage == "diagnosis" else "low"
+        assert request["provider"]["reasoning_effort"] == expected
+
+
+@pytest.mark.parametrize(
+    ("policy", "payload"),
+    (
+        (
+            FeedbackPolicy.FULL,
+            {
+                "score": 100.0,
+                "criteria": {},
+                "rubric_text": "RUBRIC: Frozen\n",
+                "overall_reasoning": "",
+            },
+        ),
+        (
+            FeedbackPolicy.USER_SIMULATOR,
+            {
+                "decision": "revise",
+                "concerns": [{"category": "execution", "feedback": "Run it."}],
+            },
+        ),
+    ),
+)
+def test_proactive_truthfulness_is_added_once_without_changing_legacy_prompts(
+    policy, payload,
+):
+    arguments = {
+        "task_instruction": "Analyze the intended input.",
+        "first_revision": False,
+    }
+    historical = render_revision_prompt(policy, payload, **arguments)
+    explicit_historical = render_revision_prompt(
+        policy, payload, red_team_trace_version=EXECUTION_VERIFIED_VERSION,
+        **arguments,
+    )
+    proactive = render_revision_prompt(
+        policy, payload, red_team_trace_version=PROACTIVE_VERSION,
+        **arguments,
+    )
+    assert explicit_historical == historical
+    assert SOLVER_EXECUTION_TRUTHFULNESS not in historical
+    assert proactive.count(SOLVER_EXECUTION_TRUTHFULNESS) == 1
+    assert proactive.startswith(historical.rstrip())
+
+
+def test_proactive_prompt_hashes_preserve_all_execution_verified_stage_prompts():
+    historical = prompt_hashes(EXECUTION_VERIFIED_VERSION)
+    proactive = prompt_hashes(PROACTIVE_VERSION)
+    assert set(proactive) == {*historical, "solver_execution_truthfulness"}
+    assert {key: proactive[key] for key in historical} == historical
+    assert "preserve the truthful disclosure" in SOLVER_EXECUTION_TRUTHFULNESS
+    assert "do not leave conflicting" in SOLVER_EXECUTION_TRUTHFULNESS
+    assert "a later\ndisclaimer does not neutralize" in SOLVER_EXECUTION_TRUTHFULNESS
+    assert "run was attempted, failed, interrupted" in SOLVER_EXECUTION_TRUTHFULNESS
+
+
+def test_proactive_local_runner_is_wired_to_the_saved_case_gate():
+    wrapper = _proactive_runner_module()
+    runner = wrapper._runner()
+    assert runner.TRACE_VERSION == PROACTIVE_VERSION
+    assert runner.RED_TEAM_REASONING_EFFORT == "low"
+    assert runner.PROPOSER_REASONING_BY_STAGE == {"diagnosis": "high"}
+    previous = sys.argv
+    try:
+        sys.argv = ["run_local.py"]
+        arguments = runner._arguments()
+    finally:
+        sys.argv = previous
+    assert arguments.max_concurrency == 18
+    assert arguments.aggregate_concurrency == 18
+    assert runner.SAVED_CASE_VALIDATOR is wrapper._validate_saved_cases
+    runner._validate_experiment()
 
 
 def test_fixed_counts_nested_masks_and_minimum_three_positive_base_criteria():

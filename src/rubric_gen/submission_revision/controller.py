@@ -448,7 +448,10 @@ class SubmissionRevisionController:
             raise _SolverTurnFailure(str(exc), 2) from exc
         changed = current_sha256 != baseline_sha256
         unresolved_execution_issue = False
-        if self.config.red_team_trace_version == "attack_defense_v2.1_execution_verified":
+        if self.config.red_team_trace_version in {
+            "attack_defense_v2.1_execution_verified",
+            "attack_defense_v2.1_execution_verified_proactive",
+        }:
             from .task_required_enforcement import active_execution_issue
             unresolved_execution_issue = active_execution_issue(
                 self.experiment_dir, state.submission_ids[-1]

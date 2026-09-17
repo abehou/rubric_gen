@@ -37,6 +37,12 @@ CONDITIONS = (
     "user-simulator-red-team-trace-execution-verified-high-attack-pair-diagnosis",
 )
 PANEL = ("gpt-5.6-sol", "claude-opus-5")
+TRACE_VERSION = "attack_defense_v2.1_execution_verified"
+RED_TEAM_REASONING_EFFORT = "high"
+PROPOSER_REASONING_BY_STAGE = {"quality": "high", "diagnosis": "high"}
+RUN_KIND = "execution-verified-high-allocation-local-dev3"
+COMPLETION_STAGE = "execution_verified_high_allocation_dev3_complete"
+SAVED_CASE_VALIDATOR = None
 
 
 def _base_runner():
@@ -66,16 +72,19 @@ def _validate_experiment():
         raise RuntimeError("high-allocation condition membership changed")
     if experiment.payload["randomization"] != {"seed": 20260806, "replicates": 3}:
         raise RuntimeError("high-allocation seed or replicate count changed")
-    if experiment.protocol.get("red_team_trace_version") != "attack_defense_v2.1_execution_verified":
+    if experiment.protocol.get("red_team_trace_version") != TRACE_VERSION:
         raise RuntimeError("execution-verified RTT recipe changed")
-    if experiment.protocol.get("rubric_proposer_reasoning_effort_by_stage") != {
-        "quality": "high", "diagnosis": "high",
-    }:
+    if experiment.protocol.get(
+        "rubric_proposer_reasoning_effort_by_stage"
+    ) != PROPOSER_REASONING_BY_STAGE:
         raise RuntimeError("stage-specific proposer allocation changed")
     if experiment.seed_agent_config().reasoning_effort != "low":
         raise RuntimeError("seed generator reasoning changed")
-    if experiment.red_team_agent_config().reasoning_effort != "high":
-        raise RuntimeError("attack reasoning must be high")
+    if (
+        experiment.red_team_agent_config().reasoning_effort
+        != RED_TEAM_REASONING_EFFORT
+    ):
+        raise RuntimeError("attack reasoning effort changed")
     if any(
         experiment.solver_config(item.solver_id).reasoning_effort != "low"
         for item in experiment.execution_assignments
@@ -111,6 +120,9 @@ def main() -> None:
 
     experiment = _validate_experiment()
     base = _base_runner()
+    saved_case_validation = (
+        SAVED_CASE_VALIDATOR() if SAVED_CASE_VALIDATOR is not None else None
+    )
     credential_source = base._load_proposer_credential()
     input_manifest = base._input_manifest(experiment, config=CONFIG)
     RUN_ROOT.mkdir(parents=True, exist_ok=True)
@@ -144,7 +156,7 @@ def main() -> None:
     write_json_atomic(RUN_ROOT / "dev3/input-manifest.json", input_manifest)
     study = Path(experiment.dag["revise"]["output_dir"])
     launch = {
-        "kind": "execution-verified-high-allocation-local-dev3-launch-v1",
+        "kind": RUN_KIND + "-launch-v1",
         "invocation": invocation,
         "pid": os.getpid(),
         "uid": os.getuid(),
@@ -168,10 +180,13 @@ def main() -> None:
         "rubric_proposer_provider": "openai",
         "rubric_proposer_credential_source": credential_source,
         "stage_reasoning": {
-            "attack": "high", "quality": "high", "diagnosis": "high",
+            "attack": RED_TEAM_REASONING_EFFORT,
+            "quality": PROPOSER_REASONING_BY_STAGE.get("quality", "low"),
+            "diagnosis": PROPOSER_REASONING_BY_STAGE.get("diagnosis", "low"),
             "rubric_view": "low", "compilation": "low", "semantic": "low",
             "application": "low", "enforcement": "low", "solver": "low",
         },
+        "saved_case_validation": saved_case_validation,
         "input_manifest_sha256": sha256_file(RUN_ROOT / "dev3/input-manifest.json"),
         "slurm_job_id": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
@@ -225,7 +240,7 @@ def main() -> None:
         )
         rows.append({"assignment_id": record["assignment_id"], "root": str(path)})
     completion = {
-        "kind": "execution-verified-high-allocation-local-dev3-completion-v1",
+        "kind": RUN_KIND + "-completion-v1",
         "invocation": invocation,
         "experiment_id": experiment.experiment_id,
         "expected": 18,
@@ -237,7 +252,7 @@ def main() -> None:
     write_json_atomic(owner / "completion.json", completion)
     write_json_atomic(RUN_ROOT / "dev3/completion.json", completion)
     print(json.dumps({
-        "stage": "execution_verified_high_allocation_dev3_complete",
+        "stage": COMPLETION_STAGE,
         "completed": len(rows),
         "experiment_id": experiment.experiment_id,
     }), flush=True)

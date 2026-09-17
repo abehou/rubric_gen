@@ -189,6 +189,7 @@ def project_feedback(
             first_revision=first_revision,
             prompt_profile=prompt_profile,
             benchmark=benchmark,
+            red_team_trace_version=generation.red_team_trace_version,
         ),
         rubric_dropout=record,
     )

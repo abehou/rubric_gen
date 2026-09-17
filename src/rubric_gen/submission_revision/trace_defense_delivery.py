@@ -53,8 +53,9 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
             numeric_literals=numeric_literals)
         if selection is not None:
             return selection, enforcement_skipped
-    elif (getattr(generation, 'red_team_trace_version', None)
-          == 'attack_defense_v2.1_execution_verified'
+    elif (getattr(generation, 'red_team_trace_version', None) in {
+          'attack_defense_v2.1_execution_verified',
+          'attack_defense_v2.1_execution_verified_proactive'}
           and not skip_execution_verified):
         from .task_required_enforcement import select_execution_verified
         selection, enforcement_skipped, _ = select_execution_verified(
@@ -117,8 +118,9 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
         if isinstance(dropout, dict) else None
     )
     issue = None
-    if (getattr(generation, 'red_team_trace_version', None)
-            == 'attack_defense_v2.1_execution_verified'):
+    if (getattr(generation, 'red_team_trace_version', None) in {
+            'attack_defense_v2.1_execution_verified',
+            'attack_defense_v2.1_execution_verified_proactive'}):
         from .task_required_enforcement import select_execution_verified
         selection, skipped, issue = select_execution_verified(
             generation=generation, root=root)

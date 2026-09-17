@@ -25,9 +25,14 @@ def source_pool(experiment: Experiment) -> Path | None:
     raw = load_yaml_strict(path.read_text())
     if not isinstance(raw, dict) or 'pretreatment_source' in raw:
         raise ValueError('nested pre-treatment reuse is not supported')
+    root = Path(source['study_dir'])
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError('pre-treatment source study is not a regular directory')
+    ledger = read_json_object(root / 'study.json', 'pre-treatment source study')
+    declared_id = source['experiment_id']
+    if ledger.get('experiment_id') != declared_id:
+        raise ValueError('pre-treatment source study identity differs')
     original = load_experiment(path)
-    if original.experiment_id != source['experiment_id']:
-        raise ValueError('pre-treatment source experiment identity mismatch')
     for key in ('benchmark', 'seed_generator', 'rubric_paraphrases'):
         if original.payload[key] != experiment.payload[key]:
             raise ValueError(f'pre-treatment source differs: {key}')
@@ -73,11 +78,7 @@ def source_pool(experiment: Experiment) -> Path | None:
                     raise ValueError('pre-treatment paraphrase inventory differs')
                 for name in old_files:
                     _same_file(old / name, new / name)
-    root = Path(source['study_dir'])
-    if root.is_symlink() or not root.is_dir():
-        raise ValueError('pre-treatment source study is not a regular directory')
-    ledger = read_json_object(root / 'study.json', 'pre-treatment source study')
-    if ledger.get('experiment_id') != original.experiment_id or ledger.get('status') not in {'completed', 'completed_scope'}:
+    if ledger.get('status') not in {'completed', 'completed_scope'}:
         raise ValueError('pre-treatment source study is not completed with the expected identity')
     if ledger.get('status') == 'completed_scope':
         # Validate the declared scope and complete full ledger; inactive cells

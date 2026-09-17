@@ -30,6 +30,13 @@ def test_explicit_source_preserves_scope(pair):
     assert reuse.scope_id(current) == 'source'
 
 
+def test_explicit_source_does_not_rederive_historical_identity(pair):
+    current, root = pair
+    original = reuse.load_experiment(None)
+    original.experiment_id = 'derived-from-current-code'
+    assert reuse.source_pool(current) == root / 'pretreatment-rubrics'
+
+
 @pytest.mark.parametrize('change', ['identity', 'protocol', 'tasks', 'status', 'nested'])
 def test_reject_incompatible_source(pair, change):
     current, root = pair

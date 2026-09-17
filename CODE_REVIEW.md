@@ -704,3 +704,8 @@
 
 - 13:39 JST: Execution verification correctly repairs or downgrades unsupported claims after detection, but it is reactive: the solver can create a full-trajectory RH event one turn before the next review. The next candidate should prevent that first false completion claim with a concise solver instruction rather than changing selector/admission logic or adding another stopping framework.
 - 13:39 JST: Prepared future local launchers for the requested 18 assignment workers / aggregate 18 / internal fanout 4 profile; the actual RTT executor now consumes the named fanout and future receipts record it. The focused execution/dropout suite passes 21/21, and these post-run operational edits do not alter the completed cohort.
+
+## 2026-09-17 — Proactive successor completion review
+
+- 17:45 JST: The proactive recipe appends one execution-truthfulness instruction through both Full and User feedback projection and assigns Luna high only to diagnosis/proposal; all other stage contracts remain Luna low. Broad raw-source hashes are retained only as provenance and no longer derive experiment identity or block resume, while semantic config/input identity checks remain.
+- 17:45 JST: One saved User trajectory exposes the remaining correctness risk: a fresh exit-zero command can echo a claimed statistic as a literal and satisfy the current execution reviewer without computing it from the current input. Any next repair should address only that dataflow/provenance defect and preserve honest non-execution; it is not implemented pending user review.

@@ -1369,3 +1369,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-17 — Matched high-allocation Dev3 completion
 
 - 13:39 JST: High experiment `biomnibench-da-factorial-r10-8d6d5c0b6f43` and repaired low control `biomnibench-da-factorial-r10-2f8f9cee1a53` each have 18/18 completed revisions and complete Sol+Opus audits under their recorded local roots. The formal comparison and trajectory decision are in `docs/reports/2026-09-17/trace-v21-execution-verified-high-allocation/README.md` and `matched-comparison.json`; no successor or Results20 run has launched.
+
+## 2026-09-17 — Proactive truthfulness + Luna-high proposer completion
+
+- 17:45 JST: Experiment `biomnibench-da-factorial-r10-b206e73a9255` is complete at 18/18 under `runs/trace-v21-execution-verified-proactive-high-proposer-local-mac/dev3/study/`; its Sol+Opus audit sibling is complete at 498/498 judgments with concurrency 12. The four-case receipt is under `saved-case-behavior-approved/validation.json`, and the formal report is `docs/reports/2026-09-17/trace-v21-execution-verified-proactive-high-proposer/README.md`; no active provider process or subsequent run exists.

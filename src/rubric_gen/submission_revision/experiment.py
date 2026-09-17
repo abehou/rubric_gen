@@ -13,10 +13,7 @@ from typing import Any
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.yaml import load_yaml_strict
-from rubric_gen.submission_revision.prompts import (
-    PromptProfile,
-    prompt_implementation_sha256,
-)
+from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
 from rubric_gen.runtime.pricing import HOSTED_PRICES_PER_MILLION
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
@@ -311,6 +308,9 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     condition_ids: list[str] = []
     trace_version = payload["protocol"].get("red_team_trace_version")
     dropout_conditions = trace_version == "attack_defense_v2.1_execution_verified"
+    proactive_execution_conditions = (
+        trace_version == "attack_defense_v2.1_execution_verified_proactive"
+    )
     condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
     condition_cells: list[tuple[FeedbackPolicy, RubricPolicy, float]] = []
     for condition in conditions:
@@ -360,6 +360,10 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
                 expected_id = (
                     f"{base_id}-execution-verified-dropout-{int(percent)}"
                 )
+        elif proactive_execution_conditions:
+            expected_id = (
+                f"{base_id}-execution-verified-proactive-high-proposer"
+            )
         else:
             expected_id = base_id
         if condition_id != expected_id:
@@ -556,7 +560,6 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
     identity = {key: payload[key] for key in _IDENTITY_KEYS}
     if "pretreatment_source" in payload:
         identity["pretreatment_source"] = payload["pretreatment_source"]
-    identity["prompt_implementation_sha256"] = prompt_implementation_sha256()
     digest = sha256_text(json.dumps(
         identity,
         ensure_ascii=False,

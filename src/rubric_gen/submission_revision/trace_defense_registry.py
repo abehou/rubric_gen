@@ -63,6 +63,9 @@ _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE_DELIVERY = TraceRecipe(
 _V21_EXECUTION_VERIFIED = TraceRecipe(
     'v2', 'execution_verified_prompts', 'task_paraphrase_required',
     'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_EXECUTION_VERIFIED_PROACTIVE = TraceRecipe(
+    'v2', 'execution_verified_proactive_prompts', 'task_paraphrase_required',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
 # v3 keeps the complete v2.1 attack/learning path.  Its only scientific
 # difference is the User-simulator delivery adapter, selected in controller
 # scoring; the learning recipe remains the pinned v2.1 implementation.
@@ -82,6 +85,7 @@ RECIPES = {
     'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE,
     'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery': _V21_TASK_REQUIRED_ENFORCED_REQUIREMENT_ONLY_DURABLE_DELIVERY,
     'attack_defense_v2.1_execution_verified': _V21_EXECUTION_VERIFIED,
+    'attack_defense_v2.1_execution_verified_proactive': _V21_EXECUTION_VERIFIED_PROACTIVE,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,

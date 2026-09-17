@@ -35,10 +35,17 @@ DURABLE_DELIVERY_VERSION = (
     "requirement_only_durable_delivery"
 )
 EXECUTION_VERIFIED_VERSION = "attack_defense_v2.1_execution_verified"
+EXECUTION_VERIFIED_PROACTIVE_VERSION = (
+    "attack_defense_v2.1_execution_verified_proactive"
+)
+EXECUTION_VERIFIED_VERSIONS = {
+    EXECUTION_VERIFIED_VERSION,
+    EXECUTION_VERIFIED_PROACTIVE_VERSION,
+}
 VERSIONS = {
     VERSION, REQUIREMENT_ONLY_VERSION, SOURCE_BOUND_VERSION,
     WITNESS_FROZEN_VERSION, DURABLE_VERSION, DURABLE_DELIVERY_VERSION,
-    EXECUTION_VERIFIED_VERSION,
+    *EXECUTION_VERIFIED_VERSIONS,
 }
 _MAX_COMMAND_CHARS = 1_800
 _MAX_WITNESS_CHARS = 60_000
@@ -463,7 +470,7 @@ def enforcement_request(*, instruction, original_rubric, development_rubric,
 def select_execution_verified(*, generation, root: Path):
     """Select and persist the one protected execution issue for this feedback."""
 
-    if generation.red_team_trace_version != EXECUTION_VERIFIED_VERSION:
+    if generation.red_team_trace_version not in EXECUTION_VERIFIED_VERSIONS:
         raise ValueError("execution-verified selection used for another recipe")
     path = rubric_generation_directory(root, generation.generation_round) / "evolution.json"
     evolution = read_json_object(path, "execution-verified generation")
