@@ -2514,6 +2514,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-17 — Promoted RTT Results20 execution
 
 - 11:27 EDT: From exact branch SHA `31f591713904bb0cdafb92c9cc3124a8eff7c0c8`, provider-free job `10477780` passed focused candidate/runtime tests and validated all 120 Full/User assignments, frozen Results20 inputs, NAS8 writes, diagnosis-only Luna-high allocation, revision aggregate 60, and one concurrent Sol-60 plus Opus-60 audit owner. Earlier preflight attempts `10477639`, `10477673`, `10477691`, `10477722`, and `10477759` stopped before provider work while exposing test-policy dispatch, explicit condition-ID, and historical source-receipt validation issues; no scientific request was made.
+- 11:35 EDT: Revision job `10477917` stopped before provider work because preflight-copied g1 data made the final study directory exist without `study.json`; cleanup job `10477943` verified that the scaffold contained only `.study.lock` plus 462 copied pretreatment files (10,283,677 bytes) and removed it. Preflight now validates copies only under node-local scratch, and zero-provider job `10477949` passed in 32 seconds without recreating the final study root.
 
 ## 2026-09-17 — Promoted RTT Results20 candidate
 

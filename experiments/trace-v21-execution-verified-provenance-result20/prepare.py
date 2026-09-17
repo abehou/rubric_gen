@@ -91,7 +91,9 @@ def main() -> None:
 
     source_study = Path(experiment.pretreatment_source["study_dir"])
     assert source_study.is_dir() and (source_study / "study.json").is_file()
-    study = Path(experiment.dag["revise"]["output_dir"])
+    # Exercise the native g1 validation/copy path without making the final
+    # study root look resumable before its authoritative study.json exists.
+    study = Path(os.environ["TMPDIR"]) / "pretreatment-validation"
     runner = StudyRunner(StudyRunConfig(
         experiment, seed_root, paraphrase_root, study, 60, resume=study.exists(),
     ))
