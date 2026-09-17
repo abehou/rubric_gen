@@ -1359,3 +1359,5 @@ Provider-free runtime job `10472417` passed 16/16 focused capacity and scale-dis
 ## 2026-09-17 — RTT Results20 handoff
 
 The approved candidate is `attack_defense_v2.1_execution_verified_proactive_provenance`; its positive Dev3 report is `docs/reports/2026-09-17/trace-v21-execution-verified-provenance-high-proposer/README.md`. The integration branch retains `/data/user_data/aydanh/rubric_gen/{runs,live,cache}/rtt-result20-next`, 32 CPUs, provider concurrency 60 and one concurrent Sol+Opus `detect` owner; no Result20 owner has been submitted by this handoff commit.
+
+The frozen execution worktree is `/home/aydanh/repos/rubric_gen/runs/babel-code/trace-v21-result20-20260917` from starting SHA `31f591713904bb0cdafb92c9cc3124a8eff7c0c8`. Config `experiments/trace-v21-execution-verified-provenance-result20/result20.yaml` declares exactly 120 new trace assignments. Revision uses 32 CPUs/256 GB, 60 assignment workers, aggregate provider 60 and internal fanout 4. The dependent audit uses 32 CPUs/256 GB and one owner with Sol 60 plus Opus 60 concurrently (120 total); large outputs remain under `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-next/`.

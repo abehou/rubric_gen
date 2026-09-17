@@ -39,12 +39,27 @@ def _runtime_config_path() -> Path:
 
 def policy() -> dict:
     value = json.loads(_runtime_config_path().read_text())
-    if (set(value) != {"version", "aggregate_concurrency", "audit_studies", "coordination_dir"}
+    required = {"version", "aggregate_concurrency", "audit_studies", "coordination_dir"}
+    if (not required <= set(value)
+            or set(value) - required - {"audit_provider_concurrency"}
             or value["version"] != 1 or type(value["aggregate_concurrency"]) is not int
             or not 1 <= value["aggregate_concurrency"] <= 60
             or value["audit_studies"] != 1
             or not Path(value["coordination_dir"]).is_absolute()):
         raise RuntimeError("invalid shared runtime capacity policy")
+    provider_limits = value.get("audit_provider_concurrency")
+    if provider_limits is not None and (
+        type(provider_limits) is not dict
+        or not provider_limits
+        or any(
+            type(provider) is not str
+            or not provider
+            or type(limit) is not int
+            or not 1 <= limit <= 60
+            for provider, limit in provider_limits.items()
+        )
+    ):
+        raise RuntimeError("invalid audit provider capacity policy")
     return value
 
 
@@ -201,7 +216,18 @@ def reservation(kind="provider", count=1):
         yield
         return
     settings = policy()
-    capacity = settings["aggregate_concurrency"] if kind == "provider" else settings["audit_studies"]
+    if kind == "provider":
+        capacity = settings["aggregate_concurrency"]
+    elif kind == "audit":
+        capacity = settings["audit_studies"]
+    elif kind.startswith("audit-provider-"):
+        provider = kind.removeprefix("audit-provider-")
+        capacities = settings.get("audit_provider_concurrency") or {}
+        if provider not in capacities:
+            raise RuntimeError(f"audit provider capacity is not configured: {provider}")
+        capacity = capacities[provider]
+    else:
+        raise ValueError(f"unknown reservation kind: {kind}")
     root = Path(settings["coordination_dir"]) / kind
     started = time.monotonic()
     lease_id = uuid.uuid4().hex
@@ -217,6 +243,35 @@ def reservation(kind="provider", count=1):
                 emit("released", kind=kind, slots=count, lease_id=lease_id)
             finally:
                 depths.pop(key, None)
+
+
+@contextmanager
+def audit_provider_reservation(provider: str):
+    """Use an audit-only provider partition while satisfying nested call limits.
+
+    A configured audit partition replaces the ordinary aggregate provider slot
+    for the current worker. Without an explicit partition policy, audits retain
+    the ordinary shared provider admission behavior.
+    """
+    settings = policy()
+    capacities = settings.get("audit_provider_concurrency")
+    if not capacities:
+        with reservation():
+            yield
+        return
+    if provider not in capacities:
+        raise RuntimeError(f"audit provider capacity is not configured: {provider}")
+    depths = getattr(_LOCAL, "depths", {})
+    provider_key = (os.getpid(), "provider")
+    if depths.get(provider_key):
+        raise RuntimeError("audit provider partition cannot nest inside a provider lease")
+    with reservation(f"audit-provider-{provider}"):
+        depths[provider_key] = 1
+        _LOCAL.depths = depths
+        try:
+            yield
+        finally:
+            depths.pop(provider_key, None)
 
 
 class SharedTokenWindow:

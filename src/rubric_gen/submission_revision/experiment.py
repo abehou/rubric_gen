@@ -340,6 +340,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             f"{_RUBRIC_POLICY_SLUGS[resolved_rubric]}"
         )
         dropout_rate = 0.0
+        accepted_ids: set[str] | None = None
         if dropout_conditions:
             from .rubric_dropout import validate_dropout_rate
             dropout_rate = validate_dropout_rate(
@@ -366,13 +367,17 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         elif proactive_execution_conditions:
             if trace_version.endswith("_provenance"):
                 expected_id = f"{base_id}-execution-provenance-high-proposer"
+                accepted_ids = {
+                    expected_id,
+                    f"{base_id}-execution-verified-proactive-provenance",
+                }
             else:
                 expected_id = (
                     f"{base_id}-execution-verified-proactive-high-proposer"
                 )
         else:
             expected_id = base_id
-        if condition_id != expected_id:
+        if condition_id not in (accepted_ids or {expected_id}):
             raise ValueError(
                 f"condition_id must be {expected_id!r} for its policies"
             )

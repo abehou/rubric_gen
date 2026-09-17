@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 import threading
 
-from rubric_gen.runtime.capacity import reservation
+from rubric_gen.runtime import capacity
+from rubric_gen.runtime.capacity import audit_provider_reservation, reservation
 from rubric_gen.runtime.failures import failure_category
 
 
@@ -53,6 +54,23 @@ class AuditExecutor:
     def __init__(self, workers: int, models: tuple[str, ...]):
         self.workers = workers
         self.providers = tuple(dict.fromkeys(provider_for(m) for m in models))
+        configured = capacity.policy().get('audit_provider_concurrency') or {}
+        unknown = set(configured) - set(self.providers)
+        if unknown:
+            raise RuntimeError(
+                f"audit provider capacity has no configured model: {sorted(unknown)}"
+            )
+        missing = set(self.providers) - set(configured) if configured else set()
+        if missing:
+            raise RuntimeError(
+                f"audit models have no provider capacity: {sorted(missing)}"
+            )
+        self.provider_limits = (
+            {provider: int(configured[provider]) for provider in self.providers}
+            if configured else None
+        )
+        if self.provider_limits and workers > sum(self.provider_limits.values()):
+            raise ValueError("audit workers exceed configured provider capacity")
         self.pool = ThreadPoolExecutor(max_workers=workers)
         self.queues = {}
         self.active = {p: 0 for p in self.providers}
@@ -88,7 +106,9 @@ class AuditExecutor:
         while sum(self.active.values()) < self.workers:
             ready = [names[(self.cursor+i) % len(names)] for i in range(len(names))
                      if self.queues[names[(self.cursor+i) % len(names)]]
-                     and self.active[names[(self.cursor+i) % len(names)][0]] < ceiling]
+                     and self.active[names[(self.cursor+i) % len(names)][0]]
+                     < (self.provider_limits[names[(self.cursor+i) % len(names)][0]]
+                        if self.provider_limits else ceiling)]
             if not ready:
                 break
             group = ready[0]
@@ -96,8 +116,13 @@ class AuditExecutor:
             self.cursor = (names.index(group) + 1) % len(names)
             result, function, args = self.queues[group].popleft()
             self.active[provider] += 1
-            running = self.pool.submit(function, *args)
+            running = self.pool.submit(self._execute, provider, function, args)
             running.add_done_callback(lambda done, p=provider, r=result: self._completed(p, r, done))
+
+    @staticmethod
+    def _execute(provider, function, args):
+        with audit_provider_reservation(provider):
+            return function(*args)
 
     def _completed(self, provider, result, done):
         category = None
@@ -128,6 +153,7 @@ class AuditExecutor:
     def status(self):
         with self.lock:
             return {'request_worker_limit': self.workers,
+                    'provider_limits': dict(self.provider_limits or {}),
                     'active_by_provider': dict(self.active),
                     'ready_by_provider': {p: sum(len(q) for g,q in self.queues.items() if g[0] == p)
                                           for p in self.active},

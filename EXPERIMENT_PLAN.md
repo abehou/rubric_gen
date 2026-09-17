@@ -1449,4 +1449,4 @@ Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_re
 
 ## 2026-09-17 — Approved RTT Results20 validation
 
-- Run exactly one Results20 validation of `attack_defense_v2.1_execution_verified_proactive_provenance`: Full and User trace arms, the canonical 20 tasks and three replicates, official Results20 seed/input pools, unchanged Luna solver/simulator and complete concurrent Sol+Opus evaluation. Use missing-only resume and the staged NAS8/provider60 profile; do not tune from Results20 or run another candidate before reporting the complete result.
+- Run exactly one Results20 validation of `attack_defense_v2.1_execution_verified_proactive_provenance`: Full and User trace arms, the canonical 20 tasks and three replicates, official Results20 seed/input pools, unchanged Luna solver/simulator and complete concurrent Sol+Opus evaluation. Revision retains aggregate provider concurrency 60 and internal fanout 4; the single audit owner uses independent Sol-60 and Opus-60 partitions (`detect --max-concurrency 120`). Use missing-only resume; do not tune from Results20 or run another candidate before reporting the complete result.

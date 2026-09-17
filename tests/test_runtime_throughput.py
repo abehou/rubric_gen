@@ -104,6 +104,57 @@ def test_audit_owned_stages_share_pool_and_leave_capacity_for_other_provider(tmp
     assert peak<=8
 
 
+def test_audit_provider_partitions_schedule_sixty_each_without_cross_consumption(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setattr(capacity, 'policy', lambda: {
+        'version': 1,
+        'aggregate_concurrency': 60,
+        'audit_studies': 1,
+        'audit_provider_concurrency': {'openai': 60, 'anthropic': 60},
+        'coordination_dir': str(tmp_path / 'runtime'),
+    })
+    release = threading.Event()
+    condition = threading.Condition()
+    active = {'openai': 0, 'anthropic': 0}
+    peak = {'openai': 0, 'anthropic': 0, 'total': 0}
+
+    def operation(model):
+        provider = 'anthropic' if model.startswith('claude') else 'openai'
+        # Real audit calls carry this ordinary provider decorator. The outer
+        # audit partition must satisfy it without also consuming revision slots.
+        with reservation():
+            with condition:
+                active[provider] += 1
+                peak[provider] = max(peak[provider], active[provider])
+                peak['total'] = max(peak['total'], sum(active.values()))
+                condition.notify_all()
+            assert release.wait(10)
+            with condition:
+                active[provider] -= 1
+                condition.notify_all()
+        return model
+
+    with audit_owner(tmp_path / 'audit'):
+        with AuditExecutor(120, ('gpt-5.6-sol', 'claude-opus-5')) as pool:
+            futures = []
+            for index in range(61):
+                futures.append(pool.submit(operation, 'gpt-5.6-sol', model='gpt-5.6-sol'))
+                futures.append(pool.submit(operation, 'claude-opus-5', model='claude-opus-5'))
+            with condition:
+                assert condition.wait_for(
+                    lambda: active == {'openai': 60, 'anthropic': 60}, timeout=10,
+                )
+            root = Path(capacity.policy()['coordination_dir'])
+            assert Slots(root / 'audit-provider-openai', 60).active_count() == 60
+            assert Slots(root / 'audit-provider-anthropic', 60).active_count() == 60
+            assert peak == {'openai': 60, 'anthropic': 60, 'total': 120}
+            # Revision/producer capacity is a different pool and remains 60.
+            assert not (root / 'provider' / 'capacity.json').exists()
+            release.set()
+            assert len([future.result(10) for future in futures]) == 122
+
+
 def test_audit_output_owner_excludes_second_owner(tmp_path):
     with audit_owner(tmp_path/'audit'):
         with pytest.raises(RuntimeError,match='already owns'):

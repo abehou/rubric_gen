@@ -650,6 +650,48 @@ def test_experiment_rejects_a_mislabeled_factorial_cell(tmp_path: Path) -> None:
         load_experiment(path)
 
 
+def test_provenance_trace_accepts_explicit_results20_condition_ids(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"] = [
+        {
+            "condition_id": (
+                "full-red-team-trace-execution-verified-proactive-provenance"
+            ),
+            "feedback_policy": "full",
+            "rubric_policy": "red_team_trace",
+        },
+        {
+            "condition_id": (
+                "user-simulator-red-team-trace-execution-verified-"
+                "proactive-provenance"
+            ),
+            "feedback_policy": "user_simulator",
+            "rubric_policy": "red_team_trace",
+        },
+    ]
+    payload["protocol"]["red_team_trace_version"] = (
+        "attack_defense_v2.1_execution_verified_proactive_provenance"
+    )
+    payload["protocol"]["rubric_proposer_reasoning_effort_by_stage"] = {
+        "diagnosis": "high"
+    }
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    experiment = load_experiment(path)
+
+    assert {
+        condition["condition_id"] for condition in experiment.payload["conditions"]
+    } == {
+        "full-red-team-trace-execution-verified-proactive-provenance",
+        "user-simulator-red-team-trace-execution-verified-proactive-provenance",
+    }
+
+
 def test_experiment_rejects_obsolete_condition_level_prompts(
     tmp_path: Path,
 ) -> None:

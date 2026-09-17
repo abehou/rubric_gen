@@ -41,10 +41,10 @@ large experiment outputs.
 
 ## Concurrency and Slurm profile
 
-The checked-in runtime policy already enforces:
+The original staging policy enforced:
 
 - aggregate provider concurrency: **60**;
-- audit request concurrency within `detect`: **60**;
+- audit request concurrency within `detect`: **60 total**;
 - simultaneously active independent audit studies: **1**;
 - one shared cross-process/node capacity namespace.
 
@@ -54,31 +54,34 @@ slot file with capacity 1. Provider-free Slurm test `10472417` then passed 16/16
 focused runtime-capacity and scale-dispatch tests in 9.28 seconds. No capacity
 namespace was replaced or split and no provider call was made.
 
-Current `preempt_cpu_qos` limits are 64 CPUs per user and 32 CPUs per job, with
-20 running jobs and 50 submitted jobs per user. Every native stage uses the
-reviewed request-concurrency ceiling of 60, including the Sol+Opus audit:
+The approved Results20 execution supersedes the combined audit ceiling while
+leaving revision behavior unchanged. Current `preempt_cpu_qos` limits are 64
+CPUs per user and 32 CPUs per job, with 20 running jobs and 50 submitted jobs
+per user. Seed/paraphrase/revision use the reviewed aggregate ceiling of 60;
+the Sol+Opus audit uses provider-partitioned concurrency:
 
 ```bash
 uv run rubric-gen seed --experiment <result20.yaml> --max-concurrency 60
 uv run rubric-gen paraphrase --experiment <result20.yaml> --max-concurrency 60
 uv run rubric-gen revise --experiment <result20.yaml> --max-concurrency 60 --resume
-uv run rubric-gen detect --experiment <result20.yaml> --max-concurrency 60 --resume
+uv run rubric-gen detect --experiment <result20.yaml> --max-concurrency 120 --resume
 ```
 
 `audit_studies=1` is a lease on the number of distinct audit studies/owners that
 may run simultaneously. It does **not** set the number of judgment workers to
-one. The one active `detect` study may dispatch up to 60 missing judgment
-requests, subject to the same aggregate provider cap of 60 shared with every
-other stage and job. Sol (`gpt-5.6-sol`) and Opus (`claude-opus-5`) jobs are
-submitted together to this provider-aware pool and run concurrently; the audit
-does not finish one model before starting the other. The pool keeps capacity
-available for each configured provider so a slow provider cannot occupy all 60
-workers. The limit is 60 concurrent requests in total across Sol and Opus, rather
-than 60 per provider. Allowing multiple independent audit studies at 60 workers
-each would add scheduling contention without increasing the shared provider cap.
-The future Result20 producer should start with 32 allocated CPUs; provider
-request concurrency and CPU allocation remain distinct. Recovery uses native
-missing-only resume and must preserve completed assignments and judgments.
+one. The one active `detect` owner has independent 60-slot partitions for OpenAI
+Sol and Anthropic Opus, for at most 120 audit requests total. Sol and Opus jobs
+are submitted together and neither provider can occupy the other's allocation.
+The ordinary `provider` pool remains capped at 60 for revision and all non-audit
+calls. Both producer and audit use 32 allocated CPUs; provider request
+concurrency and CPU allocation remain distinct. Recovery uses native missing-only
+resume and must preserve completed assignments and judgments.
+
+Provider-free Results20 preflight `10477780` validated the final execution
+configuration: 120 assignments, ordinary provider capacity 60, one audit owner,
+and independent 60-slot OpenAI and Anthropic audit partitions (120 total). The
+test dispatched 60 simulated requests in each audit partition concurrently and
+made no provider call.
 
 Disposable per-job temporary files should use
 `/scratch/job_tmp/$SLURM_JOB_ID`; persistent study, live, audit and ownership
@@ -102,9 +105,9 @@ Before Babel makes any Result20 provider call:
 4. instantiate Result20 configuration under the NAS8 paths above, preserving the
    official task membership, models, solver/simulator, judge definitions and seed
    policy;
-5. validate task inputs, writable output roots, 60-slot shared admission, one
-   audit-study lease, `detect --max-concurrency 60`, simultaneous Sol+Opus
-   dispatch, native resume and the exact missing audit scope;
+5. validate task inputs, writable output roots, 60-slot revision admission, one
+   audit-study lease, `detect --max-concurrency 120`, independent Sol-60 and
+   Opus-60 dispatch, native resume and the exact missing audit scope;
 6. run the minimum representative same-route smoke only if the runtime/provider
    path changed;
 7. launch the single intended Result20 producer, then the complete Sol+Opus audit
