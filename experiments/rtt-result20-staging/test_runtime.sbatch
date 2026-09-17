@@ -21,7 +21,8 @@ mkdir -p "$TMPDIR"
 
 "$PY" -m pytest -q \
   tests/test_runtime_capacity.py \
-  tests/test_biomnibench_scale_dispatch.py
+  tests/test_biomnibench_scale_dispatch.py \
+  tests/test_runtime_throughput.py::test_audit_owned_stages_share_pool_and_leave_capacity_for_other_provider
 
 "$PY" - <<'PY'
 from pathlib import Path

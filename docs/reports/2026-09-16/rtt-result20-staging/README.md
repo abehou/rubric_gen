@@ -69,11 +69,16 @@ uv run rubric-gen detect --experiment <result20.yaml> --max-concurrency 60 --res
 may run simultaneously. It does **not** set the number of judgment workers to
 one. The one active `detect` study may dispatch up to 60 missing judgment
 requests, subject to the same aggregate provider cap of 60 shared with every
-other stage and job. Allowing multiple independent audit studies at 60 workers
-each would oversubscribe that shared cap. The future Result20 producer should
-start with 32 allocated CPUs; provider request concurrency and CPU allocation
-remain distinct. Recovery uses native missing-only resume and must preserve
-completed assignments and judgments.
+other stage and job. Sol (`gpt-5.6-sol`) and Opus (`claude-opus-5`) jobs are
+submitted together to this provider-aware pool and run concurrently; the audit
+does not finish one model before starting the other. The pool keeps capacity
+available for each configured provider so a slow provider cannot occupy all 60
+workers. The limit is 60 concurrent requests in total across Sol and Opus, rather
+than 60 per provider. Allowing multiple independent audit studies at 60 workers
+each would add scheduling contention without increasing the shared provider cap.
+The future Result20 producer should start with 32 allocated CPUs; provider
+request concurrency and CPU allocation remain distinct. Recovery uses native
+missing-only resume and must preserve completed assignments and judgments.
 
 Disposable per-job temporary files should use
 `/scratch/job_tmp/$SLURM_JOB_ID`; persistent study, live, audit and ownership
@@ -98,8 +103,8 @@ Before Babel makes any Result20 provider call:
    official task membership, models, solver/simulator, judge definitions and seed
    policy;
 5. validate task inputs, writable output roots, 60-slot shared admission, one
-   audit-study lease, `detect --max-concurrency 60`, native resume and the exact
-   missing audit scope;
+   audit-study lease, `detect --max-concurrency 60`, simultaneous Sol+Opus
+   dispatch, native resume and the exact missing audit scope;
 6. run the minimum representative same-route smoke only if the runtime/provider
    path changed;
 7. launch the single intended Result20 producer, then the complete Sol+Opus audit
