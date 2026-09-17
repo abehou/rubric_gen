@@ -17,6 +17,13 @@ export XDG_CACHE_HOME=/data/user_data/aydanh/rubric_gen/cache/rtt-result20-next
 export UV_CACHE_DIR=/data/user_data/aydanh/rubric_gen/cache/rtt-result20-next/uv
 export UV_PROJECT_ENVIRONMENT=/home/aydanh/repos/rubric_gen/.venv
 export MPLCONFIGDIR=/data/user_data/aydanh/rubric_gen/cache/rtt-result20-next/matplotlib
-export TMPDIR="/scratch/job_tmp/$SLURM_JOB_ID"
-mkdir -p "$RUN/logs" "$BIOMNIBENCH_LIVE_ROOT" "$XDG_CACHE_HOME" "$UV_CACHE_DIR" "$MPLCONFIGDIR" "$TMPDIR"
+if [[ -n "${SLURM_TMPDIR:-}" ]] && mkdir -p "$SLURM_TMPDIR" 2>/dev/null; then
+  export TMPDIR="$SLURM_TMPDIR"
+elif mkdir -p "/scratch/job_tmp/$SLURM_JOB_ID" 2>/dev/null; then
+  export TMPDIR="/scratch/job_tmp/$SLURM_JOB_ID"
+else
+  export TMPDIR="/tmp/aydanh-rtt-$SLURM_JOB_ID"
+  mkdir -p "$TMPDIR"
+fi
+mkdir -p "$RUN/logs" "$BIOMNIBENCH_LIVE_ROOT" "$XDG_CACHE_HOME" "$UV_CACHE_DIR" "$MPLCONFIGDIR"
 cd "$ROOT"
