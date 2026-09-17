@@ -1355,3 +1355,7 @@ No Result20 scientific owner is active. Provider-free job `10472398` created and
 Runtime policy remains aggregate provider concurrency 60. The intended Result20 commands pass `--max-concurrency 60` to all four native stages: `seed`, `paraphrase`, `revise --resume`, and `detect --resume`. `audit_studies=1` only prevents two independent audit owners from each trying to occupy the shared provider budget; the one active `detect` study runs Sol and Opus concurrently in a provider-aware pool of 60 total request workers. Current Slurm limits are 32 CPUs per job and 64 per user, so the starting profile is one 32-CPU producer followed by one missing-only 32-CPU audit owner. This is prepared scope, not a submitted experiment.
 
 Provider-free runtime job `10472417` passed 16/16 focused capacity and scale-dispatch tests in 9.28 seconds with zero provider calls. Future per-job disposable temp uses `/scratch/job_tmp/$SLURM_JOB_ID`; durable outputs remain on NAS8.
+
+## 2026-09-17 — RTT Results20 handoff
+
+The approved candidate is `attack_defense_v2.1_execution_verified_proactive_provenance`; its positive Dev3 report is `docs/reports/2026-09-17/trace-v21-execution-verified-provenance-high-proposer/README.md`. The integration branch retains `/data/user_data/aydanh/rubric_gen/{runs,live,cache}/rtt-result20-next`, 32 CPUs, provider concurrency 60 and one concurrent Sol+Opus `detect` owner; no Result20 owner has been submitted by this handoff commit.

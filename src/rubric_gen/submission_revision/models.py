@@ -55,7 +55,10 @@ class SubmissionRevisionConfig:
     prompt_profile: PromptProfile = PromptProfile.BASE
     rubric_policy: RubricPolicy = RubricPolicy.FIXED
     red_team_trace_version: str | None = None
+    rubric_dropout_rate: float = 0.0
+    randomization_seed: int = 0
     rubric_proposer_model: str = "gpt-5.6-luna"
+    rubric_proposer_reasoning_effort_by_stage: tuple[tuple[str, str], ...] = ()
     review: str = "trace"
     judge_model: str | None = None
     max_review_chars: int | None = None
@@ -155,11 +158,31 @@ class SubmissionRevisionConfig:
         RubricPolicy(self.rubric_policy)
         from .trace_defense_registry import validate_version
         validate_version(self.red_team_trace_version)
+        from .rubric_dropout import validate_dropout_rate
+        validate_dropout_rate(self.rubric_dropout_rate, self.red_team_trace_version)
+        if type(self.randomization_seed) is not int:
+            raise ValueError("randomization_seed must be an integer")
         if (
             type(self.rubric_proposer_model) is not str
             or not self.rubric_proposer_model.strip()
         ):
             raise ValueError("rubric_proposer_model must be nonempty")
+        try:
+            stage_efforts = dict(self.rubric_proposer_reasoning_effort_by_stage)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                "rubric_proposer_reasoning_effort_by_stage must be key/value pairs"
+            ) from error
+        if len(stage_efforts) != len(self.rubric_proposer_reasoning_effort_by_stage):
+            raise ValueError("rubric proposer reasoning stages must be unique")
+        allowed_stages = {
+            "quality", "rubric_view", "diagnosis", "compilation",
+            "semantic", "application", "enforcement",
+        }
+        if set(stage_efforts) - allowed_stages:
+            raise ValueError("rubric proposer reasoning policy has unknown stages")
+        if any(value not in {"low", "high"} for value in stage_efforts.values()):
+            raise ValueError("rubric proposer stage reasoning effort must be low or high")
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(

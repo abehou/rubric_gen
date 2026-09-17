@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 from dataclasses import dataclass
@@ -12,11 +13,9 @@ from typing import Any
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.yaml import load_yaml_strict
-from rubric_gen.submission_revision.prompts import (
-    PromptProfile,
-    prompt_implementation_sha256,
-)
+from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.evaluation.config import outcome_audit_protocol
+from rubric_gen.runtime.pricing import HOSTED_PRICES_PER_MILLION
 from rubric_gen.submission_revision.rubric_generation import CompleteRubric, RubricPolicy
 from rubric_gen.submission_revision.feedback import FeedbackPolicy
 from rubric_gen.submission_revision.user_simulator import SimulatedUserConfig
@@ -35,6 +34,7 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
 EXPERIMENT_KIND = "rubric-gen-randomized-experiment"
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,79}\Z")
 EXPERIMENT_ID_TOKEN = "{experiment_id}"
+_PATH_MAP_ENV = "RUBRIC_GEN_PATH_MAP_FILE"
 _RUBRIC_POLICY_SLUGS = {
     RubricPolicy.FIXED: "static",
     RubricPolicy.OFFLINE_ELICITATION: "offline-rubric",
@@ -239,8 +239,11 @@ def load_experiment(path: Path) -> Experiment:
         if (not isinstance(models, list) or not models
                 or any(type(m) is not str for m in models)
                 or len(models) != len(set(models))
-                or not set(models) <= set(payload["outcome_audit"]["models"])):
-            raise ValueError("execution_audit_models must be unique nonempty configured model IDs")
+                or not set(models) <= (
+                    set(payload["outcome_audit"]["models"])
+                    | set(HOSTED_PRICES_PER_MILLION)
+                )):
+            raise ValueError("execution_audit_models must be unique nonempty supported model IDs")
     return Experiment(resolved, payload)
 
 
@@ -303,14 +306,23 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
+    trace_version = payload["protocol"].get("red_team_trace_version")
+    dropout_conditions = trace_version == "attack_defense_v2.1_execution_verified"
+    proactive_execution_conditions = (
+        trace_version in {
+            "attack_defense_v2.1_execution_verified_proactive",
+            "attack_defense_v2.1_execution_verified_proactive_provenance",
+        }
+    )
     condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
+    condition_cells: list[tuple[FeedbackPolicy, RubricPolicy, float]] = []
     for condition in conditions:
-        if not isinstance(condition, dict) or set(condition) != {
-            "condition_id", "feedback_policy", "rubric_policy"
-        }:
+        expected_fields = {"condition_id", "feedback_policy", "rubric_policy"}
+        if dropout_conditions:
+            expected_fields.add("rubric_dropout_rate")
+        if not isinstance(condition, dict) or set(condition) != expected_fields:
             raise ValueError(
-                "each condition requires condition_id, feedback_policy, and "
-                "rubric_policy"
+                "each condition requires exactly " + ", ".join(sorted(expected_fields))
             )
         condition_id = condition["condition_id"]
         feedback_policy = condition["feedback_policy"]
@@ -323,16 +335,50 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             raise ValueError("condition rubric_policy must be a string")
         resolved_feedback = FeedbackPolicy(feedback_policy)
         resolved_rubric = RubricPolicy(rubric_policy)
-        expected_id = (
+        base_id = (
             f"{resolved_feedback.value.replace('_', '-')}-"
             f"{_RUBRIC_POLICY_SLUGS[resolved_rubric]}"
         )
+        dropout_rate = 0.0
+        if dropout_conditions:
+            from .rubric_dropout import validate_dropout_rate
+            dropout_rate = validate_dropout_rate(
+                condition["rubric_dropout_rate"], trace_version
+            )
+            percent = dropout_rate * 100
+            if not percent.is_integer():
+                raise ValueError("rubric_dropout_rate must be an integer percentage")
+            if payload["protocol"].get(
+                "rubric_proposer_reasoning_effort_by_stage"
+            ):
+                if dropout_rate != 0.0:
+                    raise ValueError(
+                        "stage-reasoning comparison requires zero rubric dropout"
+                    )
+                expected_id = (
+                    f"{base_id}-execution-verified-"
+                    "high-attack-pair-diagnosis"
+                )
+            else:
+                expected_id = (
+                    f"{base_id}-execution-verified-dropout-{int(percent)}"
+                )
+        elif proactive_execution_conditions:
+            if trace_version.endswith("_provenance"):
+                expected_id = f"{base_id}-execution-provenance-high-proposer"
+            else:
+                expected_id = (
+                    f"{base_id}-execution-verified-proactive-high-proposer"
+                )
+        else:
+            expected_id = base_id
         if condition_id != expected_id:
             raise ValueError(
                 f"condition_id must be {expected_id!r} for its policies"
             )
         condition_ids.append(condition_id)
         condition_pairs.append((resolved_feedback, resolved_rubric))
+        condition_cells.append((resolved_feedback, resolved_rubric, dropout_rate))
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):
@@ -343,18 +389,20 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     selected_rubric_policies = {
         rubric_policy for _, rubric_policy in condition_pairs
     }
-    expected_pairs = {
-        (feedback_policy, rubric_policy)
+    selected_dropout_rates = {rate for _, _, rate in condition_cells}
+    expected_cells = {
+        (feedback_policy, rubric_policy, rate)
         for feedback_policy in selected_feedback_policies
         for rubric_policy in selected_rubric_policies
+        for rate in selected_dropout_rates
     }
     if (
-        len(condition_pairs) != len(expected_pairs)
-        or set(condition_pairs) != expected_pairs
+        len(condition_cells) != len(expected_cells)
+        or set(condition_cells) != expected_cells
     ):
         raise ValueError(
             "conditions must contain exactly one arm for each selected "
-            "feedback-policy and rubric-policy pair"
+            "feedback-policy, rubric-policy, and dropout-rate cell"
         )
     _validate_assignment_selection(payload)
     _validate_protocol(payload["protocol"])
@@ -518,7 +566,6 @@ def _derived_experiment_id(payload: dict[str, Any]) -> str:
     identity = {key: payload[key] for key in _IDENTITY_KEYS}
     if "pretreatment_source" in payload:
         identity["pretreatment_source"] = payload["pretreatment_source"]
-    identity["prompt_implementation_sha256"] = prompt_implementation_sha256()
     digest = sha256_text(json.dumps(
         identity,
         ensure_ascii=False,
@@ -548,8 +595,14 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError("protocol must be a mapping")
     from .trace_defense_registry import validate_version
     validate_version(protocol.get("red_team_trace_version"))
-    if set(protocol) - {"red_team_trace_version"} != base_keys:
-        raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
+    optional_keys = {
+        "red_team_trace_version", "rubric_proposer_reasoning_effort_by_stage",
+    }
+    if not base_keys <= set(protocol) or set(protocol) - base_keys - optional_keys:
+        raise ValueError(
+            "protocol keys must be exactly the required base keys plus supported "
+            f"optional keys; required={sorted(base_keys)}"
+        )
     if type(protocol["max_revisions"]) is not int or protocol["max_revisions"] < 1:
         raise ValueError("max_revisions must be positive")
     if (
@@ -587,6 +640,19 @@ def _validate_protocol(protocol: object) -> None:
         or protocol["rubric_proposer_max_retries"] < 0
     ):
         raise ValueError("rubric_proposer_max_retries must be non-negative")
+    stage_efforts = protocol.get("rubric_proposer_reasoning_effort_by_stage", {})
+    allowed_stages = {
+        "quality", "rubric_view", "diagnosis", "compilation",
+        "semantic", "application", "enforcement",
+    }
+    if not isinstance(stage_efforts, dict):
+        raise ValueError("rubric proposer stage reasoning policy must be a mapping")
+    if set(stage_efforts) - allowed_stages:
+        raise ValueError("rubric proposer reasoning policy has unknown stages")
+    if any(value not in {"low", "high"} for value in stage_efforts.values()):
+        raise ValueError("rubric proposer stage reasoning effort must be low or high")
+    if stage_efforts and protocol.get("red_team_trace_version") is None:
+        raise ValueError("stage-specific proposer reasoning requires red team trace")
     simulator = protocol["feedback_simulator"]
     simulator_keys = {
         "model",
@@ -739,7 +805,52 @@ def _resolve_relative(experiment_path: Path, value: object) -> Path:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("experiment paths must be non-empty strings")
     path = Path(value).expanduser()
-    return path.resolve() if path.is_absolute() else (experiment_path.parent / path).resolve()
+    if not path.is_absolute():
+        return (experiment_path.parent / path).resolve()
+    for source, destination in _operational_path_mappings():
+        try:
+            suffix = path.relative_to(source)
+        except ValueError:
+            continue
+        return (destination / suffix).resolve()
+    return path.resolve()
+
+
+def _operational_path_mappings() -> tuple[tuple[Path, Path], ...]:
+    """Load opt-in storage relocation without changing semantic YAML identity."""
+
+    value = os.environ.get(_PATH_MAP_ENV)
+    if value is None:
+        return ()
+    config = Path(value)
+    if not config.is_absolute() or config.is_symlink() or not config.is_file():
+        raise ValueError(f"{_PATH_MAP_ENV} must name a regular absolute JSON file")
+    try:
+        payload = json.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid {_PATH_MAP_ENV}") from exc
+    if not isinstance(payload, dict) or set(payload) != {"version", "mappings"}:
+        raise ValueError("path map requires exactly version and mappings")
+    mappings = payload["mappings"]
+    if payload["version"] != 1 or not isinstance(mappings, list) or not mappings:
+        raise ValueError("path map version must be 1 with nonempty mappings")
+    resolved: list[tuple[Path, Path]] = []
+    for mapping in mappings:
+        if not isinstance(mapping, dict) or set(mapping) != {"source", "destination"}:
+            raise ValueError("each path mapping requires source and destination")
+        source = Path(mapping["source"]) if isinstance(mapping["source"], str) else Path()
+        destination = (
+            Path(mapping["destination"])
+            if isinstance(mapping["destination"], str)
+            else Path()
+        )
+        if (not source.is_absolute() or source == Path("/")
+                or not destination.is_absolute()):
+            raise ValueError("path mapping endpoints must be absolute and source cannot be root")
+        resolved.append((source, destination))
+    if len({source for source, _ in resolved}) != len(resolved):
+        raise ValueError("path mapping sources must be unique")
+    return tuple(sorted(resolved, key=lambda item: len(item[0].parts), reverse=True))
 
 
 def _optional_string(value: object) -> str | None:

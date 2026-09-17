@@ -410,6 +410,12 @@ def render_augmented_rubric(
         or any(not isinstance(item, ElicitedCriterion) for item in elicited_criteria)
     ):
         raise ValueError("elicited_criteria has an invalid value")
+    # The marker is a host-owned closed mode, not model prose. This lets the
+    # versioned task-required recipe retain its omission semantics while the
+    # shared feedback projector continues to use its pinned renderer dispatch.
+    from .task_paraphrase_required import TASK_REQUIRED_PREFIX, render_task_required_rubric
+    if any(item.requirement.startswith(TASK_REQUIRED_PREFIX) for item in elicited_criteria):
+        return render_task_required_rubric(original_rubric, elicited_criteria)
     if len({item.criterion_id for item in elicited_criteria}) != len(
         elicited_criteria
     ):

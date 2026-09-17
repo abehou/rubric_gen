@@ -99,7 +99,13 @@ class RevisionRecovery:
         )
         if set(manifest) != _revision_manifest_keys(self.config.feedback_policy.value, self.config.red_team_trace_version if self.rubric_policy is RubricPolicy.RED_TEAM_TRACE else None):
             raise RuntimeError("revision manifest has invalid fields")
+        provenance_only = {
+            "prompt_implementation_sha256",
+            "rubric_generation_implementation_sha256",
+        }
         for key, value in self.experiment_identity.items():
+            if key in provenance_only:
+                continue
             if manifest.get(key) != value:
                 raise RuntimeError(f"resume configuration changed: {key}")
         if manifest.get("initial_scoring_identity") != self.scoring_identity:

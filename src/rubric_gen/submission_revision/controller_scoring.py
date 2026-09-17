@@ -319,6 +319,18 @@ class RevisionScorer:
                     )
             else:
                 _write_json_atomic(feedback_path, feedback.payload)
+            dropout_record = getattr(feedback, "rubric_dropout", None)
+            if dropout_record is not None:
+                dropout_path = (
+                    self.experiment_dir / "rubric-dropout" / f"{submission_id}.json"
+                )
+                if dropout_path.exists():
+                    if _read_json_object(
+                        dropout_path, "rubric dropout receipt"
+                    ) != dropout_record:
+                        raise RuntimeError("persisted rubric dropout mask changed")
+                else:
+                    _write_json_atomic(dropout_path, dropout_record)
         elif os.path.lexists(feedback_path):
             raise RuntimeError("terminal submission must not contain feedback")
         score = float(rubric_evaluation["score"])
@@ -343,6 +355,9 @@ class RevisionScorer:
                 "elicited_penalty": rubric_evaluation["elicited_penalty"],
                 "feedback_reference": rubric_evaluation["feedback_reference"],
                 "feedback_policy": FeedbackPolicy(self.config.feedback_policy).value,
+                **({"rubric_dropout": getattr(feedback, "rubric_dropout")}
+                   if feedback is not None
+                   and getattr(feedback, "rubric_dropout", None) is not None else {}),
                 "feedback_sha256": (
                     _sha256_file(feedback_path) if feedback is not None else None
                 ),
@@ -534,8 +549,18 @@ class RevisionScorer:
             encoding="utf-8"
         )
         first_revision = submission_id == "s000"
+        dropout = None
+        if self.config.red_team_trace_version == "attack_defense_v2.1_execution_verified":
+            from .rubric_dropout import revision_dropout
+            dropout = revision_dropout(
+                generation,
+                rate=self.config.rubric_dropout_rate,
+                seed=self.config.randomization_seed,
+                assignment_id=self.config.assignment_id,
+                revision_round=int(submission_id[1:]) + 1,
+            )
         if policy is not FeedbackPolicy.USER_SIMULATOR:
-            return project_rubric_feedback(
+            projected = project_rubric_feedback(
                 generation,
                 (artifacts.score_validation_path, artifacts.evaluation_path),
                 policy,
@@ -547,6 +572,15 @@ class RevisionScorer:
                 ),
                 reference_rubric_text=self.initial_rubric.text,
                 reference_rubric_sha256=self.initial_rubric.sha256,
+                prompt_profile=self.config.prompt_profile,
+                benchmark=self.config.benchmark,
+            )
+            if dropout is None:
+                return projected
+            from .rubric_dropout import project_feedback
+            return project_feedback(
+                projected, dropout, generation, policy=policy,
+                task_instruction=task_instruction, first_revision=first_revision,
                 prompt_profile=self.config.prompt_profile,
                 benchmark=self.config.benchmark,
             )
@@ -569,6 +603,14 @@ class RevisionScorer:
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
         )
+        if dropout is not None:
+            from .rubric_dropout import project_feedback
+            full_projection = project_feedback(
+                full_projection, dropout, generation, policy=FeedbackPolicy.FULL,
+                task_instruction=task_instruction, first_revision=first_revision,
+                prompt_profile=self.config.prompt_profile,
+                benchmark=self.config.benchmark,
+            )
         factor_trace = self.trace_defense_enabled and self.config.red_team_trace_version in feedback_factors.VARIANTS
         firewall_trace = self.trace_defense_enabled and self.config.red_team_trace_version in public_firewall.VARIANTS
         factor_delivery = None
@@ -731,6 +773,10 @@ class RevisionScorer:
             reference_score=reference_score,
             prompt_profile=self.config.prompt_profile,
             benchmark=self.config.benchmark,
+        )
+        from .rubric_dropout import attach_record
+        projected = attach_record(
+            projected, getattr(full_projection, "rubric_dropout", None)
         )
         if factor_delivery is not None:
             feedback_factors.persist_budget_delivery(root=self.experiment_dir,

@@ -374,6 +374,13 @@ def _expected_manifest(context: ValidationContext) -> dict[str, object]:
     }
     if context.simulator is not None:
         expected["feedback_simulator"] = context.simulator.identity()
+    if protocol.get("red_team_trace_version") == "attack_defense_v2.1_execution_verified":
+        from .rubric_dropout import implementation_sha256
+        expected.update({
+            "rubric_dropout_rate": float(context.condition["rubric_dropout_rate"]),
+            "rubric_dropout_seed": int(context.experiment.payload["randomization"]["seed"]),
+            "rubric_dropout_implementation_sha256": implementation_sha256(),
+        })
     return expected
 
 

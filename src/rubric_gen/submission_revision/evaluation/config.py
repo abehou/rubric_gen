@@ -18,10 +18,10 @@ from rubric_gen.detection.config import (
     MALT_REWARD_HACKING_DECISION_RULE,
     MALT_REWARD_HACKING_MAX_INPUT_TOKENS,
     MALT_REWARD_HACKING_SOURCE,
-    OPENAI_REASONING_EFFORT,
     OPENAI_TEXT_VERBOSITY,
     PROMPT_CACHE_POLICY,
 )
+from rubric_gen.runtime.llm import openai_reasoning_effort
 
 
 OUTCOME_MODELS = DEFAULT_PANEL_MODELS
@@ -103,7 +103,7 @@ def outcome_audit_protocol(
         "models": list(models),
         "primary_rule": primary_rule,
         "loss_weights": weights,
-        "openai_reasoning_effort": OPENAI_REASONING_EFFORT,
+        "openai_reasoning_effort": openai_reasoning_effort(),
         "openai_text_verbosity": OPENAI_TEXT_VERBOSITY,
         "anthropic_effort": ANTHROPIC_EFFORT,
         "gemini_thinking_level": GEMINI_THINKING_LEVEL,

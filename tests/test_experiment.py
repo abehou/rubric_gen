@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 import rubric_gen.submission_revision.commands as commands_module
+import rubric_gen.submission_revision.experiment as experiment_module
 import rubric_gen.submission_revision.study as study_module
 import rubric_gen.submission_revision.study_validation as study_validation_module
 import rubric_gen.submission_revision.paraphrase_validation as paraphrase_validation_module
@@ -165,7 +166,12 @@ def test_audit_model_scope_preserves_source_identity_and_declared_panel(tmp_path
     assert scoped.assignments == original.assignments
     assert scoped.outcome_audit["models"] == ["judge-a"]
     assert scoped.payload["outcome_audit"]["models"] == ["judge-a", "judge-b"]
-    for invalid in ([], None, "judge-a", ["unknown"], ["judge-a"] * 2, [[]]):
+    payload["execution_audit_models"] = ["gpt-5.6-luna"]
+    path.write_text(yaml.safe_dump(payload))
+    alternate = load_experiment(path)
+    assert alternate.experiment_id == original.experiment_id
+    assert alternate.outcome_audit["models"] == ["gpt-5.6-luna"]
+    for invalid in ([], None, "judge-a", ["unknown"], ["gpt-5.6-luna"] * 2, [[]]):
         payload["execution_audit_models"] = invalid
         path.write_text(yaml.safe_dump(payload))
         with pytest.raises(ValueError, match="execution_audit_models"):
@@ -193,6 +199,54 @@ def test_execution_scope_preserves_scientific_identity(tmp_path: Path) -> None:
         path.write_text(yaml.safe_dump(payload))
         with pytest.raises(ValueError, match="execution_conditions"):
             load_experiment(path)
+
+
+def test_operational_path_map_relocates_storage_without_changing_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    _task(first, "da-1-1")
+    _task(second, "da-1-1")
+    payload = _payload(tmp_path)
+    payload["tasks"] = ["da-1-1"]
+    payload["tasks_dir"] = "/canonical/inputs/tasks"
+    for name, stage in payload["dag"].items():
+        suffix = "{experiment_id}" if name in {"revise", "detect"} else "shared"
+        stage["output_dir"] = f"/canonical/outputs/{name}/{suffix}"
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    def mapped(destination: Path) -> object:
+        config = tmp_path / f"map-{destination.name}.json"
+        config.write_text(json.dumps({
+            "version": 1,
+            "mappings": [
+                {"source": "/canonical/inputs/tasks", "destination": str(destination / "tasks")},
+                {"source": "/canonical/outputs", "destination": str(destination / "outputs")},
+            ],
+        }))
+        monkeypatch.setenv("RUBRIC_GEN_PATH_MAP_FILE", str(config))
+        return load_experiment(path)
+
+    one = mapped(first)
+    two = mapped(second)
+    assert one.experiment_id == two.experiment_id
+    assert one.tasks_dir == first / "tasks"
+    assert two.tasks_dir == second / "tasks"
+    assert Path(one.dag["revise"]["output_dir"]).is_relative_to(first / "outputs")
+    assert Path(two.dag["revise"]["output_dir"]).is_relative_to(second / "outputs")
+
+
+def test_operational_path_map_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = tmp_path / "map.json"
+    config.write_text(json.dumps({
+        "version": 1,
+        "mappings": [{"source": "/", "destination": str(tmp_path)}],
+    }))
+    monkeypatch.setenv("RUBRIC_GEN_PATH_MAP_FILE", str(config))
+    with pytest.raises(ValueError, match="source cannot be root"):
+        experiment_module._operational_path_mappings()
 
 
 def test_yaml_experiment_randomizes_balanced_assignments_without_hashes(tmp_path: Path) -> None:

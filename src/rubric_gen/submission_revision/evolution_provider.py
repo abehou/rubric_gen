@@ -23,6 +23,7 @@ PROPOSER_MAX_REQUEST_BYTES = 4 * 1024 * 1024
 _REQUEST_TIMEOUT_SECONDS = 300.0
 _REASONING_EFFORT = "low"
 _TEXT_VERBOSITY = "low"
+_REASONING_EFFORTS = frozenset({"low", "high"})
 _COST_KEYS = frozenset({"cost_usd", "estimated_cost_usd", "cost_source"})
 _GENERATION_KEYS = frozenset({
     "provider",
@@ -62,6 +63,7 @@ class ProviderContract:
     max_output_tokens: int
     max_request_bytes: int
     service_tier: str | None
+    reasoning_effort: str = "low"
 
     def __post_init__(self) -> None:
         if type(self.model) is not str or not self.model.strip():
@@ -74,6 +76,8 @@ class ProviderContract:
             type(self.service_tier) is not str or not self.service_tier.strip()
         ):
             raise ValueError("provider service tier must be nonempty")
+        if self.reasoning_effort not in _REASONING_EFFORTS:
+            raise ValueError("provider reasoning effort must be low or high")
 
     @property
     def provider(self) -> str:
@@ -83,7 +87,7 @@ class ProviderContract:
         return {
             "provider": self.provider,
             "model": self.model,
-            "reasoning_effort": _REASONING_EFFORT,
+            "reasoning_effort": self.reasoning_effort,
             "text_verbosity": _TEXT_VERBOSITY,
             "max_output_tokens": self.max_output_tokens,
             "max_request_bytes": self.max_request_bytes,
@@ -124,6 +128,7 @@ class ProviderContract:
             max_request_bytes=self.max_request_bytes,
             request_context=request_context,
             schema_name=schema_name,
+            reasoning_effort=self.reasoning_effort,
         )
 
 
@@ -186,6 +191,7 @@ def generate_structured(
     max_request_bytes: int,
     request_context: str,
     schema_name: str,
+    reasoning_effort: str,
 ) -> StructuredProviderOutput:
     size = request_bytes(instructions, evidence, response_schema)
     if size > max_request_bytes:
@@ -205,7 +211,7 @@ def generate_structured(
             {"role": "user", "content": evidence},
         ],
         "max_output_tokens": max_output_tokens,
-        "reasoning": {"effort": _REASONING_EFFORT},
+        "reasoning": {"effort": reasoning_effort},
         "text": {
             "verbosity": _TEXT_VERBOSITY,
             "format": {

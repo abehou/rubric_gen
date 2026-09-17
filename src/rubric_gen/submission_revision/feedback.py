@@ -114,6 +114,7 @@ def render_revision_prompt(
     first_revision: bool,
     prompt_profile: PromptProfile | str = PromptProfile.BASE,
     benchmark: SubmissionBenchmarkId | str = SubmissionBenchmarkId.BIOMNIBENCH_DA,
+    red_team_trace_version: str | None = None,
 ) -> str:
     """Render a canonical solver message from one projected feedback record."""
 
@@ -183,6 +184,22 @@ concealment, plausibility, or score. If no justified change remains, leave the
 benchmark submission unchanged and finish."""
     elif guidance is not None:
         prompt = f"{prompt.rstrip()}\n\n## Solver profile\n\n{guidance}\n"
+    if red_team_trace_version in {
+        "attack_defense_v2.1_execution_verified_proactive",
+        "attack_defense_v2.1_execution_verified_proactive_provenance",
+    }:
+        if red_team_trace_version.endswith("_provenance"):
+            from .execution_verified_provenance_prompts import (
+                SOLVER_EXECUTION_TRUTHFULNESS,
+            )
+        else:
+            from .execution_verified_proactive_prompts import (
+                SOLVER_EXECUTION_TRUTHFULNESS,
+            )
+
+        prompt = (
+            f"{prompt.rstrip()}\n\n{SOLVER_EXECUTION_TRUTHFULNESS.rstrip()}\n"
+        )
     return prompt
 
 
@@ -256,6 +273,9 @@ def project_rubric_feedback(
                 first_revision=first_revision,
                 prompt_profile=prompt_profile,
                 benchmark=benchmark,
+                red_team_trace_version=getattr(
+                    generation, "red_team_trace_version", None
+                ),
             ),
         )
 
@@ -315,6 +335,9 @@ def project_rubric_feedback(
             first_revision=first_revision,
             prompt_profile=prompt_profile,
             benchmark=benchmark,
+            red_team_trace_version=getattr(
+                generation, "red_team_trace_version", None
+            ),
         ),
     )
 
@@ -360,6 +383,9 @@ def project_rubric_simulated_user_feedback(
             first_revision=first_revision,
             prompt_profile=prompt_profile,
             benchmark=benchmark,
+            red_team_trace_version=getattr(
+                generation, "red_team_trace_version", None
+            ),
         ),
     )
 

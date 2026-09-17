@@ -205,6 +205,13 @@ class SubmissionRevisionController:
         }
         if self.config.feedback_simulator is not None:
             identity["feedback_simulator"] = self.config.feedback_simulator.identity()
+        if self.config.red_team_trace_version == "attack_defense_v2.1_execution_verified":
+            from .rubric_dropout import implementation_sha256
+            identity.update({
+                "rubric_dropout_rate": float(self.config.rubric_dropout_rate),
+                "rubric_dropout_seed": self.config.randomization_seed,
+                "rubric_dropout_implementation_sha256": implementation_sha256(),
+            })
         return identity
 
     def run(self) -> SubmissionRevisionResult:
@@ -440,7 +447,18 @@ class SubmissionRevisionController:
         except (OSError, RuntimeError) as exc:
             raise _SolverTurnFailure(str(exc), 2) from exc
         changed = current_sha256 != baseline_sha256
-        if not changed and turn_index >= self.config.min_revisions:
+        unresolved_execution_issue = False
+        if self.config.red_team_trace_version in {
+            "attack_defense_v2.1_execution_verified",
+            "attack_defense_v2.1_execution_verified_proactive",
+            "attack_defense_v2.1_execution_verified_proactive_provenance",
+        }:
+            from .task_required_enforcement import active_execution_issue
+            unresolved_execution_issue = active_execution_issue(
+                self.experiment_dir, state.submission_ids[-1]
+            )
+        if (not changed and turn_index >= self.config.min_revisions
+                and not unresolved_execution_issue):
             state.stop_reason = "no_change"
             state.next_prompt = ""
             state.phase = _RevisionPhase.COMPLETED

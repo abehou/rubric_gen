@@ -685,3 +685,7 @@
 ## 2026-09-15 — Version-scoped diagnosis dispatch
 
 - 01:35 EDT: New completion-aware RTT requests dispatch only through the explicit `attack_defense_v2.1_task_paraphrase_required_completion` prompt module; legacy v2.1 and prior candidate identities remain unchanged. Focused tests cover the new prompt identity and stage dispatch; clean-run wrappers keep new durable state on NAS1 and disposable caches on job scratch.
+
+## 2026-09-17 — Results20 candidate integration
+
+- 23:50 JST: Integrated `attack_defense_v2.1_execution_verified_proactive_provenance` with the latest Babel staging branch while retaining its completion-pass recipes. The promoted recipe keeps Luna high only for diagnosis/proposal, rejects literal/echoed output as execution evidence, and leaves historical v2.1 behavior unchanged.

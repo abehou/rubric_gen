@@ -67,6 +67,16 @@ def test_nested_audit_and_provider_do_not_deadlock(tmp_path,monkeypatch):
     assert nested_request()==7
 
 
+def test_runtime_policy_can_use_an_explicit_local_file(tmp_path, monkeypatch):
+    config = tmp_path / "runtime.json"
+    config.write_text("{}")
+    monkeypatch.setenv("RUBRIC_GEN_RUNTIME_CONFIG", str(config))
+    assert capacity._runtime_config_path() == config
+    monkeypatch.setenv("RUBRIC_GEN_RUNTIME_CONFIG", "relative.json")
+    with pytest.raises(RuntimeError, match="regular absolute JSON file"):
+        capacity._runtime_config_path()
+
+
 def test_exception_releases_and_telemetry_has_no_payload(tmp_path,monkeypatch):
     monkeypatch.setattr(capacity,'policy',lambda:dict(version=1,aggregate_concurrency=1,audit_studies=1,coordination_dir=str(tmp_path)))
     @limited('request')

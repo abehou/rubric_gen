@@ -74,11 +74,19 @@ def check_semantic_records(root: Path, name: str, summary: dict) -> None:
 
 
 def source_records(study: Path):
-    from rubric_gen.submission_revision.experiment import load_experiment
+    from rubric_gen.submission_revision.experiment import Experiment, load_experiment
     from rubric_gen.submission_revision.execution_scope import terminal_records
     from rubric_gen.submission_revision.source_resolution import resolve_study_sources
     ledger = json.loads((study / "study.json").read_text())
-    sources = resolve_study_sources(study, load_experiment(Path(ledger['experiment_path'])))
+    experiment = load_experiment(Path(ledger['experiment_path']))
+    if experiment.experiment_id != ledger['experiment_id']:
+        # Completed studies keep their recorded identity.  Current source-code
+        # fingerprints are provenance, not a reason to make old results unreadable.
+        experiment = Experiment(
+            path=experiment.path,
+            payload={**experiment.payload, 'experiment_id': ledger['experiment_id']},
+        )
+    sources = resolve_study_sources(study, experiment)
     return terminal_records(sources.experiment, sources.ledger)
 
 

@@ -38,6 +38,52 @@ def contract_source_hashes(version=None):
                   'task_paraphrase_required_completion_prompts.py',
                   'task_paraphrase_required_completion_pass_prompts.py',
                   'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_schema.py',
+                  'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_source_bound_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_witness_frozen_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_durable_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery':
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'task_required_enforced_requirement_only_prompts.py',
+                  'task_required_enforced_requirement_only_durable_delivery_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+    if version in {'attack_defense_v2.1_execution_verified',
+                   'attack_defense_v2.1_execution_verified_proactive',
+                   'attack_defense_v2.1_execution_verified_proactive_provenance'}:
+        names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
+                  'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
+                  'task_required_enforced_prompts.py', 'execution_verified_prompts.py',
+                  'task_required_enforced_schema.py', 'task_required_enforcement.py')
+        if version in {'attack_defense_v2.1_execution_verified_proactive',
+                       'attack_defense_v2.1_execution_verified_proactive_provenance'}:
+            names += ('execution_verified_proactive_prompts.py',)
+        if version == 'attack_defense_v2.1_execution_verified_proactive_provenance':
+            names += ('execution_verified_provenance_prompts.py',)
     return {name: sha256_file(root/name) for name in names}
 
 
@@ -50,14 +96,21 @@ class TraceStagesV2:
         if selected_recipe.family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
         self.prompts = import_module('.' + selected_recipe.prompts_module, __package__)
-        if self.version not in {self.prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion', 'attack_defense_v2.1_task_paraphrase_required_completion_pass'}:
+        if self.version not in {self.prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_completion', 'attack_defense_v2.1_task_paraphrase_required_completion_pass', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery', 'attack_defense_v2.1_execution_verified', 'attack_defense_v2.1_execution_verified_proactive', 'attack_defense_v2.1_execution_verified_proactive_provenance'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
+        self.prompts = recipe(self.version).prompts
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}
         self._recorded_requests = None
 
     def request(self, stage, evidence, validator):
         if validator.stage != stage:
             raise ValueError('response validator stage differs from request')
+        stage_contract = getattr(self.proposer, 'contract_for_stage', None)
+        provider = (
+            stage_contract(stage)
+            if callable(stage_contract)
+            else self.proposer.proposer_contract
+        )
         return {'red_team_trace_version': self.version, 'stage': stage,
                 'prompt_version': self.prompts.PROMPT_VERSION, 'prompt': self.prompts.STAGES[stage],
                 'prompt_sha256': self.prompts.prompt_hashes()[stage],
@@ -66,7 +119,7 @@ class TraceStagesV2:
                 'stage_contract_version': STAGE_CONTRACT_VERSION,
                 'validation_source_sha256s': contract_source_hashes(self.version),
                 'evidence': canonical_json(evidence), 'schema': validator.schema,
-                'response_contract': validator.identity(), 'provider': self.proposer.proposer_contract.record(),
+                'response_contract': validator.identity(), 'provider': provider.record(),
                 'max_retries': self.proposer.max_retries, 'locator_repairs_maximum': 2,
                 'maximum_stage_attempts': maximum_stage_attempts(self.proposer.max_retries),
                 'provider_failure_max_retries': PROVIDER_FAILURE_MAX_RETRIES}
@@ -104,7 +157,7 @@ class TraceStagesV2:
     def _execute(self, stage, request, key, validator):
         directory, actual = self.root/key, 0
         path = directory/'result.json'
-        provider = self.proposer.proposer_contract
+        provider = self.proposer.contract_for_stage(stage)
         cache_hit = path.is_file()
         if cache_hit:
             result = load_json_object(path.read_text(), 'v2 request receipt')
