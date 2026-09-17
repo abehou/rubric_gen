@@ -1347,3 +1347,11 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-15 — RTT completion-pass Dev3 ownership
 
 - 17:21 EDT: Branch `codex/rtt-dev3-next-20260915` owns exactly 18 new trace assignments for experiment `biomnibench-da-factorial-r10-a55245afa8c8` at `/home/aydanh/runs/rtt-completion-pass-dev3-20260915/`; frozen clean seeds/paraphrases are read-only inputs, and the existing 18 fixed plus 18 completion-parent cells remain comparison evidence. Config and recovery entrypoints are under `experiments/trace-task-paraphrase-required/completion_pass_*`; no Result20 job is in scope.
+
+## RTT Result20 NAS8 staging — 2026-09-16
+
+No Result20 scientific owner is active. Provider-free job `10472398` created and write-tested future large-output roots under `/data/user_data/aydanh/rubric_gen/{runs,live,cache}/rtt-result20-next` and `/data/user_data/aydanh/rubric_gen/pools/biomnibench/rtt-result20-next`; the receipt is recorded in [the current report](docs/reports/2026-09-16/rtt-result20-staging/README.md). Mac owns Dev3 exploration; Babel launches only after an exact committed candidate and positive Dev3 report are handed off.
+
+Runtime policy remains aggregate provider concurrency 60 with one audit study. Current Slurm limits are 32 CPUs per job and 64 per user; the intended Result20 starting profile is one 32-CPU producer with explicit 60 request workers, followed by one missing-only Sol+Opus audit owner. This is prepared scope, not a submitted experiment.
+
+Provider-free runtime job `10472417` passed 16/16 focused capacity and scale-dispatch tests in 9.28 seconds with zero provider calls. Future per-job disposable temp uses `/scratch/job_tmp/$SLURM_JOB_ID`; durable outputs remain on NAS8.

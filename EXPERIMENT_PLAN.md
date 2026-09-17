@@ -1439,3 +1439,10 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-15 — Current RTT development round
 
 Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_required_completion_pass`, whose only hypothesis is that a task-required zero-penalty A level must require performed/captured work rather than honest noncompletion. Reuse the frozen clean seeds/paraphrases and completed static/completion-parent evidence; audit the new Full/User trace arms with unchanged Sol+Opus and all four RH windows, then stop or run at most one further Dev3 only if a complete result identifies another concrete earliest RTT failure. Results10/20/30/45 remain out of scope.
+
+## 2026-09-16 — Current RTT development/Result20 ownership
+
+- Local Mac Codex thread `codex://threads/01a09fd6-b336-7d63-a016-68524bb793c4` owns Dev3 method exploration. Babel waits for a committed candidate and a clear positive Dev3 signal; it does not independently tune the method or launch Result20 now.
+- After promotion, Babel runs the single intended Result20 validation from persistent NAS8 paths under `/data/user_data/aydanh/rubric_gen/`, using the checked-in aggregate provider cap 60 and one active audit study. Git commit, exact candidate/config and committed Dev3 report are required handoff evidence; the thread URI alone is not executable provenance.
+- The blocked completion-pass chain (`10454080` OOM; downstream gate/audit cancelled) is retired and must not be resumed or treated as the next Result20 candidate. Historical plan sections remain evidence, not current dispatch instructions.
+- Current staging details and the promotion checklist are in [the NAS8 Result20 staging report](docs/reports/2026-09-16/rtt-result20-staging/README.md).
