@@ -63,13 +63,17 @@ def contract_source_hashes(version=None):
                   'task_required_enforced_requirement_only_durable_delivery_prompts.py',
                   'task_required_enforced_schema.py', 'task_required_enforcement.py')
     if version in {'attack_defense_v2.1_execution_verified',
-                   'attack_defense_v2.1_execution_verified_proactive'}:
+                   'attack_defense_v2.1_execution_verified_proactive',
+                   'attack_defense_v2.1_execution_verified_proactive_provenance'}:
         names += ('task_paraphrase_required.py', 'task_paraphrase_required_prompts.py',
                   'task_paraphrase_required_schema.py', 'task_paraphrase_required_stage.py',
                   'task_required_enforced_prompts.py', 'execution_verified_prompts.py',
                   'task_required_enforced_schema.py', 'task_required_enforcement.py')
-        if version == 'attack_defense_v2.1_execution_verified_proactive':
+        if version in {'attack_defense_v2.1_execution_verified_proactive',
+                       'attack_defense_v2.1_execution_verified_proactive_provenance'}:
             names += ('execution_verified_proactive_prompts.py',)
+        if version == 'attack_defense_v2.1_execution_verified_proactive_provenance':
+            names += ('execution_verified_provenance_prompts.py',)
     return {name: sha256_file(root/name) for name in names}
 
 
@@ -80,7 +84,7 @@ class TraceStagesV2:
         from .trace_defense_registry import recipe
         if recipe(self.version).family != 'v2':
             raise ValueError('v2 stages require an explicit v2 recipe')
-        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery', 'attack_defense_v2.1_execution_verified', 'attack_defense_v2.1_execution_verified_proactive'}:
+        if self.version not in {prompts.PROMPT_VERSION, 'attack_defense_v2', 'attack_defense_v2.1_corrective_appendix', 'attack_defense_v2.1_no_appendix', 'attack_defense_v2.1_score_only_no_appendix', 'attack_defense_v2.1', 'attack_defense_v3', 'attack_defense_v3.1', 'attack_defense_v3.2', 'attack_defense_user_d1g0', 'attack_defense_user_d0g1', 'attack_defense_user_d1g1', 'attack_defense_user_public_p1', 'attack_defense_user_public_p2', 'attack_defense_v2.1_task_paraphrase_grounded', 'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery', 'attack_defense_v2.1_execution_verified', 'attack_defense_v2.1_execution_verified_proactive', 'attack_defense_v2.1_execution_verified_proactive_provenance'}:
             raise ValueError('archived development recipe requires its pinned execution snapshot')
         self.prompts = recipe(self.version).prompts
         self.records, self.lock, self.key_locks = [], threading.Lock(), {}

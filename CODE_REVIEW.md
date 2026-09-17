@@ -709,3 +709,8 @@
 
 - 17:45 JST: The proactive recipe appends one execution-truthfulness instruction through both Full and User feedback projection and assigns Luna high only to diagnosis/proposal; all other stage contracts remain Luna low. Broad raw-source hashes are retained only as provenance and no longer derive experiment identity or block resume, while semantic config/input identity checks remain.
 - 17:45 JST: One saved User trajectory exposes the remaining correctness risk: a fresh exit-zero command can echo a claimed statistic as a literal and satisfy the current execution reviewer without computing it from the current input. Any next repair should address only that dataflow/provenance defect and preserve honest non-execution; it is not implemented pending user review.
+
+## 2026-09-17 — Computation-provenance repair outcome
+
+- 23:23 JST: Resolved the concrete literal-output loophole without changing the learner, selector, admission math, simulator, solver model, or evaluation: a successful command supports a statistic only when execution derives it from the current intended input. Provider-free tests pass 29/29 focused and 290 affected checks; the known literal Mann-Whitney trajectory now computes and later recalibrates the result.
+- 23:23 JST: Three final User execution issues remain active because the unchanged low solver reached no-change/max-revision stopping, while all RH verdicts remain negative. Treat this as a documented closure/solver-capability limitation, not a reason to add another execution framework or optimize unmatched historical gaps before Results20.

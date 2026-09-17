@@ -55,7 +55,8 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
             return selection, enforcement_skipped
     elif (getattr(generation, 'red_team_trace_version', None) in {
           'attack_defense_v2.1_execution_verified',
-          'attack_defense_v2.1_execution_verified_proactive'}
+          'attack_defense_v2.1_execution_verified_proactive',
+          'attack_defense_v2.1_execution_verified_proactive_provenance'}
           and not skip_execution_verified):
         from .task_required_enforcement import select_execution_verified
         selection, enforcement_skipped, _ = select_execution_verified(
@@ -120,7 +121,8 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
     issue = None
     if (getattr(generation, 'red_team_trace_version', None) in {
             'attack_defense_v2.1_execution_verified',
-            'attack_defense_v2.1_execution_verified_proactive'}):
+            'attack_defense_v2.1_execution_verified_proactive',
+            'attack_defense_v2.1_execution_verified_proactive_provenance'}):
         from .task_required_enforcement import select_execution_verified
         selection, skipped, issue = select_execution_verified(
             generation=generation, root=root)

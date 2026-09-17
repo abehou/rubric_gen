@@ -40,6 +40,7 @@ ENFORCED_VERSIONS = {
     'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery',
     'attack_defense_v2.1_execution_verified',
     'attack_defense_v2.1_execution_verified_proactive',
+    'attack_defense_v2.1_execution_verified_proactive_provenance',
 }
 INTERNAL_STAGE_FANOUT = 4
 
@@ -310,13 +311,15 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
             execution_verified=(version in {
                 'attack_defense_v2.1_execution_verified',
                 'attack_defense_v2.1_execution_verified_proactive',
+                'attack_defense_v2.1_execution_verified_proactive_provenance',
             }),
             freeze_witness=(version in {
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen',
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable',
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery',
                 'attack_defense_v2.1_execution_verified',
-                'attack_defense_v2.1_execution_verified_proactive'}))
+                'attack_defense_v2.1_execution_verified_proactive',
+                'attack_defense_v2.1_execution_verified_proactive_provenance'}))
         witness_record['source_binding'] = source_binding
         enforcement = stages.call('enforcement', enforcement_input, enforcement_contract)
         enforcement_record = {

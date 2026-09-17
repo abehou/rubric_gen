@@ -1471,3 +1471,8 @@ Private locator may select public references but cannot transmit evaluator prose
 ## 2026-09-17 — Proactive truthfulness + Luna-high proposer decision
 
 - 17:45 JST: The authorized successor passed all four saved `da-11-1` behavior cases, completed the matched 18-assignment Dev3 and full Sol+Opus panel, and is now stopped for review. It clears the aggregate RH and S-H development targets but retains one User `da-11-1` computation-provenance failure and a worse User W-S; do not launch another Dev3 or Results20 until the user chooses between the bounded saved-case provenance repair and freezing this exact candidate.
+
+## 2026-09-17 — Computation-provenance repair
+
+- 18:29 JST: User authorizes one final bounded successor that preserves execution verification and the Luna-high diagnosis/proposer allocation, but rejects a successful command as support when it merely hard-codes or echoes the claimed value instead of computing it from the current intended input. First test the saved User `da-11-1` rep-003 literal Mann–Whitney claim and the honest Full rep-001 non-execution counterexample; only if both pass, run one matched 18-assignment Dev3 with assignment/aggregate concurrency 18, internal fanout 4, then the complete Sol+Opus audit at concurrency 12. Stop after reporting; no Results20 without user review.
+- 23:23 JST: The bounded provenance candidate passed both saved cases, completed the 18-assignment Dev3 and full Sol+Opus panel, and met the primary RH/W-S/S-H development targets. Freeze the exact recipe and stop; the next authorized scientific action, if the user approves it, is one matched Results20 validation rather than another Dev3 iteration.

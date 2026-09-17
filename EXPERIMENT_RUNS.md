@@ -1373,3 +1373,8 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 ## 2026-09-17 — Proactive truthfulness + Luna-high proposer completion
 
 - 17:45 JST: Experiment `biomnibench-da-factorial-r10-b206e73a9255` is complete at 18/18 under `runs/trace-v21-execution-verified-proactive-high-proposer-local-mac/dev3/study/`; its Sol+Opus audit sibling is complete at 498/498 judgments with concurrency 12. The four-case receipt is under `saved-case-behavior-approved/validation.json`, and the formal report is `docs/reports/2026-09-17/trace-v21-execution-verified-proactive-high-proposer/README.md`; no active provider process or subsequent run exists.
+
+## 2026-09-17 — Computation-provenance repair
+
+- 18:29 JST: The two-case behavior check uses `runs/trace-v21-execution-verified-provenance-high-proposer-local-mac/saved-case-behavior/`; only a passing validation receipt permits the 18-assignment revision root and sibling Sol+Opus audit root defined by `experiments/trace-v21-execution-verified-provenance-high-proposer/dev3.yaml`. The authorized execution profile is assignment18/aggregate18/internal fanout4 and audit12; no provider call or output from the completed predecessor is overwritten.
+- 23:23 JST: Experiment `biomnibench-da-factorial-r10-a11f83a7b2db` is complete at 18/18 under `runs/trace-v21-execution-verified-provenance-high-proposer-local-mac/dev3/study/`; its Sol+Opus audit sibling is complete at 494/494 judgments and the audit receipt records concurrency 12. The formal report and all artifact-level metrics are under `docs/reports/2026-09-17/trace-v21-execution-verified-provenance-high-proposer/`; no Results20 run has launched.

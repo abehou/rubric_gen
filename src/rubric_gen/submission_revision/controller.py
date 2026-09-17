@@ -451,6 +451,7 @@ class SubmissionRevisionController:
         if self.config.red_team_trace_version in {
             "attack_defense_v2.1_execution_verified",
             "attack_defense_v2.1_execution_verified_proactive",
+            "attack_defense_v2.1_execution_verified_proactive_provenance",
         }:
             from .task_required_enforcement import active_execution_issue
             unresolved_execution_issue = active_execution_issue(

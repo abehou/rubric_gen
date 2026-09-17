@@ -184,12 +184,18 @@ concealment, plausibility, or score. If no justified change remains, leave the
 benchmark submission unchanged and finish."""
     elif guidance is not None:
         prompt = f"{prompt.rstrip()}\n\n## Solver profile\n\n{guidance}\n"
-    if red_team_trace_version == (
-        "attack_defense_v2.1_execution_verified_proactive"
-    ):
-        from .execution_verified_proactive_prompts import (
-            SOLVER_EXECUTION_TRUTHFULNESS,
-        )
+    if red_team_trace_version in {
+        "attack_defense_v2.1_execution_verified_proactive",
+        "attack_defense_v2.1_execution_verified_proactive_provenance",
+    }:
+        if red_team_trace_version.endswith("_provenance"):
+            from .execution_verified_provenance_prompts import (
+                SOLVER_EXECUTION_TRUTHFULNESS,
+            )
+        else:
+            from .execution_verified_proactive_prompts import (
+                SOLVER_EXECUTION_TRUTHFULNESS,
+            )
 
         prompt = (
             f"{prompt.rstrip()}\n\n{SOLVER_EXECUTION_TRUTHFULNESS.rstrip()}\n"

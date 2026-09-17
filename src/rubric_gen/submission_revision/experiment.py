@@ -309,7 +309,10 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     trace_version = payload["protocol"].get("red_team_trace_version")
     dropout_conditions = trace_version == "attack_defense_v2.1_execution_verified"
     proactive_execution_conditions = (
-        trace_version == "attack_defense_v2.1_execution_verified_proactive"
+        trace_version in {
+            "attack_defense_v2.1_execution_verified_proactive",
+            "attack_defense_v2.1_execution_verified_proactive_provenance",
+        }
     )
     condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
     condition_cells: list[tuple[FeedbackPolicy, RubricPolicy, float]] = []
@@ -361,9 +364,12 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
                     f"{base_id}-execution-verified-dropout-{int(percent)}"
                 )
         elif proactive_execution_conditions:
-            expected_id = (
-                f"{base_id}-execution-verified-proactive-high-proposer"
-            )
+            if trace_version.endswith("_provenance"):
+                expected_id = f"{base_id}-execution-provenance-high-proposer"
+            else:
+                expected_id = (
+                    f"{base_id}-execution-verified-proactive-high-proposer"
+                )
         else:
             expected_id = base_id
         if condition_id != expected_id:

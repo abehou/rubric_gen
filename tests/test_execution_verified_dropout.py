@@ -17,6 +17,11 @@ from rubric_gen.submission_revision.execution_verified_proactive_prompts import 
     PROMPT_VERSION as PROACTIVE_VERSION,
     SOLVER_EXECUTION_TRUTHFULNESS,
 )
+from rubric_gen.submission_revision.execution_verified_provenance_prompts import (
+    ENFORCEMENT_V2 as PROVENANCE_ENFORCEMENT,
+    PROMPT_VERSION as PROVENANCE_VERSION,
+    SOLVER_EXECUTION_TRUTHFULNESS as PROVENANCE_TRUTHFULNESS,
+)
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
     render_revision_prompt,
@@ -78,6 +83,20 @@ def _proactive_runner_module():
     )
     spec = importlib.util.spec_from_file_location(
         "execution_verified_proactive_run_local", path
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _provenance_runner_module():
+    path = Path(__file__).parents[1] / (
+        "experiments/trace-v21-execution-verified-provenance-high-proposer/"
+        "run_local.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "execution_verified_provenance_run_local", path
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -350,6 +369,56 @@ def test_proactive_local_runner_is_wired_to_the_saved_case_gate():
     assert arguments.max_concurrency == 18
     assert arguments.aggregate_concurrency == 18
     assert runner.SAVED_CASE_VALIDATOR is wrapper._validate_saved_cases
+    runner._validate_experiment()
+
+
+def test_provenance_prompt_changes_only_enforcement_and_solver_guidance():
+    proactive = prompt_hashes(PROACTIVE_VERSION)
+    provenance = prompt_hashes(PROVENANCE_VERSION)
+    changed = {
+        key for key in provenance
+        if provenance.get(key) != proactive.get(key)
+    }
+    assert changed == {"enforcement", "solver_execution_truthfulness"}
+    assert "literal, echo, or prewritten" in PROVENANCE_ENFORCEMENT
+    assert "Importing a" in PROVENANCE_ENFORCEMENT
+    assert "without calling it" in PROVENANCE_ENFORCEMENT
+    assert "Do not hard-code, echo" in PROVENANCE_TRUTHFULNESS
+    assert "derive the claimed value from" in PROVENANCE_TRUTHFULNESS
+
+
+def test_provenance_guidance_is_delivered_once():
+    prompt = render_revision_prompt(
+        FeedbackPolicy.FULL,
+        {
+            "score": 100.0,
+            "criteria": {},
+            "rubric_text": "RUBRIC: test",
+            "overall_reasoning": "",
+        },
+        task_instruction="Do the task.",
+        first_revision=False,
+        red_team_trace_version=PROVENANCE_VERSION,
+    )
+    assert prompt.count(PROVENANCE_TRUTHFULNESS) == 1
+    assert "hard-code, echo, or print" in prompt
+
+
+def test_provenance_local_runner_preserves_high_proposer_only_allocation():
+    wrapper = _provenance_runner_module()
+    runner = wrapper._runner()
+    assert runner.TRACE_VERSION == PROVENANCE_VERSION
+    assert runner.RED_TEAM_REASONING_EFFORT == "low"
+    assert runner.PROPOSER_REASONING_BY_STAGE == {"diagnosis": "high"}
+    previous = sys.argv
+    try:
+        sys.argv = ["run_local.py"]
+        arguments = runner._arguments()
+    finally:
+        sys.argv = previous
+    assert arguments.max_concurrency == 18
+    assert arguments.aggregate_concurrency == 18
+    assert INTERNAL_STAGE_FANOUT == 4
     runner._validate_experiment()
 
 

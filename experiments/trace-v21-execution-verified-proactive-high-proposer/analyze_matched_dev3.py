@@ -199,8 +199,18 @@ def main() -> None:
     parser.add_argument("--control-study", type=Path, required=True)
     parser.add_argument("--control-audit", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--kind",
+        default="execution-verified-proactive-high-proposer-vs-repaired-low-dev3",
+    )
     args = parser.parse_args()
-    for path in vars(args).values():
+    for path in (
+        args.candidate_study,
+        args.candidate_audit,
+        args.control_study,
+        args.control_audit,
+        args.output,
+    ):
         if not path.is_absolute() or path.is_symlink():
             raise RuntimeError("all paths must be absolute and non-symlinked")
 
@@ -224,7 +234,7 @@ def main() -> None:
     assert len(candidate_rows) == len(control_rows) == 36
 
     output = {
-        "kind": "execution-verified-proactive-high-proposer-vs-repaired-low-dev3",
+        "kind": args.kind,
         "uncertainty_note": (
             "SD and SE use nine panel-averaged artifact values per arm. Wilson "
             "intervals over 18 auditor rows are descriptive only because the two "
