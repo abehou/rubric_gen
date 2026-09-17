@@ -83,14 +83,30 @@ Task clusters are heterogeneous. Against static, Full A improves on 16/20 tasks 
 
 ## Auditor results and uncertainty
 
-| Arm/auditor | W | S | H | A | W−S | S−H | H−A | W−A |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Full Sol | 94.40 | 88.82 | 88.58 | 72.23 | 5.58 | 0.23 | 16.35 | 22.17 |
-| Full Opus | 94.40 | 89.50 | 87.92 | 77.00 | 4.90 | 1.58 | 10.92 | 17.40 |
-| Full equal weight | 94.40 | 89.16 | 88.25 | 74.62 | 5.24 | 0.91 | 13.64 | 19.78 |
-| User Sol | 89.63 | 81.48 | 80.22 | 79.50 | 8.15 | 1.27 | 0.72 | 10.13 |
-| User Opus | 89.63 | 82.12 | 80.63 | 72.27 | 7.52 | 1.48 | 8.37 | 17.37 |
-| User equal weight | 89.63 | 81.80 | 80.43 | 75.88 | 7.83 | 1.38 | 4.54 | 13.75 |
+### GPT-5.6 Sol
+
+| Arm/recipe | W−S | S−H | H−A | W−A | RH full / post / artifact / revision |
+|---|---:|---:|---:|---:|---:|
+| Full static | 9.65 | 0.74 | 21.57 | 31.97 | 20.00 / 1.67 / 1.67 / 0.00% |
+| Full RTT v2.1 | 7.38 | 0.87 | 19.23 | 27.48 | 15.00 / 6.67 / 3.33 / 3.33% |
+| **Full promoted RTT** | **5.58** | **0.23** | **16.35** | **22.17** | **6.67 / 3.33 / 1.67 / 1.67%** |
+| User static | 7.58 | 2.74 | 6.62 | 16.95 | 18.33 / 11.67 / 0.00 / 3.33% |
+| User RTT v2.1 | 9.63 | 2.53 | 6.07 | 18.23 | 10.00 / 5.00 / 0.00 / 3.33% |
+| **User promoted RTT** | **8.15** | **1.27** | **0.72** | **10.13** | **5.00 / 5.00 / 0.00 / 1.67%** |
+
+### Claude Opus 5
+
+| Arm/recipe | W−S | S−H | H−A | W−A | RH full / post / artifact / revision |
+|---|---:|---:|---:|---:|---:|
+| Full static | 5.75 | 2.20 | 18.60 | 26.55 | 21.67 / 1.67 / 5.00 / 1.67% |
+| Full RTT v2.1 | 4.85 | 0.62 | 16.42 | 21.88 | 13.33 / 6.67 / 5.00 / 5.00% |
+| **Full promoted RTT** | **4.90** | **1.58** | **10.92** | **17.40** | **3.33 / 1.67 / 1.67 / 1.67%** |
+| User static | 7.10 | −0.02 | 14.18 | 21.27 | 21.67 / 11.67 / 0.00 / 6.67% |
+| User RTT v2.1 | 8.75 | 0.03 | 9.66 | 18.43 | 10.00 / 6.67 / 0.00 / 6.67% |
+| **User promoted RTT** | **7.52** | **1.48** | **8.37** | **17.37** | **1.67 / 3.33 / 0.00 / 1.67%** |
+
+Each auditor-specific row contains 60 artifacts; RH percentages retain
+abstentions in the denominator.
 
 The largest auditor disagreement is holistic A, particularly User (Sol 79.50 versus Opus 72.27). Equal-weight artifact-level gap uncertainty is descriptive: Full W−S 5.24 (SD 8.11, SE 1.05), S−H 0.91 (SD 2.70, SE 0.35), H−A 13.64 (SD 17.08, SE 2.20); User W−S 7.83 (SD 9.50, SE 1.23), S−H 1.38 (SD 3.90, SE 0.50), H−A 4.54 (SD 16.93, SE 2.19). The 60 artifacts are nested within 20 tasks, so these SEs do not turn replicates or auditors into independent tasks.
 
