@@ -117,6 +117,28 @@ def uv_stage(stage: str, workers: int) -> None:
         raise RuntimeError(f"{stage} exited with {completed.returncode}; saved work retained")
 
 
+def detect_in_process(workers: int) -> None:
+    """Run detect in the process where exact-reuse hooks are installed.
+
+    The reuse adapter is an execution-only monkeypatch over native judgment
+    dispatch.  Starting a separate ``uv`` child after installing it silently
+    drops that adapter and needlessly recomputes semantically identical
+    judgments.  Calling the same public CLI handler in-process preserves the
+    request, judge, retry, persistence, and scoring paths while retaining the
+    already-installed exact-request adapter.
+    """
+    from rubric_gen.cli import main as cli_main
+
+    status = cli_main([
+        "detect",
+        "--experiment", str(CONFIG),
+        "--max-concurrency", str(workers),
+        "--resume",
+    ])
+    if status:
+        raise RuntimeError(f"detect exited with {status}; saved work retained")
+
+
 def complete_rows(experiment) -> list[dict]:
     study = Path(experiment.dag["revise"]["output_dir"])
     ledger = json.loads((study / "study.json").read_text())
@@ -131,6 +153,49 @@ def complete_rows(experiment) -> list[dict]:
             study / row["experiment_dir"], assignments[row["assignment_id"]],
             experiment, seed, paraphrase,
         )
+    return rows
+
+
+def completed_revision_receipt(experiment) -> list[dict]:
+    """Reuse the producing job's completed full-lineage gate before audit.
+
+    Job 10478084 ran ``complete_rows`` after all provider work and persisted
+    its receipt only after every one of the 120 revisions passed native full
+    artifact validation.  Re-running that expensive tree validation before
+    every preemptible audit attempt adds no new scientific evidence and can
+    consume the entire allocation without reaching audit preparation.  The
+    native detect path still validates study identity, terminal membership,
+    source manifests/states, and every semantic request before dispatch.
+    """
+    receipt_path = RUN / "revision-completion.json"
+    receipt = json.loads(receipt_path.read_text())
+    if (
+        receipt.get("success") is not True
+        or receipt.get("experiment_id") != experiment.experiment_id
+        or receipt.get("assignment_count") != 120
+        or not isinstance(receipt.get("job_id"), str)
+        or not isinstance(receipt.get("commit"), str)
+    ):
+        raise RuntimeError("validated Results20 revision receipt is unavailable")
+    launches = list(
+        (RUN / "owners").glob(f"execute-{receipt['job_id']}-*/launch.json")
+    )
+    if len(launches) != 1:
+        raise RuntimeError("validated Results20 revision owner is ambiguous")
+    launch = json.loads(launches[0].read_text())
+    if (
+        launch.get("commit") != receipt["commit"]
+        or launch.get("experiment_id") != experiment.experiment_id
+        or launch.get("config_sha256") != sha(CONFIG)
+        or tuple(launch.get("conditions", ())) != CONDITIONS
+        or tuple(launch.get("tasks", ())) != TASKS
+    ):
+        raise RuntimeError("validated Results20 revision owner differs from audit input")
+    study = Path(experiment.dag["revise"]["output_dir"])
+    ledger = json.loads((study / "study.json").read_text())
+    rows = terminal_records(experiment, ledger)
+    if len(rows) != 120 or any(row["status"] != "completed" for row in rows):
+        raise RuntimeError("Results20 revision cohort is not 120/120 complete")
     return rows
 
 
@@ -170,13 +235,13 @@ def execute(experiment, path: Path) -> None:
 
 
 def audit(experiment, path: Path) -> None:
-    complete_rows(experiment)
+    completed_revision_receipt(experiment)
     sources = install_reuse()
     write_json_atomic(path / "audit-reuse-sources.json", {
         "sources": sources,
         "rule": "exact semantic request identity and native validation only",
     })
-    uv_stage("detect", 120)
+    detect_in_process(120)
     sys.path.insert(0, str(ROOT / "scripts/diagnostics"))
     from check_audit_coverage import check
     study = Path(experiment.dag["revise"]["output_dir"])
