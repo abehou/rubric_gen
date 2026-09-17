@@ -44,7 +44,8 @@ large experiment outputs.
 The checked-in runtime policy already enforces:
 
 - aggregate provider concurrency: **60**;
-- simultaneously active audit studies: **1**;
+- audit request concurrency within `detect`: **60**;
+- simultaneously active independent audit studies: **1**;
 - one shared cross-process/node capacity namespace.
 
 The existing capacity seals were also inspected directly: the provider namespace
@@ -54,12 +55,25 @@ focused runtime-capacity and scale-dispatch tests in 9.28 seconds. No capacity
 namespace was replaced or split and no provider call was made.
 
 Current `preempt_cpu_qos` limits are 64 CPUs per user and 32 CPUs per job, with
-20 running jobs and 50 submitted jobs per user. The future Result20 producer
-should therefore start with 32 allocated CPUs and explicit `--max-concurrency
-60`; provider request concurrency and CPU allocation remain distinct. The audit
-may also dispatch up to 60 missing requests inside the one-study lease. Recovery
-uses native missing-only resume and must preserve completed assignments and
-judgments.
+20 running jobs and 50 submitted jobs per user. Every native stage uses the
+reviewed request-concurrency ceiling of 60, including the Sol+Opus audit:
+
+```bash
+uv run rubric-gen seed --experiment <result20.yaml> --max-concurrency 60
+uv run rubric-gen paraphrase --experiment <result20.yaml> --max-concurrency 60
+uv run rubric-gen revise --experiment <result20.yaml> --max-concurrency 60 --resume
+uv run rubric-gen detect --experiment <result20.yaml> --max-concurrency 60 --resume
+```
+
+`audit_studies=1` is a lease on the number of distinct audit studies/owners that
+may run simultaneously. It does **not** set the number of judgment workers to
+one. The one active `detect` study may dispatch up to 60 missing judgment
+requests, subject to the same aggregate provider cap of 60 shared with every
+other stage and job. Allowing multiple independent audit studies at 60 workers
+each would oversubscribe that shared cap. The future Result20 producer should
+start with 32 allocated CPUs; provider request concurrency and CPU allocation
+remain distinct. Recovery uses native missing-only resume and must preserve
+completed assignments and judgments.
 
 Disposable per-job temporary files should use
 `/scratch/job_tmp/$SLURM_JOB_ID`; persistent study, live, audit and ownership
@@ -84,7 +98,8 @@ Before Babel makes any Result20 provider call:
    official task membership, models, solver/simulator, judge definitions and seed
    policy;
 5. validate task inputs, writable output roots, 60-slot shared admission, one
-   audit-study lease, native resume and the exact missing audit scope;
+   audit-study lease, `detect --max-concurrency 60`, native resume and the exact
+   missing audit scope;
 6. run the minimum representative same-route smoke only if the runtime/provider
    path changed;
 7. launch the single intended Result20 producer, then the complete Sol+Opus audit
