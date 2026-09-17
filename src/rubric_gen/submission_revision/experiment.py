@@ -309,14 +309,17 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     if not isinstance(conditions, list) or not conditions:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
+    trace_version = payload["protocol"].get("red_team_trace_version")
+    dropout_conditions = trace_version == "attack_defense_v2.1_execution_verified"
     condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
+    condition_cells: list[tuple[FeedbackPolicy, RubricPolicy, float]] = []
     for condition in conditions:
-        if not isinstance(condition, dict) or set(condition) != {
-            "condition_id", "feedback_policy", "rubric_policy"
-        }:
+        expected_fields = {"condition_id", "feedback_policy", "rubric_policy"}
+        if dropout_conditions:
+            expected_fields.add("rubric_dropout_rate")
+        if not isinstance(condition, dict) or set(condition) != expected_fields:
             raise ValueError(
-                "each condition requires condition_id, feedback_policy, and "
-                "rubric_policy"
+                "each condition requires exactly " + ", ".join(sorted(expected_fields))
             )
         condition_id = condition["condition_id"]
         feedback_policy = condition["feedback_policy"]
@@ -329,16 +332,43 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             raise ValueError("condition rubric_policy must be a string")
         resolved_feedback = FeedbackPolicy(feedback_policy)
         resolved_rubric = RubricPolicy(rubric_policy)
-        expected_id = (
+        base_id = (
             f"{resolved_feedback.value.replace('_', '-')}-"
             f"{_RUBRIC_POLICY_SLUGS[resolved_rubric]}"
         )
+        dropout_rate = 0.0
+        if dropout_conditions:
+            from .rubric_dropout import validate_dropout_rate
+            dropout_rate = validate_dropout_rate(
+                condition["rubric_dropout_rate"], trace_version
+            )
+            percent = dropout_rate * 100
+            if not percent.is_integer():
+                raise ValueError("rubric_dropout_rate must be an integer percentage")
+            if payload["protocol"].get(
+                "rubric_proposer_reasoning_effort_by_stage"
+            ):
+                if dropout_rate != 0.0:
+                    raise ValueError(
+                        "stage-reasoning comparison requires zero rubric dropout"
+                    )
+                expected_id = (
+                    f"{base_id}-execution-verified-"
+                    "high-attack-pair-diagnosis"
+                )
+            else:
+                expected_id = (
+                    f"{base_id}-execution-verified-dropout-{int(percent)}"
+                )
+        else:
+            expected_id = base_id
         if condition_id != expected_id:
             raise ValueError(
                 f"condition_id must be {expected_id!r} for its policies"
             )
         condition_ids.append(condition_id)
         condition_pairs.append((resolved_feedback, resolved_rubric))
+        condition_cells.append((resolved_feedback, resolved_rubric, dropout_rate))
     if len(condition_ids) != len(set(condition_ids)) or any(
         not _ID.fullmatch(value) for value in condition_ids
     ):
@@ -349,18 +379,20 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     selected_rubric_policies = {
         rubric_policy for _, rubric_policy in condition_pairs
     }
-    expected_pairs = {
-        (feedback_policy, rubric_policy)
+    selected_dropout_rates = {rate for _, _, rate in condition_cells}
+    expected_cells = {
+        (feedback_policy, rubric_policy, rate)
         for feedback_policy in selected_feedback_policies
         for rubric_policy in selected_rubric_policies
+        for rate in selected_dropout_rates
     }
     if (
-        len(condition_pairs) != len(expected_pairs)
-        or set(condition_pairs) != expected_pairs
+        len(condition_cells) != len(expected_cells)
+        or set(condition_cells) != expected_cells
     ):
         raise ValueError(
             "conditions must contain exactly one arm for each selected "
-            "feedback-policy and rubric-policy pair"
+            "feedback-policy, rubric-policy, and dropout-rate cell"
         )
     _validate_assignment_selection(payload)
     _validate_protocol(payload["protocol"])
@@ -554,8 +586,14 @@ def _validate_protocol(protocol: object) -> None:
         raise ValueError("protocol must be a mapping")
     from .trace_defense_registry import validate_version
     validate_version(protocol.get("red_team_trace_version"))
-    if set(protocol) - {"red_team_trace_version"} != base_keys:
-        raise ValueError(f"protocol keys must be exactly {sorted(base_keys)}")
+    optional_keys = {
+        "red_team_trace_version", "rubric_proposer_reasoning_effort_by_stage",
+    }
+    if not base_keys <= set(protocol) or set(protocol) - base_keys - optional_keys:
+        raise ValueError(
+            "protocol keys must be exactly the required base keys plus supported "
+            f"optional keys; required={sorted(base_keys)}"
+        )
     if type(protocol["max_revisions"]) is not int or protocol["max_revisions"] < 1:
         raise ValueError("max_revisions must be positive")
     if (
@@ -593,6 +631,19 @@ def _validate_protocol(protocol: object) -> None:
         or protocol["rubric_proposer_max_retries"] < 0
     ):
         raise ValueError("rubric_proposer_max_retries must be non-negative")
+    stage_efforts = protocol.get("rubric_proposer_reasoning_effort_by_stage", {})
+    allowed_stages = {
+        "quality", "rubric_view", "diagnosis", "compilation",
+        "semantic", "application", "enforcement",
+    }
+    if not isinstance(stage_efforts, dict):
+        raise ValueError("rubric proposer stage reasoning policy must be a mapping")
+    if set(stage_efforts) - allowed_stages:
+        raise ValueError("rubric proposer reasoning policy has unknown stages")
+    if any(value not in {"low", "high"} for value in stage_efforts.values()):
+        raise ValueError("rubric proposer stage reasoning effort must be low or high")
+    if stage_efforts and protocol.get("red_team_trace_version") is None:
+        raise ValueError("stage-specific proposer reasoning requires red team trace")
     simulator = protocol["feedback_simulator"]
     simulator_keys = {
         "model",

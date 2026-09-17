@@ -288,6 +288,9 @@ def _generation_proposer(context: ValidationContext) -> RubricProposer | None:
         service_tier=context.seed_agent.service_tier,
         max_retries=int(protocol["rubric_proposer_max_retries"]),
         red_team_trace_version=_trace_version(context),
+        reasoning_effort_by_stage=dict(
+            protocol.get("rubric_proposer_reasoning_effort_by_stage", {})
+        ),
     )
 
 

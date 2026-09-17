@@ -38,7 +38,17 @@ ENFORCED_VERSIONS = {
     'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen',
     'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable',
     'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery',
+    'attack_defense_v2.1_execution_verified',
 }
+INTERNAL_STAGE_FANOUT = 4
+
+
+def _trace_stage_executor():
+    """Create the shared per-assignment RTT stage pool."""
+    return ThreadPoolExecutor(
+        max_workers=INTERNAL_STAGE_FANOUT,
+        thread_name_prefix='trace-defense-v2',
+    )
 
 
 def criterion_obligation_mode(criterion):
@@ -296,10 +306,12 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
             instruction=instruction, original_rubric=original_rubric,
             development_rubric=development_rubric, artifact=live_artifact,
             output_dir=output_dir, source_checkpoint=source_checkpoint,
+            execution_verified=(version == 'attack_defense_v2.1_execution_verified'),
             freeze_witness=(version in {
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen',
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable',
-                'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}))
+                'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery',
+                'attack_defense_v2.1_execution_verified'}))
         witness_record['source_binding'] = source_binding
         enforcement = stages.call('enforcement', enforcement_input, enforcement_contract)
         enforcement_record = {
@@ -316,7 +328,7 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
     duplicates = {canonical_sha256({'title': c.title, 'requirement': c.requirement,
         'levels': [{'label': l, 'description': d} for l, _, d in c.levels]})
         for c in current_generation.elicited_criteria}
-    with ThreadPoolExecutor(max_workers=4, thread_name_prefix='trace-defense-v2') as pool:
+    with _trace_stage_executor() as pool:
         quality = list(pool.map(lambda p: stages.call('quality', *quality_request(instruction, p, artifacts)), history.pairs))
         quality_assessments, quality_records = [], []
         for pair, value in zip(history.pairs, quality, strict=True):

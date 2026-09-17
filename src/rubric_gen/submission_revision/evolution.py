@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -129,18 +129,19 @@ def rubric_generation_implementation_sha256(red_team_trace_version: str | None =
             paths += (package_root / 'task_paraphrase_grounded.py',
                       package_root / 'task_paraphrase_prompts.py',
                       package_root / 'task_paraphrase_stage.py')
-        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}:
+        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required', 'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery', 'attack_defense_v2.1_execution_verified'}:
             paths += (package_root / 'task_paraphrase_required.py',
                       package_root / 'task_paraphrase_required_prompts.py',
                       package_root / 'task_paraphrase_required_schema.py',
                       package_root / 'task_paraphrase_required_stage.py')
-        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}:
+        if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required_enforced', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery', 'attack_defense_v2.1_execution_verified'}:
             paths += tuple(package_root / name for name in ('task_required_enforced_prompts.py', 'task_required_enforced_schema.py', 'task_required_enforcement.py'))
         if red_team_trace_version in {'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable', 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery'}: paths += (package_root / 'task_required_enforced_requirement_only_prompts.py',)
         if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_source_bound': paths += (package_root / 'task_required_enforced_requirement_only_source_bound_prompts.py',)
         if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen': paths += (package_root / 'task_required_enforced_requirement_only_witness_frozen_prompts.py',)
         if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable': paths += (package_root / 'task_required_enforced_requirement_only_durable_prompts.py',)
         if red_team_trace_version == 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery': paths += (package_root / 'task_required_enforced_requirement_only_durable_delivery_prompts.py',)
+        if red_team_trace_version == 'attack_defense_v2.1_execution_verified': paths += (package_root / 'execution_verified_prompts.py',)
     digest = hashlib.sha256()
     for path in paths:
         digest.update(str(path.relative_to(package_root.parent)).encode("utf-8"))
@@ -178,6 +179,7 @@ class RubricProposer:
         service_tier: str | None = None,
         run_proposer: ProviderOperation | None = None,
         red_team_trace_version: str | None = None,
+        reasoning_effort_by_stage: Mapping[str, str] | None = None,
     ) -> None:
         if not isinstance(benchmark, SubmissionBenchmarkId):
             raise ValueError("rubric proposer benchmark is invalid")
@@ -194,8 +196,34 @@ class RubricProposer:
             max_request_bytes=PROPOSER_MAX_REQUEST_BYTES,
             service_tier=service_tier,
         )
+        stage_efforts = dict(reasoning_effort_by_stage or {})
+        allowed_stages = {
+            "quality", "rubric_view", "diagnosis", "compilation",
+            "semantic", "application", "enforcement",
+        }
+        if set(stage_efforts) - allowed_stages:
+            raise ValueError("rubric proposer reasoning policy has unknown stages")
+        if any(value not in {"low", "high"} for value in stage_efforts.values()):
+            raise ValueError("rubric proposer stage reasoning effort must be low or high")
+        self.reasoning_effort_by_stage = dict(sorted(stage_efforts.items()))
         self.run_proposer = run_proposer or self._run_direct_proposer
         self.request_cache: ValidatedProposerCache | None = None
+
+    def contract_for_stage(self, stage: str) -> ProviderContract:
+        """Return the exact provider contract for one model-controlled RTT stage."""
+
+        effort = self.reasoning_effort_by_stage.get(
+            stage, self.proposer_contract.reasoning_effort,
+        )
+        if effort == self.proposer_contract.reasoning_effort:
+            return self.proposer_contract
+        return ProviderContract(
+            model=self.proposer_contract.model,
+            max_output_tokens=self.proposer_contract.max_output_tokens,
+            max_request_bytes=self.proposer_contract.max_request_bytes,
+            service_tier=self.proposer_contract.service_tier,
+            reasoning_effort=effort,
+        )
 
     def elicit_rubric(
         self,

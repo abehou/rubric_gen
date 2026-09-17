@@ -644,7 +644,12 @@ class StudyRunner:
             prompt_profile=PromptProfile(str(protocol["prompt"])),
             rubric_policy=RubricPolicy(str(condition["rubric_policy"])),
             red_team_trace_version=protocol.get("red_team_trace_version"),
+            rubric_dropout_rate=float(condition.get("rubric_dropout_rate", 0.0)),
+            randomization_seed=int(self.experiment.payload["randomization"]["seed"]),
             rubric_proposer_model=str(protocol["rubric_proposer_model"]),
+            rubric_proposer_reasoning_effort_by_stage=tuple(sorted(
+                dict(protocol.get("rubric_proposer_reasoning_effort_by_stage", {})).items()
+            )),
             review=str(protocol["review"]),
             judge_model=str(protocol["judge_model"]),
             max_review_chars=max_review_chars,

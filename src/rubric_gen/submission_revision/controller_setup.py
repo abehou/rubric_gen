@@ -95,6 +95,9 @@ def _default_dependencies(
             max_retries=config.rubric_proposer_max_retries,
             red_team_trace_version=(config.red_team_trace_version
                                     if rubric_policy is RubricPolicy.RED_TEAM_TRACE else None),
+            reasoning_effort_by_stage=dict(
+                config.rubric_proposer_reasoning_effort_by_stage
+            ),
         )
     session: SolverSessionDriver
     if config.agent.provider == "codex":
@@ -155,6 +158,10 @@ def _validate_proposer(
         raise ValueError("rubric proposer method version differs from revision config")
     if actual != expected:
         raise ValueError("rubric proposer contract differs from revision config")
+    if proposer.reasoning_effort_by_stage != dict(
+        config.rubric_proposer_reasoning_effort_by_stage
+    ):
+        raise ValueError("rubric proposer stage reasoning policy differs from revision config")
 
 
 def _validate_feedback_simulator(

@@ -2,6 +2,10 @@
 
 - 12:33 EDT: Static replay10415061 and report10415098 both completed0:0; the tested repair and full baseline report are integrated/published. Retired only the temporary cardinality branch locally/remotely; exact8226495 remains in the preserved detached checkout and remote tag `paperbench-static-opus-recovery-20260912`, with all other scientific job owners unchanged.
 
+## 2026-09-17 — Local execution-verified Dev3 paused; offline stage replay owns providers
+
+- 00:13 JST: Invocation `execution-verified-dev3-20260916T144029Z-0ca08697` (PID 19277, process group 19276) is stopped at 2 completed/4 partial-running/26 pending/22 failed ledger rows; the 54-assignment study remains at `runs/trace-v21-execution-verified-dropout-local-mac/dev3/study/biomnibench-da-factorial-r10-2f8f9cee1a53`, no audit directory exists, and all saved/partial artifacts remain in place. The sole authorized provider owner is the bounded replay under `runs/trace-stage-model-allocation-20260917/`; it must not generate solver trajectories or resume the Dev3.
+
 ## 2026-09-12 — PaperBench Queue6 static audit closure
 
 - 12:23 EDT: Native static replay10415061 completed on pin8226495 with900/900 Sol and900/900 Opus, zero providers; the exact existing study/audit overlay is unchanged. Dependent provider-free finalizer10415098 writes the final compact static reports; receipts and scripts are at `runs/paperbench-nontrace-audit-closure-20260912/`, with remaining cohort ownership in [Queue6 status](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
@@ -1361,3 +1365,7 @@ Six cells:three user-simulator-online-rubric and three user-simulator-online-con
 - 17:35 CST: Session33951 stopped after completing the two active User assignments and preserving the next da-3 turn, leaving8/18 complete. Session93371/PID81147 now owns the same root with `--max-concurrency 15`, explicit proxy routing and runtime profile `runtime-aggregate8.json`; receipt `dev3/resume-20260916-1734.json` records8 completed/10 partial,8 active provider slots,52% free memory, exact hashes and command.
 - 18:23 CST: Delivery experiment `biomnibench-da-factorial-r10-a19733f0ede8` reached 18/18 completed revisions at `2026-09-16T18:21:31+08:00`. Matched Sol+Opus audit owner is session `67926`, PID `89459`, using `detect --max-concurrency 15 --resume`; receipt: `runs/trace-task-required-enforced-durable-delivery-local-mac/dev3/audit-launch-20260916-1822.json`.
 - 20:21 JST: Delivery audit root is complete at 492 judgments (four RH windows × 36, rubric 258, absolute 54, pairwise 36), with 18/18 exact task/replicate/arm lineage and no missing model coverage. Final report is `docs/reports/2026-09-16/trace-task-required-enforced-durable-delivery/README.md`; immutable completion receipt is `runs/trace-task-required-enforced-durable-delivery-local-mac/dev3/audit-complete-20260916-2021.json`.
+
+## 2026-09-17 — Matched high-allocation Dev3 completion
+
+- 13:39 JST: High experiment `biomnibench-da-factorial-r10-8d6d5c0b6f43` and repaired low control `biomnibench-da-factorial-r10-2f8f9cee1a53` each have 18/18 completed revisions and complete Sol+Opus audits under their recorded local roots. The formal comparison and trajectory decision are in `docs/reports/2026-09-17/trace-v21-execution-verified-high-allocation/README.md` and `matched-comparison.json`; no successor or Results20 run has launched.
