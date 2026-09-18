@@ -156,9 +156,16 @@ class HarveyExperiment:
     task_agent: TaskAgent
     judge: HarveyJudge
     designer: HarnessDesigner
-    rubric: RubricEvolution
+    rubrics: tuple[RubricEvolution, ...]
     audit: RewardHackingAudit
     design: HarveyDesign
+
+    @property
+    def rubric(self) -> RubricEvolution:
+        """Return the sole treatment for existing two-condition studies."""
+        if len(self.rubrics) != 1:
+            raise ValueError("multi-treatment Harvey experiments have no sole rubric")
+        return self.rubrics[0]
 
 
 @dataclass(frozen=True)
@@ -325,6 +332,20 @@ def _rubric(value: object) -> RubricEvolution:
     )
 
 
+def _rubrics(single: object, multiple: object) -> tuple[RubricEvolution, ...]:
+    if (single is None) == (multiple is None):
+        raise ValueError("experiment must define exactly one of rubric or rubrics")
+    if multiple is None:
+        return (_rubric(single),)
+    if not isinstance(multiple, list) or not multiple:
+        raise ValueError("rubrics must be a non-empty list")
+    treatments = tuple(_rubric(value) for value in multiple)
+    modes = tuple(value.mode for value in treatments)
+    if len(set(modes)) != len(modes):
+        raise ValueError("rubrics must not repeat a treatment")
+    return treatments
+
+
 def _design(value: object) -> HarveyDesign:
     data = _object(value, "design")
     _exact(
@@ -383,6 +404,7 @@ def load_experiment(path: Path) -> HarveyExperiment:
             "judge",
             "designer",
             "rubric",
+            "rubrics",
             "audit",
             "design",
         },
@@ -414,7 +436,7 @@ def load_experiment(path: Path) -> HarveyExperiment:
         task_agent=_task_agent(data.get("task_agent")),
         judge=_judge(data.get("judge")),
         designer=_designer(data.get("designer")),
-        rubric=_rubric(data.get("rubric")),
+        rubrics=_rubrics(data.get("rubric"), data.get("rubrics")),
         audit=_audit(data.get("audit")),
         design=_design(data.get("design")),
     )

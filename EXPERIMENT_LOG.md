@@ -1,3 +1,8 @@
+## 2026-09-19 — Harvey RTT Dev3 readiness
+
+- 00:22 JST: Expanded the unlaunched Dev3 configuration into a single six-trajectory randomized study covering `static`, original `prospective`, and `red_team_trace`; the study summary now emits all three pairwise contrasts, and 46 focused Harvey/config/CLI/architecture tests pass with one known local Podman test deselected. Provider-backed smoke and formal execution remain held for explicit user approval.
+- 00:17 JST: Provider-free Slurm readiness job `10491208` completed on `babel-n5-32`; compute sees the persistent NFS with 312 GB free and Podman, while the pinned Harvey checkout, image cache, and Pandoc still require setup. Existing Babel `.env.local` contains both required provider credentials with no proxy overrides; no model call or scientific run has started.
+
 ## 2026-09-15 — RTT task-required pass-boundary Dev3
 
 - 18:12 EDT: Exact zero-call preflight passed in the login controller after its 1-CPU Slurm owner could not backfill: 18 assignments, nine frozen seeds, paraphrases, candidate/version and output ownership all validate. Cancelled only pending duplicate `10454047`, made revision `10454080` eligible, and tightened pending revision/audit time limits to evidence-based 4h/2h; downstream gate/audit/analysis dependencies remain intact.

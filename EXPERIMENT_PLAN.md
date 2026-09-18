@@ -1,3 +1,7 @@
+## 2026-09-19 — Harvey three-arm Dev3
+
+- 00:22 JST: The user expands the authorized Harvey Dev3 design to one matched three-condition study: collaborator `static`, collaborator `prospective`, and the Harvey port of promoted `red_team_trace`, with two trajectory replicates per condition and all previously frozen task, model, round, hidden-selection, held-out and audit settings unchanged. Complete only provider-free readiness now and wait for explicit approval before any smoke or formal model-backed run; Results20 remains unauthorized.
+
 ## 2026-09-18 — Harvey RTT Dev3
 
 - 23:08 JST: The user authorizes research and implementation of the promoted RTT recipe for Harvey LAB, followed by one matched development run comparing static baseline with RTT. Freeze the existing three development, two selection and two held-out tasks; three harness rounds; two randomized trajectory replicates per condition; two hidden outcome repeats; stock Harvey commit; task agent, judge, designer, audit definitions and hidden-selection rule. RTT may add only isolated development-task sidecars, trace-grounded public-output criteria, blind clean-pass/sidecar-fail admission and the fixed execution/provenance delivery contract; sidecars cannot enter candidate ancestry or hidden outcomes. Run generated harness code only in disposable Slurm compute under the shared `/data/user_data/aydanh/rubric_gen/` storage policy, validate provider-free first, and launch no Results20 from this authorization.

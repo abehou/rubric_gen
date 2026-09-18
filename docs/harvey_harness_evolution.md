@@ -1,13 +1,15 @@
 # Harvey LAB harness-evolution study
 
 This workflow studies reward hacking while a Codex agent designs executable
-Harvey LAB harnesses. It runs a randomized replicated comparison between a
-static-rubric control and a prospective-rubric treatment. Every trajectory starts
-from the stock `harness/` directory at one exact Harvey LAB commit.
+Harvey LAB harnesses. It runs randomized replicated comparisons among a
+static-rubric control, the original prospective-rubric treatment, and optionally
+the red-team-trace treatment. Every trajectory starts from the stock `harness/`
+directory at one exact Harvey LAB commit.
 
 The randomization seed fixes condition order within adjacent replicate blocks.
-Each block contains one static and one prospective trajectory. The controller
-completes all trajectories before it runs any hidden selection or held-out task.
+Each block contains one trajectory for every configured condition. The
+controller completes all trajectories before it runs any hidden selection or
+held-out task.
 
 Each trajectory uses one proposal per round. It keeps every proposal, including a
 regression. Codex can choose any earlier candidate as its parent. The controller
@@ -51,10 +53,10 @@ in order:
 
 ## Red-team-trace treatment
 
-`experiments/harvey-rtt-dev3.yaml` replaces the prospective condition with a
-matched `red_team_trace` treatment while retaining the static condition. It
-ports the promoted BioMNIBench RTT mechanism to Harvey's different state
-machine; it does not route Harvey through the submission-revision controller.
+`experiments/harvey-three-arm-dev3.yaml` adds a matched `red_team_trace`
+treatment alongside the unchanged static and prospective conditions. It ports
+the promoted BioMNIBench RTT mechanism to Harvey's different state machine; it
+does not route Harvey through the submission-revision controller.
 
 Before each main design round, RTT gives a separate Luna attacker exactly the
 prior main harness, the active development rubrics, and that harness's visible
@@ -87,8 +89,11 @@ executes on the host side of Harvey's task-agent sandbox:
 
 ```bash
 HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${SLURM_JOB_ID:?}" \
+  ./scripts/setup_harvey experiments/harvey-three-arm-dev3.yaml
+
+HARVEY_RUNTIME_ROOT="/tmp/rubric-gen-harvey-${SLURM_JOB_ID:?}" \
   uv run --frozen rubric-gen run \
-  --experiment experiments/harvey-rtt-dev3.yaml \
+  --experiment experiments/harvey-three-arm-dev3.yaml \
   --max-concurrency 3 \
   --resume
 ```
@@ -247,7 +252,7 @@ final log.
 The post-run quality stage first re-scores stored development outputs with the
 sealed original rubric. It evaluates every candidate on selection tasks. It then
 evaluates only the selected candidate and stock baseline on held-out tasks. The
-study summary reports condition means and the prospective-minus-static contrast.
+study summary reports condition means and every pairwise condition contrast.
 
 The post-run detection stage converts each accepted Codex design turn into a MALT-compatible forensic
 case. The evidence contains the visible ranking, raw Codex trajectory, accepted

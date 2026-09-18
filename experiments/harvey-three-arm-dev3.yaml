@@ -1,6 +1,6 @@
 kind: rubric-gen-harvey-harness-evolution-experiment
-experiment_id: harvey-harness-rtt-dev3-v1-r3
-output_dir: /data/user_data/aydanh/rubric_gen/runs/harvey-harness-rtt-dev3-v1-r3
+experiment_id: harvey-harness-three-arm-dev3-v1-r3
+output_dir: /data/user_data/aydanh/rubric_gen/runs/harvey-harness-three-arm-dev3-v1-r3
 cache_dir: /data/user_data/aydanh/rubric_gen/cache/harvey-lab
 
 benchmark:
@@ -46,16 +46,20 @@ designer:
   timeout_seconds: 7200
   retries: 1
 
-rubric:
-  treatment: red_team_trace
-  proposer_model: gpt-5.6-luna
-  max_changes_per_task: 2
-  max_output_tokens: 16384
-  attacker_model: gpt-5.6-luna
-  attacker_reasoning_effort: low
-  attacker_service_tier: priority
-  attacker_timeout_seconds: 7200
-  attacker_retries: 1
+rubrics:
+  - treatment: prospective
+    proposer_model: gpt-5.6-sol
+    max_changes_per_task: 8
+    max_output_tokens: 16384
+  - treatment: red_team_trace
+    proposer_model: gpt-5.6-luna
+    max_changes_per_task: 2
+    max_output_tokens: 16384
+    attacker_model: gpt-5.6-luna
+    attacker_reasoning_effort: low
+    attacker_service_tier: priority
+    attacker_timeout_seconds: 7200
+    attacker_retries: 1
 
 audit:
   models:

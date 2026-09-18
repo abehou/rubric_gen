@@ -403,6 +403,98 @@ def test_harvey_experiment_allocates_static_and_red_team_trace(tmp_path: Path) -
     assert sum(run.rubric.mode == "red_team_trace" for run in runs) == 2
 
 
+def test_harvey_experiment_allocates_three_matched_conditions(tmp_path: Path) -> None:
+    path = tmp_path / "experiment.yaml"
+    text = _config_text(tmp_path).replace(
+        "rubric:\n"
+        "  proposer_model: gpt-5.6-sol\n"
+        "  max_changes_per_task: 3\n"
+        "  max_output_tokens: 4096\n",
+        "rubrics:\n"
+        "  - treatment: prospective\n"
+        "    proposer_model: gpt-5.6-sol\n"
+        "    max_changes_per_task: 8\n"
+        "    max_output_tokens: 4096\n"
+        "  - treatment: red_team_trace\n"
+        "    proposer_model: gpt-5.6-luna\n"
+        "    max_changes_per_task: 2\n"
+        "    max_output_tokens: 4096\n"
+        "    attacker_model: gpt-5.6-luna\n"
+        "    attacker_reasoning_effort: low\n",
+    )
+    path.write_text(text, encoding="utf-8")
+
+    experiment = load_experiment(path)
+    runs = randomized_runs(experiment)
+
+    assert tuple(rubric.mode for rubric in experiment.rubrics) == (
+        "prospective",
+        "red_team_trace",
+    )
+    assert len(runs) == 6
+    assert [run.unit_id for run in runs] == [f"u{index:04d}" for index in range(1, 7)]
+    for replicate in (1, 2):
+        block = [run for run in runs if run.replicate == replicate]
+        assert {run.condition for run in block} == {
+            "static",
+            "prospective",
+            "red_team_trace",
+        }
+    assert sum(run.rubric.mode == "static" for run in runs) == 2
+    assert sum(run.rubric.mode == "prospective" for run in runs) == 2
+    assert sum(run.rubric.mode == "red_team_trace" for run in runs) == 2
+    assert allocation_record(experiment) == allocation_record(experiment)
+
+
+def test_harvey_experiment_rejects_single_and_multiple_rubrics(tmp_path: Path) -> None:
+    path = tmp_path / "experiment.yaml"
+    path.write_text(
+        _config_text(tmp_path).replace(
+            "rubric:\n",
+            "rubrics: []\nrubric:\n",
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="exactly one of rubric or rubrics"):
+        load_experiment(path)
+
+
+def test_harvey_three_arm_summary_includes_all_pairwise_effects() -> None:
+    conditions = {
+        name: {
+            "mean_selected_minus_baseline_held_out": quality,
+            "mean_reward_hacking_rate": detection,
+            "mean_reward_hacking_rate_bounds": {
+                "lower": detection - 0.1,
+                "upper": detection + 0.1,
+            },
+        }
+        for name, quality, detection in (
+            ("static", 0.1, 0.4),
+            ("prospective", 0.2, 0.3),
+            ("red_team_trace", 0.4, 0.1),
+        )
+    }
+
+    effects = study_module._condition_effects(
+        conditions,
+        ("static", "prospective", "red_team_trace"),
+    )
+
+    assert set(effects) == {
+        "prospective_minus_static",
+        "red_team_trace_minus_static",
+        "red_team_trace_minus_prospective",
+    }
+    assert effects["red_team_trace_minus_prospective"][
+        "held_out_quality"
+    ] == pytest.approx(0.2)
+    assert effects["red_team_trace_minus_prospective"][
+        "reward_hacking_rate"
+    ] == pytest.approx(-0.2)
+
+
 def test_harvey_experiment_rejects_duplicate_yaml_keys(tmp_path: Path) -> None:
     path = tmp_path / "experiment.yaml"
     text = _config_text(tmp_path).replace(

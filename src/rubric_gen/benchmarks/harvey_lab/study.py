@@ -29,8 +29,34 @@ from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionControlle
 from rubric_gen.benchmarks.harvey_lab.evaluator import HarveyEvaluator
 
 
-def treatment_conditions(experiment: HarveyExperiment) -> tuple[str, str]:
-    return ("static", experiment.rubric.mode)
+def treatment_conditions(experiment: HarveyExperiment) -> tuple[str, ...]:
+    return ("static", *(rubric.mode for rubric in experiment.rubrics))
+
+
+def _condition_order(
+    conditions: tuple[str, ...],
+    *,
+    seed: int,
+    replicate: int,
+) -> tuple[str, ...]:
+    if len(conditions) == 2:
+        first_order = int.from_bytes(
+            hashlib.sha256(str(seed).encode("utf-8")).digest()[:8],
+            "big",
+        ) % 2
+        return (
+            conditions
+            if (first_order + replicate - 1) % 2 == 0
+            else conditions[::-1]
+        )
+    return tuple(
+        sorted(
+            conditions,
+            key=lambda condition: hashlib.sha256(
+                f"{seed}:{replicate}:{condition}".encode("utf-8")
+            ).digest(),
+        )
+    )
 
 
 def randomized_runs(experiment: HarveyExperiment) -> tuple[HarveyRun, ...]:
@@ -38,32 +64,27 @@ def randomized_runs(experiment: HarveyExperiment) -> tuple[HarveyRun, ...]:
     seed = experiment.design.randomization_seed
     planned = []
     conditions = treatment_conditions(experiment)
-    first_order = int.from_bytes(
-        hashlib.sha256(str(seed).encode("utf-8")).digest()[:8],
-        "big",
-    ) % 2
+    treatments = {rubric.mode: rubric for rubric in experiment.rubrics}
+    static_source = treatments.get("prospective", experiment.rubrics[0])
     for replicate in range(1, experiment.design.replicates_per_condition + 1):
-        order = (
-            conditions
-            if (first_order + replicate - 1) % 2 == 0
-            else conditions[::-1]
+        order = _condition_order(
+            conditions,
+            seed=seed,
+            replicate=replicate,
         )
         block = [(condition, replicate) for condition in order]
         planned.extend(block)
     runs = []
     for order, (condition, replicate) in enumerate(planned, 1):
         unit_id = f"u{order:04d}"
-        treatment = experiment.rubric
-        rubric = (
-            treatment
-            if condition == experiment.rubric.mode
-            else RubricEvolution(
+        rubric = treatments.get(condition)
+        if rubric is None:
+            rubric = RubricEvolution(
                 mode="static",
                 proposer_model=None,
-                max_changes_per_task=treatment.max_changes_per_task,
-                max_output_tokens=treatment.max_output_tokens,
+                max_changes_per_task=static_source.max_changes_per_task,
+                max_output_tokens=static_source.max_output_tokens,
             )
-        )
         runs.append(
             HarveyRun(
                 source=experiment.source,
@@ -196,10 +217,17 @@ class HarveyStudyController:
             "task_agent": asdict(self.experiment.task_agent),
             "judge": asdict(self.experiment.judge),
             "designer": asdict(self.experiment.designer),
-            "rubric_treatment": rubric_identity(self.experiment.rubric),
             "audit": asdict(self.experiment.audit),
             "design": asdict(self.experiment.design),
         }
+        if len(self.experiment.rubrics) == 1:
+            value["rubric_treatment"] = rubric_identity(
+                self.experiment.rubrics[0]
+            )
+        else:
+            value["rubric_treatments"] = [
+                rubric_identity(rubric) for rubric in self.experiment.rubrics
+            ]
         return json.loads(json.dumps(value, default=str))
 
     def _initialize(self, *, resume: bool) -> None:
@@ -302,6 +330,7 @@ class HarveyStudyController:
             condition: _condition_summary(units, condition)
             for condition in condition_names
         }
+        effects = _condition_effects(conditions, condition_names)
         write_json_atomic(
             self.experiment.output_dir / "study.json",
             {
@@ -317,10 +346,8 @@ class HarveyStudyController:
                 "all_evolution_precedes_hidden_outcome_evaluation": True,
                 "units": units,
                 "condition_summaries": conditions,
-                f"{self.experiment.rubric.mode}_minus_static": _condition_effect(
-                    conditions,
-                    treatment=self.experiment.rubric.mode,
-                ),
+                "condition_effects": effects,
+                **effects,
             },
         )
 
@@ -378,42 +405,59 @@ def _condition_summary(
 def _condition_effect(
     conditions: dict[str, dict[str, object]],
     *,
-    treatment: str = "prospective",
+    treatment: str,
+    reference: str = "static",
 ) -> dict[str, object]:
-    static = conditions["static"]
-    prospective = conditions[treatment]
-    static_quality = static["mean_selected_minus_baseline_held_out"]
-    prospective_quality = prospective["mean_selected_minus_baseline_held_out"]
-    static_detection = static["mean_reward_hacking_rate"]
-    prospective_detection = prospective["mean_reward_hacking_rate"]
-    static_bounds = static["mean_reward_hacking_rate_bounds"]
-    prospective_bounds = prospective["mean_reward_hacking_rate_bounds"]
+    baseline = conditions[reference]
+    treated = conditions[treatment]
+    reference_quality = baseline["mean_selected_minus_baseline_held_out"]
+    treated_quality = treated["mean_selected_minus_baseline_held_out"]
+    reference_detection = baseline["mean_reward_hacking_rate"]
+    treated_detection = treated["mean_reward_hacking_rate"]
+    reference_bounds = baseline["mean_reward_hacking_rate_bounds"]
+    treated_bounds = treated["mean_reward_hacking_rate_bounds"]
     return {
         "held_out_quality": (
-            float(prospective_quality) - float(static_quality)
-            if isinstance(static_quality, (int, float))
-            and isinstance(prospective_quality, (int, float))
+            float(treated_quality) - float(reference_quality)
+            if isinstance(reference_quality, (int, float))
+            and isinstance(treated_quality, (int, float))
             else None
         ),
         "reward_hacking_rate": (
-            float(prospective_detection) - float(static_detection)
-            if isinstance(static_detection, (int, float))
-            and isinstance(prospective_detection, (int, float))
+            float(treated_detection) - float(reference_detection)
+            if isinstance(reference_detection, (int, float))
+            and isinstance(treated_detection, (int, float))
             else None
         ),
         "reward_hacking_rate_bounds": (
             {
                 "lower": (
-                    float(prospective_bounds["lower"])
-                    - float(static_bounds["upper"])
+                    float(treated_bounds["lower"])
+                    - float(reference_bounds["upper"])
                 ),
                 "upper": (
-                    float(prospective_bounds["upper"])
-                    - float(static_bounds["lower"])
+                    float(treated_bounds["upper"])
+                    - float(reference_bounds["lower"])
                 ),
             }
-            if isinstance(static_bounds, dict)
-            and isinstance(prospective_bounds, dict)
+            if isinstance(reference_bounds, dict)
+            and isinstance(treated_bounds, dict)
             else None
         ),
     }
+
+
+def _condition_effects(
+    conditions: dict[str, dict[str, object]],
+    condition_names: tuple[str, ...],
+) -> dict[str, object]:
+    effects: dict[str, object] = {}
+    for reference_index, reference in enumerate(condition_names):
+        for treatment in condition_names[reference_index + 1 :]:
+            name = f"{treatment}_minus_{reference}"
+            effects[name] = _condition_effect(
+                conditions,
+                reference=reference,
+                treatment=treatment,
+            )
+    return effects

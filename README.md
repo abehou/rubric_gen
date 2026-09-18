@@ -161,12 +161,14 @@ run and `judge` command.
 
 See [docs/harvey_harness_evolution.md](docs/harvey_harness_evolution.md).
 
-The matched Harvey RTT development study uses
-`experiments/harvey-rtt-dev3.yaml`. It compares the unchanged static-rubric
-harness-evolution baseline with a red-team-trace treatment. RTT sidecars are
-isolated from candidate ancestry and hidden selection; only validated
-public-output criteria and a fixed execution/provenance delivery contract reach
-the main harness designer.
+The matched Harvey development study uses
+`experiments/harvey-three-arm-dev3.yaml`. It compares the unchanged static-rubric
+harness-evolution baseline, the original prospective-rubric treatment, and the
+red-team-trace treatment. RTT sidecars are isolated from candidate ancestry and
+hidden selection; only validated public-output criteria and a fixed
+execution/provenance delivery contract reach the main harness designer. Prepare
+its pinned checkout and shared image cache on disposable compute with
+`./scripts/setup_harvey experiments/harvey-three-arm-dev3.yaml` before launch.
 
 ## Feedback policies
 

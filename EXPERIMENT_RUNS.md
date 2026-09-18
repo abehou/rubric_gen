@@ -15,6 +15,8 @@ The identical provider-free preflight passed from the lightweight login controll
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
 - 23:08 JST: Prepared `experiments/harvey-rtt-dev3.yaml` for experiment `harvey-harness-rtt-dev3-v1-r3`: static versus `attack_defense_v2.1_execution_verified_proactive_provenance-harvey-v1`, two randomized trajectory replicates per condition, three rounds, two hidden outcome repeats and Sol+Opus RH audit. Durable output is `/data/user_data/aydanh/rubric_gen/runs/harvey-harness-rtt-dev3-v1-r3`; Harvey checkout and shared cache are `/data/user_data/aydanh/rubric_gen/data/harvey-labs-7be41d57` and `/data/user_data/aydanh/rubric_gen/cache/harvey-lab`. Local provider-free focused/registration validation is 40 passed with the known Podman environment test deselected; no real owner or provider call has launched yet.
+- 00:17 JST on 2026-09-19: Readiness job `10491208` completed without provider calls and confirmed compute-visible NFS plus Podman. The source branch remains local at `7a39f78`; remote checkout transfer, Pandoc, pinned Harvey checkout, and image-cache setup remain preparation blockers, so no Dev3 owner has been submitted.
+- 00:22 JST on 2026-09-19: Superseded the unlaunched two-arm configuration with `experiments/harvey-three-arm-dev3.yaml`, experiment `harvey-harness-three-arm-dev3-v1-r3`, and output `/data/user_data/aydanh/rubric_gen/runs/harvey-harness-three-arm-dev3-v1-r3`. The new fixed allocation has two units each for `static`, `prospective`, and `red_team_trace`; no smoke, provider call, or formal experiment has started.
 
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
