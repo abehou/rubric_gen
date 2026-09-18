@@ -13,11 +13,15 @@ from rubric_gen.runtime.agents.costs import RunCost
 from rubric_gen.runtime.pricing import PRICING_AS_OF
 from rubric_gen.submission_revision.experiment import load_experiment
 
-from make_configs import ROOT, RUN, SHARDS, config_path
+from make_configs import BUNDLE, ROOT, RUN, SHARDS, config_path
 
 
 REPORT = ROOT / "docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40"
 EVENT_ROOT = Path("/home/aydanh/repos/rubric_gen/runs/.runtime-babel")
+RECOVERY_SEED = Path(
+    "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/"
+    "results45-added15/da-17-1/inputs/seeds/tasks/da-17-1/rep-003"
+)
 
 
 def read(path: Path):
@@ -235,12 +239,34 @@ def main() -> None:
     agent_rows = []
     agent_summaries = []
     for stage, paths in (
+        ("input_seed_solver", [RECOVERY_SEED / "submission/trajectory.stream.jsonl"]),
+        ("input_seed_elicitation", [RECOVERY_SEED / "elicitation_attempt/run/trajectory.stream.jsonl"]),
         ("attack_sidecar", [path for root in roots for path in (root / "red-team").glob("checkpoint-*/trajectory.stream.jsonl")]),
         ("solver", [path for root in roots for path in (root / "turns").glob("turn-*/trajectory.stream.jsonl")]),
     ):
-        rows, summary = agent_receipts(paths, stage)
+        rows, summary = agent_receipts([path for path in paths if path.is_file()], stage)
         agent_rows.extend(rows)
         agent_summaries.append(summary)
+
+    for path in (RECOVERY_SEED / "initial_judgment").glob("**/usage.json"):
+        value = read(path)
+        generation = value.get("call") or value.get("generation") or {}
+        if not isinstance(generation, dict) or not generation.get("requested_model"):
+            continue
+        response_id = generation.get("response_id")
+        if response_id and response_id in seen:
+            continue
+        if response_id:
+            seen.add(response_id)
+        response_rows.append(receipt(
+            "input_seed_initial_judgment",
+            generation["requested_model"],
+            generation["provider"],
+            generation.get("raw_usage") or generation.get("usage")
+            or generation.get("provider_metadata", {}).get("usage"),
+            path,
+            response_id,
+        ))
 
     grouped: dict[tuple[str, str], list[dict[str, object]]] = defaultdict(list)
     for row in response_rows:
@@ -307,6 +333,16 @@ def main() -> None:
 
     write_csv("cost-stage-summary.csv", stage_summary)
     write_csv("cost-failed-learning-attempts.csv", failures)
+    failed_seed = read(BUNDLE / "receipts/seed-recovery-failures.json")
+    failed_seed_lower_bound = sum(
+        float(row.get("estimated_cost_usd_lower_bound", 0))
+        for row in failed_seed["jobs"]
+    )
+    saved_response_cost = sum(
+        float(row["usage_based_usd"] or 0)
+        for row in response_rows if not row.get("reused_exact")
+    )
+    saved_agent_cost = sum(float(row["usage_based_usd"]) for row in agent_summaries)
     result = {
         "pricing_registry_date": PRICING_AS_OF,
         "stages": stage_summary,
@@ -316,15 +352,16 @@ def main() -> None:
         "operations": operations,
         "audit_maximum_active_by_provider": dict(maximum_active),
         "jobs": sorted(job_ids),
-        "response_usage_based_usd": sum(float(row["usage_based_usd"] or 0) for row in response_rows if not row.get("reused_exact")),
-        "agent_usage_based_usd": sum(float(row["usage_based_usd"]) for row in agent_summaries),
+        "response_usage_based_usd": saved_response_cost,
+        "agent_usage_based_usd": saved_agent_cost,
+        "failed_seed_attempt_estimated_lower_bound_usd": failed_seed_lower_bound,
         "total_identifiable_usage_based_usd": (
-            sum(float(row["usage_based_usd"] or 0) for row in response_rows if not row.get("reused_exact"))
-            + sum(float(row["usage_based_usd"]) for row in agent_summaries)
+            saved_response_cost + saved_agent_cost + failed_seed_lower_bound
         ),
         "limitations": [
             "Usage-based estimates are not provider invoices.",
             "Failed calls without returned usage have unknown cost.",
+            "The three failed seed turns expose only repository lower-bound estimates; those estimates are included separately.",
             "Agent usage is cumulative per saved thread and uses the maximum terminal total.",
             "Reused exact judgments are excluded from fresh cost even though their original historical generation had a cost.",
         ],

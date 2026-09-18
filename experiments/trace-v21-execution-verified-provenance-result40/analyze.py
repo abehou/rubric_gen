@@ -242,6 +242,8 @@ def main() -> None:
     panels = []
     task_means = []
     heterogeneity = {}
+    rank_rows = []
+    rank_summaries = {}
     for population, rows in populations.items():
         summaries[population] = {cohort: BASE.summarize(rows, cohort) for cohort in cohorts}
         panel = BASE.panel_artifacts(rows)
@@ -251,6 +253,11 @@ def main() -> None:
         for row in BASE.task_means(panel):
             row["population"] = population
             task_means.append(row)
+        population_rank_rows, population_rank_summary = BASE.ranking(panel)
+        for row in population_rank_rows:
+            row["population"] = population
+        rank_rows.extend(population_rank_rows)
+        rank_summaries[population] = population_rank_summary
         heterogeneity[population] = {}
         for arm in ("full", "user"):
             name = f"{population}_current_{arm}_minus_static_{arm}"
@@ -267,6 +274,8 @@ def main() -> None:
     write_csv("artifact-values.csv", panels)
     write_csv("paired-deltas.csv", paired_rows)
     write_csv("task-means.csv", task_means)
+    write_csv("artifact-gap-rh-ranking.csv", rank_rows)
+    write_json("artifact-gap-rh-ranking-summary.json", rank_summaries)
     write_json("audit-accounting.json", accounting)
     result = {
         "complete": True,
@@ -277,6 +286,7 @@ def main() -> None:
         "cohorts": summaries,
         "paired_comparisons": comparisons,
         "task_heterogeneity": heterogeneity,
+        "rank_analysis": rank_summaries,
         "definitions": {
             "old20": "read-only published Results20 artifact/auditor rows from commit 770aa64",
             "new20": "precommitted queue6 additional10 plus first ten queue7 final15 tasks",

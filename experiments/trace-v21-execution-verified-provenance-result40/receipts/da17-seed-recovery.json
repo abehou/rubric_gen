@@ -1,0 +1,27 @@
+{
+  "generated_replicates": [
+    3
+  ],
+  "job_id": "10488199",
+  "preserved_valid_replicates": [
+    1,
+    2
+  ],
+  "seeds": [
+    {
+      "replicate": 1,
+      "sha256": "a989ae2eb65e5f9fb6b7c3a035ec3da931cde089f3ec455a073474adff6538a2"
+    },
+    {
+      "replicate": 2,
+      "sha256": "13fb2c9676eb1aee1de8cd7a985f2b86a853c71da5c492b0538f556774f981c5"
+    },
+    {
+      "replicate": 3,
+      "sha256": "777ccd8087804162beefb1f2a90f20962b7b85a2b8e5cedb321be84a43a4ae7a"
+    }
+  ],
+  "source_commit": "5d66393dfd558764081a957cf3b3e6199df1c0ae",
+  "success": true,
+  "task_id": "da-17-1"
+}
