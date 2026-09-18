@@ -77,9 +77,18 @@ class DesignedCandidate:
 
 
 class CodexHarnessDesigner:
-    def __init__(self, config: HarnessDesigner, *, runtime_root: Path) -> None:
+    def __init__(
+        self,
+        config: HarnessDesigner,
+        *,
+        runtime_root: Path,
+        prompt: str = DESIGNER_PROMPT,
+        instruction: str = INSTRUCTION,
+    ) -> None:
         self.config = config
         self.runtime_root = runtime_root
+        self.prompt = prompt
+        self.instruction = instruction
 
     def prepare_workspace(
         self,
@@ -92,7 +101,10 @@ class CodexHarnessDesigner:
         if workspace.exists():
             raise FileExistsError(f"designer workspace exists: {workspace}")
         workspace.mkdir(parents=True)
-        (workspace / "instruction.md").write_text(INSTRUCTION, encoding="utf-8")
+        (workspace / "instruction.md").write_text(
+            self.instruction,
+            encoding="utf-8",
+        )
         for candidate_id, harness in sorted(candidate_harnesses.items()):
             root = workspace / "history" / candidate_id
             root.mkdir(parents=True)
@@ -139,8 +151,8 @@ class CodexHarnessDesigner:
                 )
                 attempt_dir = run_dir / "attempts" / f"attempt-{attempt:03d}"
                 attempt_dir.mkdir(parents=True)
-                prompt = DESIGNER_PROMPT if attempt == 1 else (
-                    "Continue the harness-design task in this workspace. The prior "
+                prompt = self.prompt if attempt == 1 else (
+                    "Continue the assigned harness task in this workspace. The prior "
                     "attempt did not leave valid final artifacts. Correct this validation "
                     f"error: {validation_error or 'missing proposal.json or candidate/harness'}. "
                     "Finish proposal.json and candidate/harness now without asking questions."

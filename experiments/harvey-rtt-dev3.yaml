@@ -1,0 +1,65 @@
+kind: rubric-gen-harvey-harness-evolution-experiment
+experiment_id: harvey-harness-rtt-dev3-v1-r3
+output_dir: /data/user_data/aydanh/rubric_gen/runs/harvey-harness-rtt-dev3-v1-r3
+cache_dir: /data/user_data/aydanh/rubric_gen/cache/harvey-lab
+
+benchmark:
+  checkout: /data/user_data/aydanh/rubric_gen/data/harvey-labs-7be41d57
+  revision: 7be41d57fd5a6e97b5f246a029e810f83d09cd96
+  development_tasks:
+    - antitrust-competition/analyze-antitrust-hsr-strategy
+    - antitrust-competition/analyze-counterparty-markup-of-protective-order
+    - antitrust-competition/compare-leniency-programs-across-three-jurisdictions
+  selection_tasks:
+    - antitrust-competition/compare-corporate-antitrust-compliance-program-against-doj-and-ftc-guidelines
+    - antitrust-competition/compare-expert-market-share-estimates-against-agency-data
+  held_out_tasks:
+    - antitrust-competition/compare-proposed-merger-remedies-against-precedent-commitment-decisions
+    - antitrust-competition/draft-antitrust-competition
+
+design:
+  randomization_seed: 20260831
+  replicates_per_condition: 2
+  outcome_replicates: 2
+
+task_agent:
+  model: gpt-5.6-luna
+  max_turns: 200
+  temperature: 0.0
+  shell_timeout: 60
+  reasoning_effort: high
+  sandbox_image: lab-sandbox:latest
+  credential_env:
+    - OPENAI_API_KEY
+
+judge:
+  model: claude-sonnet-4-6
+  parallel: 3
+  credential_env:
+    - ANTHROPIC_API_KEY
+
+designer:
+  model: gpt-5.6-sol
+  rounds: 3
+  reasoning_effort: high
+  service_tier: priority
+  timeout_seconds: 7200
+  retries: 1
+
+rubric:
+  treatment: red_team_trace
+  proposer_model: gpt-5.6-luna
+  max_changes_per_task: 2
+  max_output_tokens: 16384
+  attacker_model: gpt-5.6-luna
+  attacker_reasoning_effort: low
+  attacker_service_tier: priority
+  attacker_timeout_seconds: 7200
+  attacker_retries: 1
+
+audit:
+  models:
+    - gpt-5.6-sol
+    - claude-opus-5
+  max_concurrency: 12
+  primary_rule: any_detect

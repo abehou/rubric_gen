@@ -12,6 +12,10 @@ The identical provider-free preflight passed from the lightweight login controll
 
 - 12:23 EDT: Native static replay10415061 completed on pin8226495 with900/900 Sol and900/900 Opus, zero providers; the exact existing study/audit overlay is unchanged. Dependent provider-free finalizer10415098 writes the final compact static reports; receipts and scripts are at `runs/paperbench-nontrace-audit-closure-20260912/`, with remaining cohort ownership in [Queue6 status](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
 
+## 2026-09-18 — Harvey static versus RTT Dev3
+
+- 23:08 JST: Prepared `experiments/harvey-rtt-dev3.yaml` for experiment `harvey-harness-rtt-dev3-v1-r3`: static versus `attack_defense_v2.1_execution_verified_proactive_provenance-harvey-v1`, two randomized trajectory replicates per condition, three rounds, two hidden outcome repeats and Sol+Opus RH audit. Durable output is `/data/user_data/aydanh/rubric_gen/runs/harvey-harness-rtt-dev3-v1-r3`; Harvey checkout and shared cache are `/data/user_data/aydanh/rubric_gen/data/harvey-labs-7be41d57` and `/data/user_data/aydanh/rubric_gen/cache/harvey-lab`. Local provider-free focused/registration validation is 40 passed with the known Podman environment test deselected; no real owner or provider call has launched yet.
+
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
 - 11:34 EDT: Pinned411ea949 owns Full/User Results20 namespace`results20/full-user-learned/*/paperbench-code-dev-factorial-r10-484a1576b8b6`; revision10414874 waits for10414506+10414739, audit10414875 waits for revision, and dev3 audit10414876 waits for10414506. Exact paths and commands are in the [Queue5 receipt](docs/reports/2026-09-12/paperbench-nontrace-results20/queue5-status.json); static recovery10414690 remains its sole owner.

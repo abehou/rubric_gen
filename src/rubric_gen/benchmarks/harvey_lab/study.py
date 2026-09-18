@@ -23,27 +23,30 @@ from rubric_gen.benchmarks.harvey_lab.config import (
     HarveyExperiment,
     HarveyRun,
     RubricEvolution,
+    rubric_identity,
 )
 from rubric_gen.benchmarks.harvey_lab.controller import HarveyEvolutionController
 from rubric_gen.benchmarks.harvey_lab.evaluator import HarveyEvaluator
 
 
-CONDITIONS = ("static", "prospective")
+def treatment_conditions(experiment: HarveyExperiment) -> tuple[str, str]:
+    return ("static", experiment.rubric.mode)
 
 
 def randomized_runs(experiment: HarveyExperiment) -> tuple[HarveyRun, ...]:
     """Return the fixed balanced allocation in randomized execution order."""
     seed = experiment.design.randomization_seed
     planned = []
+    conditions = treatment_conditions(experiment)
     first_order = int.from_bytes(
         hashlib.sha256(str(seed).encode("utf-8")).digest()[:8],
         "big",
     ) % 2
     for replicate in range(1, experiment.design.replicates_per_condition + 1):
         order = (
-            CONDITIONS
+            conditions
             if (first_order + replicate - 1) % 2 == 0
-            else CONDITIONS[::-1]
+            else conditions[::-1]
         )
         block = [(condition, replicate) for condition in order]
         planned.extend(block)
@@ -53,7 +56,7 @@ def randomized_runs(experiment: HarveyExperiment) -> tuple[HarveyRun, ...]:
         treatment = experiment.rubric
         rubric = (
             treatment
-            if condition == "prospective"
+            if condition == experiment.rubric.mode
             else RubricEvolution(
                 mode="static",
                 proposer_model=None,
@@ -89,7 +92,7 @@ def allocation_record(experiment: HarveyExperiment) -> dict[str, object]:
         "experiment_id": experiment.experiment_id,
         "randomization_seed": experiment.design.randomization_seed,
         "blocking_unit": "replicate",
-        "conditions": list(CONDITIONS),
+        "conditions": list(treatment_conditions(experiment)),
         "replicates_per_condition": experiment.design.replicates_per_condition,
         "execution_order": [
             {
@@ -193,7 +196,7 @@ class HarveyStudyController:
             "task_agent": asdict(self.experiment.task_agent),
             "judge": asdict(self.experiment.judge),
             "designer": asdict(self.experiment.designer),
-            "rubric_treatment": asdict(self.experiment.rubric),
+            "rubric_treatment": rubric_identity(self.experiment.rubric),
             "audit": asdict(self.experiment.audit),
             "design": asdict(self.experiment.design),
         }
@@ -294,9 +297,10 @@ class HarveyStudyController:
                     ),
                 }
             )
+        condition_names = treatment_conditions(self.experiment)
         conditions = {
             condition: _condition_summary(units, condition)
-            for condition in CONDITIONS
+            for condition in condition_names
         }
         write_json_atomic(
             self.experiment.output_dir / "study.json",
@@ -304,7 +308,7 @@ class HarveyStudyController:
                 "kind": "harvey-randomized-harness-evolution-study",
                 "experiment_id": self.experiment.experiment_id,
                 "status": status,
-                "conditions": list(CONDITIONS),
+                "conditions": list(condition_names),
                 "replicates_per_condition": (
                     self.experiment.design.replicates_per_condition
                 ),
@@ -313,7 +317,10 @@ class HarveyStudyController:
                 "all_evolution_precedes_hidden_outcome_evaluation": True,
                 "units": units,
                 "condition_summaries": conditions,
-                "prospective_minus_static": _condition_effect(conditions),
+                f"{self.experiment.rubric.mode}_minus_static": _condition_effect(
+                    conditions,
+                    treatment=self.experiment.rubric.mode,
+                ),
             },
         )
 
@@ -370,9 +377,11 @@ def _condition_summary(
 
 def _condition_effect(
     conditions: dict[str, dict[str, object]],
+    *,
+    treatment: str = "prospective",
 ) -> dict[str, object]:
     static = conditions["static"]
-    prospective = conditions["prospective"]
+    prospective = conditions[treatment]
     static_quality = static["mean_selected_minus_baseline_held_out"]
     prospective_quality = prospective["mean_selected_minus_baseline_held_out"]
     static_detection = static["mean_reward_hacking_rate"]

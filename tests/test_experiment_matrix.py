@@ -233,6 +233,7 @@ def test_only_registered_experiment_configs_exist() -> None:
         "paperbench-results20.yaml",
         "harvey-harness-evolution-dev3.yaml",
         "harvey-harness-evolution-results20.yaml",
+        "harvey-rtt-dev3.yaml",
     }
 
 

@@ -1,3 +1,7 @@
+## 2026-09-18 — Harvey RTT Dev3
+
+- 23:08 JST: The user authorizes research and implementation of the promoted RTT recipe for Harvey LAB, followed by one matched development run comparing static baseline with RTT. Freeze the existing three development, two selection and two held-out tasks; three harness rounds; two randomized trajectory replicates per condition; two hidden outcome repeats; stock Harvey commit; task agent, judge, designer, audit definitions and hidden-selection rule. RTT may add only isolated development-task sidecars, trace-grounded public-output criteria, blind clean-pass/sidecar-fail admission and the fixed execution/provenance delivery contract; sidecars cannot enter candidate ancestry or hidden outcomes. Run generated harness code only in disposable Slurm compute under the shared `/data/user_data/aydanh/rubric_gen/` storage policy, validate provider-free first, and launch no Results20 from this authorization.
+
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
 - 11:34 EDT: Queue5 authorizes the six Full/User non-static Results20 conditions only after corrected dev3 native validation, preserving120 completed static revisions and the existing shared starting-rubric producer. Keep each native offline/online/artifact policy distinct; no trace or CPU-profile change.

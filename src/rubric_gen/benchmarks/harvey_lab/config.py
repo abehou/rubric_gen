@@ -104,6 +104,32 @@ class RubricEvolution:
     proposer_model: str | None
     max_changes_per_task: int
     max_output_tokens: int
+    attacker_model: str | None = None
+    attacker_reasoning_effort: str | None = None
+    attacker_service_tier: str | None = None
+    attacker_timeout_seconds: int = 7_200
+    attacker_retries: int = 1
+
+
+def rubric_identity(value: RubricEvolution) -> dict[str, object]:
+    """Keep prospective identities stable while binding all RTT-only controls."""
+    identity: dict[str, object] = {
+        "mode": value.mode,
+        "proposer_model": value.proposer_model,
+        "max_changes_per_task": value.max_changes_per_task,
+        "max_output_tokens": value.max_output_tokens,
+    }
+    if value.mode == "red_team_trace":
+        identity.update(
+            {
+                "attacker_model": value.attacker_model,
+                "attacker_reasoning_effort": value.attacker_reasoning_effort,
+                "attacker_service_tier": value.attacker_service_tier,
+                "attacker_timeout_seconds": value.attacker_timeout_seconds,
+                "attacker_retries": value.attacker_retries,
+            }
+        )
+    return identity
 
 
 @dataclass(frozen=True)
@@ -245,14 +271,57 @@ def _rubric(value: object) -> RubricEvolution:
     data = _object(value, "rubric")
     _exact(
         data,
-        {"proposer_model", "max_changes_per_task", "max_output_tokens"},
+        {
+            "treatment",
+            "proposer_model",
+            "max_changes_per_task",
+            "max_output_tokens",
+            "attacker_model",
+            "attacker_reasoning_effort",
+            "attacker_service_tier",
+            "attacker_timeout_seconds",
+            "attacker_retries",
+        },
         "rubric",
     )
+    mode = data.get("treatment", "prospective")
+    if mode not in {"prospective", "red_team_trace"}:
+        raise ValueError("rubric.treatment must be prospective or red_team_trace")
+    attacker_model = data.get("attacker_model")
+    attacker_effort = data.get("attacker_reasoning_effort")
+    attacker_tier = data.get("attacker_service_tier")
+    if mode == "red_team_trace":
+        attacker_model = _text(attacker_model, "rubric.attacker_model")
+        if attacker_effort not in _EFFORTS:
+            raise ValueError("rubric.attacker_reasoning_effort is invalid")
+        if attacker_tier is not None:
+            attacker_tier = _text(attacker_tier, "rubric.attacker_service_tier")
+    elif any(
+        value is not None
+        for value in (attacker_model, attacker_effort, attacker_tier)
+    ) or any(
+        key in data for key in ("attacker_timeout_seconds", "attacker_retries")
+    ):
+        raise ValueError("rubric attacker fields require red_team_trace treatment")
     return RubricEvolution(
-        mode="prospective",
+        mode=str(mode),
         proposer_model=_text(data.get("proposer_model"), "rubric.proposer_model"),
         max_changes_per_task=_integer(data.get("max_changes_per_task", 8), "rubric.max_changes_per_task"),
         max_output_tokens=_integer(data.get("max_output_tokens", 16_384), "rubric.max_output_tokens", minimum=1_024),
+        attacker_model=(str(attacker_model) if attacker_model is not None else None),
+        attacker_reasoning_effort=attacker_effort,
+        attacker_service_tier=(
+            str(attacker_tier) if attacker_tier is not None else None
+        ),
+        attacker_timeout_seconds=_integer(
+            data.get("attacker_timeout_seconds", 7_200),
+            "rubric.attacker_timeout_seconds",
+        ),
+        attacker_retries=_integer(
+            data.get("attacker_retries", 1),
+            "rubric.attacker_retries",
+            minimum=0,
+        ),
     )
 
 

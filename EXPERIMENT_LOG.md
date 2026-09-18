@@ -2522,3 +2522,6 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-17 — Promoted RTT Results20 candidate
 
 - 23:50 JST: User approved one Results20 validation of `attack_defense_v2.1_execution_verified_proactive_provenance` after its 18/18 Dev3 and 494/494 Sol+Opus judgments produced zero RH positives in both arms and all four windows. Integration preserves the staged NAS8/provider60 runtime; no Results20 provider call has been made from this commit.
+## 2026-09-18 — Harvey RTT
+
+- 23:08 JST: Distinguished Harvey's outer harness-design/inner task-agent workflow from the submission-revision benchmarks and implemented a benchmark-native static-versus-RTT path: isolated attack harnesses, blinded public-output quality comparison, active-rubric coverage gating, clean-pass/sidecar-fail criterion admission, task-required/claim-conditional delivery, hidden-outcome isolation and resumable provider/sidecar records. The new `/data`-rooted Dev3 config loads as four randomized units; 40 focused/registration checks pass with one unrelated pre-existing Podman environment test deselected, while the broader run reached 1,934 passes and exposed only branch/environment failures outside this change. No provider work has started.
