@@ -302,6 +302,17 @@ def _codex_sandbox_support_paths(config: AgentRunConfig) -> tuple[Path, ...]:
         native = resolved
 
     paths = [native]
+    # Standalone Codex resolves its Linux sandbox through an argv[0] helper.
+    # Cluster launchers may provide that alias in a private per-job directory;
+    # mount both the alias directory and its target so Bubblewrap can execute it.
+    helper = shutil.which("codex-linux-sandbox")
+    if helper is not None:
+        helper_path = Path(helper)
+        helper_parent = helper_path.parent.resolve(strict=True)
+        helper_target = helper_path.resolve(strict=True)
+        for path in (helper_parent, helper_target):
+            if path not in paths:
+                paths.append(path)
     bundled_rg = native.parent.parent / "codex-path" / "rg"
     if bundled_rg.is_file():
         paths.append(bundled_rg.resolve())

@@ -21,10 +21,19 @@
         "missing_or_invalid: answer.txt"
       ],
       "estimated_cost_usd_lower_bound": 0.002885
+    },
+    {
+      "job_id": "10488057",
+      "result": "rejected before seed persistence",
+      "validation_errors": [
+        "missing_or_invalid: trace.md",
+        "missing_or_invalid: answer.txt"
+      ],
+      "estimated_cost_usd_lower_bound": 0.005228
     }
   ],
-  "root_cause": "Babel Codex CLI 0.154 could not locate its codex-linux-sandbox argv0 alias, so the worker could not inspect task data or write required output files.",
+  "root_cause": "Babel Codex CLI 0.154 requires a codex-linux-sandbox argv0 alias. The first two jobs had no alias; the third provided it on the host but the controlled Bubblewrap filesystem did not mount the job-local helper directory. The worker could not run shell commands, inspect task data, or write required outputs.",
   "scientific_outputs_created": 0,
   "existing_seed_blocks_modified": 0,
-  "recovery": "Create the missing sandbox alias only inside each Slurm job temporary directory, test provider-free, then retry the same native missing-only seed operation."
+  "recovery": "Create the alias only inside each Slurm job temporary directory and mount its directory plus resolved binary read-only in the controlled scientific filesystem. Provider-free job 10488117 executed a sandboxed shell command successfully; focused job 10488171 passed 30 tests."
 }

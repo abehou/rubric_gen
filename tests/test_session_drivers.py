@@ -269,7 +269,11 @@ def test_codex_adapter_mounts_its_sandbox_helpers_read_only(
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("executable")
         path.chmod(0o755)
-    monkeypatch.setattr(adapters_module.shutil, "which", lambda _: str(launcher))
+    monkeypatch.setattr(
+        adapters_module.shutil,
+        "which",
+        lambda name: str(launcher) if name == "codex" else None,
+    )
 
     paths = RunPaths(
         provider="codex",
@@ -296,6 +300,31 @@ def test_codex_adapter_mounts_its_sandbox_helpers_read_only(
     assert filesystem[str(Path(sys.base_prefix).resolve())] == "read"
     assert filesystem[":minimal"] == "read"
     assert filesystem[":workspace_roots"] == {".": "write"}
+
+
+def test_codex_adapter_mounts_job_local_sandbox_alias(tmp_path: Path, monkeypatch) -> None:
+    launcher = tmp_path / "bin" / "codex"
+    native = tmp_path / "install" / "codex"
+    helper_dir = tmp_path / "job" / "helper-bin"
+    helper = helper_dir / "codex-linux-sandbox"
+    for path in (launcher, native):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("executable")
+        path.chmod(0o755)
+    helper_dir.mkdir(parents=True)
+    helper.symlink_to(native)
+
+    monkeypatch.setattr(
+        adapters_module.shutil,
+        "which",
+        lambda name: str(launcher) if name == "codex" else str(helper),
+    )
+    config = tomllib.loads(adapters_module._codex_scientific_config(
+        AgentRunConfig(provider="codex", model="gpt-5.6-luna"),
+    ))
+    filesystem = config["permissions"]["benchmark-task"]["filesystem"]
+    assert filesystem[str(helper_dir)] == "read"
+    assert filesystem[str(native)] == "read"
 
 
 def test_codex_adapter_requests_schema_constrained_final_output(tmp_path: Path) -> None:
