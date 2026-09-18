@@ -1,0 +1,30 @@
+{
+  "task_id": "da-17-1",
+  "replicate": 3,
+  "operation": "native missing-only seed recovery",
+  "preserved_valid_replicates": [1, 2],
+  "jobs": [
+    {
+      "job_id": "10488001",
+      "result": "rejected before seed persistence",
+      "validation_errors": [
+        "missing_or_invalid: trace.md",
+        "missing_or_invalid: answer.txt"
+      ],
+      "estimated_cost_usd_lower_bound": 0.004324
+    },
+    {
+      "job_id": "10488020",
+      "result": "rejected before seed persistence",
+      "validation_errors": [
+        "missing_or_invalid: trace.md",
+        "missing_or_invalid: answer.txt"
+      ],
+      "estimated_cost_usd_lower_bound": 0.002885
+    }
+  ],
+  "root_cause": "Babel Codex CLI 0.154 could not locate its codex-linux-sandbox argv0 alias, so the worker could not inspect task data or write required output files.",
+  "scientific_outputs_created": 0,
+  "existing_seed_blocks_modified": 0,
+  "recovery": "Create the missing sandbox alias only inside each Slurm job temporary directory, test provider-free, then retry the same native missing-only seed operation."
+}

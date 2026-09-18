@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import sys
 import threading
 import time
@@ -56,6 +57,22 @@ def test_exact_membership_and_scientific_identity():
             assignments += len(experiment.execution_assignments)
     assert seen_conditions == set(conditions)
     assert assignments == 240
+
+
+def test_babel_wrapper_creates_job_local_codex_sandbox_alias(tmp_path):
+    common = BUNDLE / "common.sbatch"
+    script = (
+        "set -euo pipefail\n"
+        f"export SLURM_JOB_ID=123 SLURM_TMPDIR={tmp_path / 'tmp'}\n"
+        f"source {common}\n"
+        "test -L \"$CODEX_HELPER_BIN/codex-linux-sandbox\"\n"
+        "test -x \"$CODEX_HELPER_BIN/codex-linux-sandbox\"\n"
+        "test \"$(command -v codex-linux-sandbox)\" = "
+        "\"$CODEX_HELPER_BIN/codex-linux-sandbox\"\n"
+        "test \"$(readlink -f \"$CODEX_HELPER_BIN/codex-linux-sandbox\")\" = "
+        "\"$CODEX_SANDBOX_BINARY\"\n"
+    )
+    subprocess.run(["bash", "-c", script], cwd=BUNDLE.parents[1], check=True)
 
 
 def test_revision_orchestrator_caps_ten_shards_of_six(monkeypatch, tmp_path):

@@ -25,5 +25,17 @@ else
   export TMPDIR="/tmp/aydanh-rtt-result40-$SLURM_JOB_ID"
   mkdir -p "$TMPDIR"
 fi
+# Codex CLI 0.154 invokes its Linux sandbox through this argv[0] alias.  Babel's
+# account wrapper intentionally exposes only `codex`/`codex-real`, so create the
+# disposable alias inside this job rather than mutating the shared installation.
+CODEX_SANDBOX_BINARY="$(readlink -f "$(command -v codex-real)")"
+if [[ ! -x "$CODEX_SANDBOX_BINARY" ]]; then
+  echo "Codex Linux sandbox binary is unavailable: $CODEX_SANDBOX_BINARY" >&2
+  exit 1
+fi
+CODEX_HELPER_BIN="$TMPDIR/codex-helper-bin"
+mkdir -p "$CODEX_HELPER_BIN"
+ln -s "$CODEX_SANDBOX_BINARY" "$CODEX_HELPER_BIN/codex-linux-sandbox"
+export PATH="$CODEX_HELPER_BIN:$PATH"
 mkdir -p "$RUN/logs" "$BIOMNIBENCH_LIVE_ROOT" "$XDG_CACHE_HOME" "$UV_CACHE_DIR" "$MPLCONFIGDIR"
 cd "$ROOT"
