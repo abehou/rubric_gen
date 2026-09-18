@@ -1,5 +1,6 @@
 ## 2026-09-19 — Harvey RTT Dev3 readiness
 
+- 00:29 JST: Created active 30-minute heartbeat `launch-harvey-after-paperbench` to remain silent until PaperBench task `01a0b4a8-9d86-7cd3-b29e-f997092ef1ee` completes successfully, then finish readiness, submit the three-arm Slurm workflow once, record ownership, and pause itself. Submitted provider-free setup job `10491740` for verified Pandoc 3.11, pinned Harvey checkout and shared Podman cache; no provider or Dev3 job has started.
 - 00:22 JST: Expanded the unlaunched Dev3 configuration into a single six-trajectory randomized study covering `static`, original `prospective`, and `red_team_trace`; the study summary now emits all three pairwise contrasts, and 46 focused Harvey/config/CLI/architecture tests pass with one known local Podman test deselected. Provider-backed smoke and formal execution remain held for explicit user approval.
 - 00:17 JST: Provider-free Slurm readiness job `10491208` completed on `babel-n5-32`; compute sees the persistent NFS with 312 GB free and Podman, while the pinned Harvey checkout, image cache, and Pandoc still require setup. Existing Babel `.env.local` contains both required provider credentials with no proxy overrides; no model call or scientific run has started.
 

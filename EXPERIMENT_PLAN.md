@@ -1,5 +1,6 @@
 ## 2026-09-19 — Harvey three-arm Dev3
 
+- 00:29 JST: The user authorizes the formal three-arm Dev3 to launch automatically only after Codex task `01a0b4a8-9d86-7cd3-b29e-f997092ef1ee` has genuinely completed its PaperBench experiment, preventing concurrent experiment load. A 30-minute heartbeat owns this dependency check and must pause itself immediately after successful Harvey submission; terminal PaperBench failure or blockage does not satisfy the gate.
 - 00:22 JST: The user expands the authorized Harvey Dev3 design to one matched three-condition study: collaborator `static`, collaborator `prospective`, and the Harvey port of promoted `red_team_trace`, with two trajectory replicates per condition and all previously frozen task, model, round, hidden-selection, held-out and audit settings unchanged. Complete only provider-free readiness now and wait for explicit approval before any smoke or formal model-backed run; Results20 remains unauthorized.
 
 ## 2026-09-18 — Harvey RTT Dev3
