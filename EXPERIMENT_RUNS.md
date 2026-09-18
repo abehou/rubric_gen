@@ -1,3 +1,8 @@
+## 2026-09-19 — PaperBench promoted RTT Dev3 execution
+
+- 07:50 JST: Revision source `d68ec3e`, experiment `paperbench-code-dev-factorial-r10-4b8d47a6c574`, and local study `runs/paperbench-rtt-provenance-local-mac/dev3/study/paperbench-code-dev-factorial-r10-4b8d47a6c574` are terminal 18/18; audit root `runs/paperbench-rtt-provenance-local-mac/dev3/audit-sol-opus/paperbench-code-dev-factorial-r10-4b8d47a6c574` retains complete Opus and partial Sol evidence for missing-only resume after legitimate OpenAI API-credit restoration.
+- 07:50 JST: Static Results20 integrity owner `10491080` completed provider-free at 120 revisions/3,360 judgments; detached Babel analysis pin `d7759eb` and job `10496503` own the provider-free Opus baseline Dev3 extraction, with no new branch or scientific provider work.
+
 ## 2026-09-18 — PaperBench promoted RTT Dev3 preparation
 
 - 23:00 JST: Existing branch `codex/trace-v21-provenance-result20-babel` now owns config `experiments/paperbench-rtt-provenance-dev3/dev3.yaml`, experiment `paperbench-code-dev-factorial-r10-4b8d47a6c574`, and local root `runs/paperbench-rtt-provenance-local-mac/dev3/`. Provider-free staging job `10490998` copied the exact corrected Dev3 seed/paraphrase directories to a 26 MiB transfer archive (386 seed-tree files, 46 paraphrase-tree files); the Mac native validators accept all nine seeds and 15 paraphrases. Baseline integrity owner `10490954` is read-only/provider-free; the counted smoke has not yet launched.

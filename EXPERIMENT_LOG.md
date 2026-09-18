@@ -1,3 +1,8 @@
+## 2026-09-19 — PaperBench promoted RTT Dev3 result
+
+- 07:50 JST: Current-code provider-free integrity job `10491080` validates the corrected static Results20 baseline at 120/120 revisions and 3,360/3,360 planned Sol+Opus judgments; the prior `10490954` failure is isolated to obsolete whole-object grading-identity comparison, not corrupted scientific content.
+- 07:50 JST: Mac RTT Dev3 completed 18/18 revisions in 6:00:14 on clean pin `d68ec3e`; Opus audit coverage is complete, while OpenAI `credit_balance_exhausted` leaves Sol partial and therefore holds the native two-auditor comparison and RTT Results20 launch ([report](docs/reports/2026-09-19/paperbench-rtt-provenance-dev3/README.md)).
+
 ## 2026-09-18 — PaperBench baseline integrity and promoted RTT Dev3
 
 - 23:00 JST: Provider-free static Result20 recheck `10490954` stopped on the obsolete whole-object `grading_identity` equality in recovery pin `8226495`; this is a producer-code-provenance mismatch, not missing/changed scientific content, so current integrated validator job `10491080` is checking the same artifacts with scoring-semantic equivalence plus exact input/response/score bindings.
