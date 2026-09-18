@@ -247,7 +247,12 @@ def extract(study: Path, audit: Path, model: str) -> dict[str, object]:
     ids = set(assignment_by_source.values())
     if set(rubric_by_assignment) != ids:
         raise RuntimeError("rubric assignment coverage is incomplete")
-    if set(absolute) != {(assignment_id, artifact) for assignment_id in ids for artifact in ("initial", "final")}:
+    expected_absolute = {
+        (assignment_id, artifact)
+        for assignment_id in ids
+        for artifact in ("initial", "final")
+    }
+    if set(absolute) != expected_absolute:
         raise RuntimeError("absolute-score assignment coverage is incomplete")
     for window in WINDOWS:
         if set(direct[window]) != ids:
