@@ -32,7 +32,14 @@ def _module(name: str, path: Path):
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load {path}")
     result = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(result)
+    search_paths = (str(path.parent), str(ROOT / "scripts/diagnostics"))
+    for search_path in reversed(search_paths):
+        sys.path.insert(0, search_path)
+    try:
+        spec.loader.exec_module(result)
+    finally:
+        for search_path in search_paths:
+            sys.path.remove(search_path)
     return result
 
 
@@ -127,6 +134,12 @@ def old20_rows() -> list[dict[str, object]]:
                 value = raw[f"RH_{window}_score"]
                 row[f"RH_{window}_score"] = None if value == "" else float(value)
             rows.append(row)
+    for historical in BASE.historical_rows():
+        if historical["cohort"] not in {"static_full", "static_user"}:
+            continue
+        row = dict(historical)
+        row["block"] = "old20"
+        rows.append(row)
     counts = Counter(row["cohort"] for row in rows)
     if counts != {cohort: 120 for cohort in CONDITIONS.values()}:
         raise RuntimeError(f"old20 published auditor coverage changed: {counts}")

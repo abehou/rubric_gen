@@ -31,7 +31,10 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _validate_config(shard: tuple[str, str]) -> dict:
+def _validate_config(
+    shard: tuple[str, str],
+    shared_inputs: dict[str, object] | None = None,
+) -> dict:
     task, kind = shard
     config = config_path(task, kind)
     experiment = load_experiment(config)
@@ -79,26 +82,36 @@ def _validate_config(shard: tuple[str, str]) -> dict:
     assert condition_rows == {name: all_condition_rows[name] for name in expected_conditions}
     seed_root = Path(experiment.dag["seed"]["output_dir"])
     paraphrase_root = Path(experiment.dag["paraphrase"]["output_dir"])
-    validate_paraphrase_run(paraphrase_root, experiment)
-    variants = [
-        {
-            "variant": index,
-            "txt_sha256": sha(paraphrase_root / "tasks" / task / f"variant-{index:03d}.txt"),
-            "json_sha256": sha(paraphrase_root / "tasks" / task / f"variant-{index:03d}.json"),
-        }
-        for index in range(5)
-    ]
-    seeds = []
-    for replicate in range(1, 4):
-        seed = resolve_seed(
-            seed_root,
-            experiment.task_dir(task),
-            replicate,
-            seed_generator=experiment.seed_agent_config(),
-            prompt_profile=experiment.protocol["prompt"],
-            benchmark=experiment.benchmark,
-        )
-        seeds.append({"replicate": replicate, "sha256": seed.sha256})
+    if shared_inputs is None:
+        validate_paraphrase_run(paraphrase_root, experiment)
+        variants = [
+            {
+                "variant": index,
+                "txt_sha256": sha(paraphrase_root / "tasks" / task / f"variant-{index:03d}.txt"),
+                "json_sha256": sha(paraphrase_root / "tasks" / task / f"variant-{index:03d}.json"),
+            }
+            for index in range(5)
+        ]
+        seeds = []
+        for replicate in range(1, 4):
+            seed = resolve_seed(
+                seed_root,
+                experiment.task_dir(task),
+                replicate,
+                seed_generator=experiment.seed_agent_config(),
+                prompt_profile=experiment.protocol["prompt"],
+                benchmark=experiment.benchmark,
+            )
+            seeds.append({"replicate": replicate, "sha256": seed.sha256})
+    else:
+        if (
+            shared_inputs["task_id"] != task
+            or shared_inputs["seed_root"] != str(seed_root)
+            or shared_inputs["paraphrase_root"] != str(paraphrase_root)
+        ):
+            raise RuntimeError(f"static/trace input roots differ for {task}")
+        seeds = list(shared_inputs["seeds"])
+        variants = list(shared_inputs["variants"])
     pool = source_pool(experiment)
     if kind == "static" and pool is not None:
         raise RuntimeError("static shard unexpectedly has a pretreatment source")
@@ -127,12 +140,20 @@ def _validate_old20_publication() -> dict:
     import csv
     with (report / "artifact-values.csv").open() as handle:
         artifact_rows = list(csv.DictReader(handle))
-    with (report / "candidate-auditor-rows.csv").open() as handle:
-        auditor_rows = list(csv.DictReader(handle))
+    candidate_auditors = report / "candidate-auditor-rows.csv"
+    static_auditors = ROOT / "docs/reports/2026-09-11/trace-attack-defense-v2.1/outcomes-by-auditor.csv"
+    with candidate_auditors.open() as handle:
+        candidate_rows = list(csv.DictReader(handle))
+    with static_auditors.open() as handle:
+        static_rows = [
+            row for row in csv.DictReader(handle)
+            if row["cohort"] in {"static_full", "static_user"}
+        ]
     expected = {"static_full", "current_full", "static_user", "current_user"}
     counts = {cohort: sum(row["cohort"] == cohort for row in artifact_rows) for cohort in expected}
     if counts != {cohort: 60 for cohort in expected}:
         raise RuntimeError(f"published Results20 artifact population changed: {counts}")
+    auditor_rows = candidate_rows + static_rows
     audited = {cohort: sum(row["cohort"] == cohort for row in auditor_rows) for cohort in expected}
     if audited != {cohort: 120 for cohort in expected}:
         raise RuntimeError(f"published Results20 auditor population changed: {audited}")
@@ -141,7 +162,8 @@ def _validate_old20_publication() -> dict:
     return {
         "analysis_sha256": sha(report / "analysis.json"),
         "artifact_values_sha256": sha(report / "artifact-values.csv"),
-        "auditor_rows_sha256": sha(report / "candidate-auditor-rows.csv"),
+        "candidate_auditor_rows_sha256": sha(candidate_auditors),
+        "static_auditor_rows_sha256": sha(static_auditors),
         "artifact_counts": counts,
         "auditor_counts": audited,
     }
@@ -157,8 +179,20 @@ def main() -> None:
     assert runtime["audit_studies"] == 1
     assert runtime["audit_provider_concurrency"] == {"openai": 60, "anthropic": 60}
     assert INTERNAL_STAGE_FANOUT == 4
+    old20_publication = _validate_old20_publication()
+    static_shards = tuple((task, "static") for task in TASKS)
     with ThreadPoolExecutor(max_workers=4) as workers:
-        rows = list(workers.map(_validate_config, SHARDS))
+        static_rows = list(workers.map(_validate_config, static_shards))
+    static_by_task = {row["task_id"]: row for row in static_rows}
+    trace_rows = [
+        _validate_config((task, "trace"), static_by_task[task])
+        for task in TASKS
+    ]
+    rows = [
+        row
+        for task in TASKS
+        for row in (static_by_task[task], next(item for item in trace_rows if item["task_id"] == task))
+    ]
     if sum(len(load_experiment(config_path(task, kind)).execution_assignments) for task, kind in SHARDS) != 240:
         raise RuntimeError("Results40 new assignment scope is not 240")
     for root in (
@@ -181,7 +215,7 @@ def main() -> None:
         "native_shards": 40,
         "randomization_seed": 20260820,
         "input_rows": rows,
-        "old20_publication": _validate_old20_publication(),
+        "old20_publication": old20_publication,
         "heldout_generation": {
             "new20": "rigorous-V2 prompt source commit 47463ca",
             "old20": "historical original-20 producer prompt; full text unrecovered",
