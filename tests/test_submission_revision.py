@@ -3112,6 +3112,63 @@ def test_failed_solver_turn_resumes_from_last_scored_checkpoint(
     assert (archived / "status.json").is_file()
 
 
+def test_failed_turn_after_early_session_id_discards_incomplete_session(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+
+    class EarlyTransportFailureSession(FakeSession):
+        fail_once = True
+
+        def start(self, workspace, prompt, turn_dir, *, on_session_id=None):
+            if self.fail_once:
+                self.fail_once = False
+                if on_session_id:
+                    on_session_id("interrupted-session")
+                turn_dir.mkdir(parents=True, exist_ok=True)
+                (turn_dir / "trajectory.stream.jsonl").write_text(
+                    json.dumps({"turn": 1, "partial": True}) + "\n"
+                )
+                raise RuntimeError("Codex transport closed during an active turn")
+            return super().start(
+                workspace,
+                prompt,
+                turn_dir,
+                on_session_id=on_session_id,
+            )
+
+    session = EarlyTransportFailureSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(RuntimeError, match="transport closed"):
+        SubmissionRevisionController(config, dependencies).run()
+    state = json.loads((config.experiment_dir / "state.json").read_text())
+    assert state["phase"] == "failed_turn"
+    assert state["session_id"] == "interrupted-session"
+    assert state["effective_solver_model"] is None
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.submission_ids == ("s000", "s001")
+    assert result.scores == (80, 90)
+    assert session.sessions == ["solver-session"]
+    archived = config.experiment_dir / "interrupted-turns" / "turn-001"
+    assert (archived / "status.json").is_file()
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(
+        event.get("event") == "solver_session_discarded"
+        and event.get("session_id") == "interrupted-session"
+        for event in events
+    )
+
+
 def test_failed_solver_turn_rejects_a_prompt_that_differs_from_executed_turn(
     tmp_path: Path,
 ) -> None:

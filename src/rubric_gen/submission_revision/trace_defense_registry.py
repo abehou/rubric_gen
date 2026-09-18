@@ -90,6 +90,7 @@ RECIPES = {
     'attack_defense_v2.1_execution_verified': _V21_EXECUTION_VERIFIED,
     'attack_defense_v2.1_execution_verified_proactive': _V21_EXECUTION_VERIFIED_PROACTIVE,
     'attack_defense_v2.1_execution_verified_proactive_provenance': _V21_EXECUTION_VERIFIED_PROACTIVE_PROVENANCE,
+    'attack_defense_v2.1_execution_verified_proactive_provenance_dropout': _V21_EXECUTION_VERIFIED_PROACTIVE_PROVENANCE,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,

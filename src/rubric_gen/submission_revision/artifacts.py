@@ -110,7 +110,8 @@ def revision_manifest_keys(feedback_policy: str, red_team_trace_version: str | N
     keys = REVISION_MANIFEST_KEYS
     if red_team_trace_version:
         keys |= {"red_team_trace_version", "source_schedule", "trace_defense_prompt_hashes"}
-    if red_team_trace_version == "attack_defense_v2.1_execution_verified":
+    from .rubric_dropout import DROPOUT_TRACE_VERSIONS
+    if red_team_trace_version in DROPOUT_TRACE_VERSIONS:
         keys |= {
             "rubric_dropout_rate",
             "rubric_dropout_seed",

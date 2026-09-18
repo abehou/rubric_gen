@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -24,11 +25,14 @@ from rubric_gen.submission_revision.execution_verified_provenance_prompts import
 )
 from rubric_gen.submission_revision.feedback import (
     FeedbackPolicy,
+    ProjectedFeedback,
     render_revision_prompt,
 )
+from rubric_gen.submission_revision.prompts import PromptProfile
 from rubric_gen.submission_revision.rubric_dropout import (
     DropoutProjectedFeedback,
     EXECUTION_VERIFIED_VERSION,
+    PROVENANCE_DROPOUT_VERSION,
     revision_dropout,
     validate_dropout_rate,
 )
@@ -36,6 +40,7 @@ from rubric_gen.submission_revision.rubric_generation import (
     CompleteRubric,
     ElicitedCriterion,
     RubricGeneration,
+    RubricPolicy,
     render_augmented_rubric,
 )
 from rubric_gen.submission_revision.task_required_enforced_schema import (
@@ -104,6 +109,20 @@ def _provenance_runner_module():
     return module
 
 
+def _provenance_dropout_runner_module():
+    path = Path(__file__).parents[1] / (
+        "experiments/trace-v21-execution-verified-provenance-dropout/"
+        "run_local.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "execution_verified_provenance_dropout_run_local", path
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _base_rubric(count: int = 5) -> CompleteRubric:
     parts = ["RUBRIC: Test", "", "Score normalization maximum: 100", ""]
     for index in range(1, count + 1):
@@ -130,12 +149,17 @@ def _learned(index: int) -> ElicitedCriterion:
     )
 
 
-def _generation(base_count: int = 5, learned_count: int = 2) -> RubricGeneration:
+def _generation(
+    base_count: int = 5,
+    learned_count: int = 2,
+    *,
+    version: str = EXECUTION_VERIFIED_VERSION,
+) -> RubricGeneration:
     base = _base_rubric(base_count)
     learned = tuple(_learned(index) for index in range(1, learned_count + 1))
     return RubricGeneration(
         2, 0, render_augmented_rubric(base, learned), learned, 1,
-        SOURCE_SCHEDULE, EXECUTION_VERIFIED_VERSION,
+        SOURCE_SCHEDULE, version,
     )
 
 
@@ -422,6 +446,207 @@ def test_provenance_local_runner_preserves_high_proposer_only_allocation():
     runner._validate_experiment()
 
 
+def test_provenance_dropout_is_a_zero_behavior_noop_with_separate_identity():
+    generation = _generation(version=PROVENANCE_DROPOUT_VERSION)
+    assert revision_dropout(
+        generation,
+        rate=0.0,
+        seed=20260806,
+        assignment_id=(
+            "da-11-1--rep-001--solver-luna--"
+            "full-red-team-trace-execution-provenance-high-proposer-dropout-0"
+        ),
+        revision_round=1,
+    ) is None
+    assert prompt_hashes(PROVENANCE_DROPOUT_VERSION) == prompt_hashes(
+        PROVENANCE_VERSION
+    )
+    payload = {
+        "score": 100.0,
+        "criteria": {},
+        "rubric_text": "RUBRIC: test",
+        "overall_reasoning": "",
+    }
+    arguments = {
+        "task_instruction": "Do the task.",
+        "first_revision": False,
+    }
+    assert render_revision_prompt(
+        FeedbackPolicy.FULL,
+        payload,
+        red_team_trace_version=PROVENANCE_DROPOUT_VERSION,
+        **arguments,
+    ) == render_revision_prompt(
+        FeedbackPolicy.FULL,
+        payload,
+        red_team_trace_version=PROVENANCE_VERSION,
+        **arguments,
+    )
+    dropout_keys = revision_manifest_keys("full", PROVENANCE_DROPOUT_VERSION)
+    control_keys = revision_manifest_keys("full", PROVENANCE_VERSION)
+    fields = {
+        "rubric_dropout_rate",
+        "rubric_dropout_seed",
+        "rubric_dropout_implementation_sha256",
+    }
+    assert fields <= dropout_keys
+    assert not fields & control_keys
+
+
+def test_provenance_dropout_dev3_adds_only_thirty_and_fifty_percent_cells():
+    path = Path(
+        "experiments/trace-v21-execution-verified-provenance-dropout/dev3.yaml"
+    )
+    experiment = load_experiment(path)
+    assert len(experiment.execution_assignments) == 36
+    assert {item.task_id for item in experiment.execution_assignments} == {
+        "da-3-4", "da-11-1", "da-18-1",
+    }
+    assert experiment.payload["randomization"] == {
+        "seed": 20260806, "replicates": 3,
+    }
+    assert {
+        (
+            condition["feedback_policy"],
+            float(condition["rubric_dropout_rate"]),
+        )
+        for condition in experiment.payload["conditions"]
+    } == {
+        ("full", 0.3),
+        ("full", 0.5),
+        ("user_simulator", 0.3),
+        ("user_simulator", 0.5),
+    }
+    assert experiment.protocol["red_team_trace_version"] == (
+        PROVENANCE_DROPOUT_VERSION
+    )
+    assert experiment.protocol["rubric_proposer_reasoning_effort_by_stage"] == {
+        "diagnosis": "high",
+    }
+    assert experiment.red_team_agent_config().reasoning_effort == "low"
+    assert {
+        experiment.solver_config(item.solver_id).reasoning_effort
+        for item in experiment.execution_assignments
+    } == {"low"}
+    assert experiment.payload["execution_audit_models"] == [
+        "gpt-5.6-sol", "claude-opus-5",
+    ]
+    wrapper = _provenance_dropout_runner_module()
+    runner = wrapper._runner()
+    assert runner.EXPECTED_ASSIGNMENTS == 36
+    assert runner.EXPECTED_DROPOUT_RATES == (0.3, 0.5)
+    runner._validate_experiment()
+
+
+def test_local_runner_uses_absolute_module_path_for_workspace_children(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    runner = _provenance_dropout_runner_module()._runner()
+    monkeypatch.setenv("PYTHONPATH", "src:/tmp/example")
+    value = runner._configure_local_module_path()
+    assert value == str((Path(__file__).parents[1] / "src").resolve())
+    entries = os.environ["PYTHONPATH"].split(os.pathsep)
+    assert entries[0] == value
+    assert "src" not in entries
+    assert "/tmp/example" in entries
+
+
+def test_provenance_dropout_masks_are_nested_for_the_promoted_recipe():
+    generation = _generation(version=PROVENANCE_DROPOUT_VERSION)
+    prefix = (
+        "da-11-1--rep-001--solver-luna--"
+        "full-red-team-trace-execution-provenance-high-proposer-dropout-"
+    )
+    mask30 = revision_dropout(
+        generation,
+        rate=0.3,
+        seed=20260806,
+        assignment_id=prefix + "30",
+        revision_round=3,
+    )
+    mask50 = revision_dropout(
+        generation,
+        rate=0.5,
+        seed=20260806,
+        assignment_id=prefix + "50",
+        revision_round=3,
+    )
+    assert mask30 is not None and mask50 is not None
+    assert len(mask30.dropped_ids) == 2
+    assert len(mask50.dropped_ids) == 3
+    assert set(mask30.dropped_ids) < set(mask50.dropped_ids)
+
+
+def test_completed_artifact_validation_replays_the_live_dropout_mask():
+    from rubric_gen.submission_revision.study_validation_artifacts import (
+        _apply_revision_dropout,
+    )
+
+    generation = _generation(version=PROVENANCE_DROPOUT_VERSION)
+    assignment_id = (
+        "da-11-1--rep-001--solver-luna--"
+        "full-red-team-trace-execution-provenance-high-proposer-dropout-30"
+    )
+    context = SimpleNamespace(
+        protocol={"red_team_trace_version": PROVENANCE_DROPOUT_VERSION},
+        rubric_policy=RubricPolicy.RED_TEAM_TRACE,
+        condition={"rubric_dropout_rate": 0.3},
+        experiment=SimpleNamespace(
+            payload={"randomization": {"seed": 20260806}},
+            benchmark=SubmissionBenchmarkId.BIOMNIBENCH_DA,
+        ),
+        assignment=SimpleNamespace(assignment_id=assignment_id),
+    )
+    canonical = {
+        "score": 100.0,
+        "criteria": {
+            f"criterion_{index}": {
+                "level": "A", "points": 20, "judge_reason": "satisfied",
+            }
+            for index in range(1, 6)
+        }
+        | {
+            "criterion_6": {
+                "level": "A", "points": 0, "judge_reason": "no failure",
+            },
+            "criterion_7": {
+                "level": "A", "points": 0, "judge_reason": "no failure",
+            },
+        },
+        "rubric_text": generation.rubric.content,
+        "overall_reasoning": "canonical summary",
+    }
+    projected = ProjectedFeedback(
+        score=100.0,
+        payload=canonical,
+        prompt="unmasked",
+    )
+    replayed = _apply_revision_dropout(
+        context,
+        generation,
+        "s002",
+        projected,
+        policy=FeedbackPolicy.FULL,
+        task_instruction="Do the task.",
+        first_revision=False,
+        prompt_profile=PromptProfile.NEUTRAL_OPTIMIZATION,
+    )
+    expected = revision_dropout(
+        generation,
+        rate=0.3,
+        seed=20260806,
+        assignment_id=assignment_id,
+        revision_round=3,
+    )
+    assert expected is not None
+    assert replayed.rubric_dropout["dropped_criterion_ids"] == list(
+        expected.dropped_ids
+    )
+    assert replayed.payload == expected.project(
+        canonical, generation.rubric.content
+    )
+
+
 def test_fixed_counts_nested_masks_and_minimum_three_positive_base_criteria():
     generation = _generation()
     mask30 = revision_dropout(
@@ -585,8 +810,16 @@ def test_execution_contract_keeps_same_issue_and_accepts_honest_downgrade():
     assert contract.validate(downgrade)["evidence_refs"]
 
 
-def test_protected_issue_is_delivered_completely_and_persisted(tmp_path: Path):
-    generation = _generation(5, 0)
+@pytest.mark.parametrize("rate", (0.3, 0.5))
+@pytest.mark.parametrize("arm", ("full", "user-simulator"))
+def test_protected_issue_is_delivered_completely_and_persisted(
+    tmp_path: Path,
+    rate: float,
+    arm: str,
+):
+    generation = _generation(
+        5, 0, version=PROVENANCE_DROPOUT_VERSION,
+    )
     root = tmp_path / "rubric-generations" / "generation-0002"
     root.mkdir(parents=True)
     response = _execution_response()
@@ -608,12 +841,39 @@ def test_protected_issue_is_delivered_completely_and_persisted(tmp_path: Path):
     )
     assert skipped == [] and issue["status"] == "active"
     assert selection["protected_execution_issue"] is True
-    projected = DropoutProjectedFeedback(
-        score=80.0, payload={"score": 80.0}, prompt="ordinary",
-        rubric_dropout={
-            "retained_learned_criterion_ids": [], "protected_ids": [],
-            "protected_reason": None,
+    percent = int(rate * 100)
+    mask = revision_dropout(
+        generation,
+        rate=rate,
+        seed=20260806,
+        assignment_id=(
+            "da-11-1--rep-001--solver-luna--"
+            f"{arm}-red-team-trace-execution-provenance-"
+            f"high-proposer-dropout-{percent}"
+        ),
+        revision_round=1,
+    )
+    assert mask is not None
+    canonical = {
+        "score": 100.0,
+        "criteria": {
+            f"criterion_{index}": {
+                "level": "A", "points": 20, "judge_reason": "satisfied",
+            }
+            for index in range(1, 6)
         },
+        "rubric_text": generation.rubric.content,
+        "overall_reasoning": "canonical summary",
+    }
+    masked = mask.project(canonical, generation.rubric.content)
+    projected = DropoutProjectedFeedback(
+        score=100.0,
+        payload=masked,
+        prompt="ordinary",
+        rubric_dropout=mask.record(
+            full_canonical_score=100.0,
+            solver_visible_score=float(masked["score"]),
+        ),
     )
     result = append_reminder(
         projected, generation=generation,
@@ -705,7 +965,9 @@ def test_honest_downgrade_is_not_followed_by_another_reminder(
     from rubric_gen.submission_revision import trace_defense_delivery as delivery
     from rubric_gen.submission_revision.feedback import ProjectedFeedback
 
-    generation = _generation(5, 1)
+    generation = _generation(
+        5, 1, version=PROVENANCE_DROPOUT_VERSION,
+    )
     resolved = {
         "issue_id": "execution_0123456789abcdef",
         "status": "resolved_downgrade",

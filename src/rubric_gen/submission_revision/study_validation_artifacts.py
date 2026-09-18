@@ -80,6 +80,46 @@ def _trace_version(context):
 RubricArtifacts = tuple[Path, Path]
 
 
+def _apply_revision_dropout(
+    context: ValidationContext,
+    generation: RubricGeneration,
+    submission_id: str,
+    projected: ProjectedFeedback,
+    *,
+    policy: FeedbackPolicy,
+    task_instruction: str,
+    first_revision: bool,
+    prompt_profile: PromptProfile,
+) -> ProjectedFeedback:
+    """Replay the solver-visible mask used by the live scoring path."""
+
+    from .rubric_dropout import DROPOUT_TRACE_VERSIONS
+
+    if _trace_version(context) not in DROPOUT_TRACE_VERSIONS:
+        return projected
+    from .rubric_dropout import project_feedback, revision_dropout
+
+    dropout = revision_dropout(
+        generation,
+        rate=float(context.condition["rubric_dropout_rate"]),
+        seed=int(context.experiment.payload["randomization"]["seed"]),
+        assignment_id=context.assignment.assignment_id,
+        revision_round=int(submission_id[1:]) + 1,
+    )
+    if dropout is None:
+        return projected
+    return project_feedback(
+        projected,
+        dropout,
+        generation,
+        policy=policy,
+        task_instruction=task_instruction,
+        first_revision=first_revision,
+        prompt_profile=prompt_profile,
+        benchmark=context.experiment.benchmark,
+    )
+
+
 def validate_revision_artifacts(context: ValidationContext) -> None:
     roots = _validate_artifact_sets(context)
     if _trace_version(context):
@@ -729,7 +769,7 @@ def _project_feedback(
     )
     first_revision = submission_id == "s000"
     if context.policy is not FeedbackPolicy.USER_SIMULATOR:
-        return project_rubric_feedback(
+        projected = project_rubric_feedback(
             generation,
             rubric_artifacts,
             context.policy,
@@ -742,6 +782,16 @@ def _project_feedback(
             reference_rubric_sha256=context.selection.optimizer_sha256,
             prompt_profile=prompt_profile,
             benchmark=context.experiment.benchmark,
+        )
+        return _apply_revision_dropout(
+            context,
+            generation,
+            submission_id,
+            projected,
+            policy=context.policy,
+            task_instruction=task_instruction,
+            first_revision=first_revision,
+            prompt_profile=prompt_profile,
         )
     simulator = context.simulator
     if simulator is None:
@@ -759,6 +809,16 @@ def _project_feedback(
         reference_rubric_sha256=context.selection.optimizer_sha256,
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
+    )
+    full_projection = _apply_revision_dropout(
+        context,
+        generation,
+        submission_id,
+        full_projection,
+        policy=FeedbackPolicy.FULL,
+        task_instruction=task_instruction,
+        first_revision=first_revision,
+        prompt_profile=prompt_profile,
     )
     factor_trace = _trace_version(context) in feedback_factors.VARIANTS
     firewall_trace = _trace_version(context) in public_firewall.VARIANTS
@@ -860,6 +920,10 @@ def _project_feedback(
         reference_score=float(reference_score),
         prompt_profile=prompt_profile,
         benchmark=context.experiment.benchmark,
+    )
+    from .rubric_dropout import attach_record
+    projected = attach_record(
+        projected, getattr(full_projection, "rubric_dropout", None)
     )
     if factor_delivery is not None:
         feedback_factors.persist_budget_delivery(root=context.experiment_dir,

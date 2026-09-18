@@ -16,6 +16,13 @@ from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.runtime.audit_execution import AuditExecutor, audit_output_owner
 from rubric_gen.runtime.capacity import policy, reservation
 from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.rubric_judge import (
+    FullRubricJudgeError,
+    SavedRubricResponse,
+)
+from rubric_gen.submission_revision.evaluation.rubric_score import (
+    _rubric_score_attempt_id,
+)
 from rubric_gen.submission_revision.evaluation.runner import RubricScoreRunner
 from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
@@ -50,9 +57,20 @@ def _import_successes(output_root: Path, original_audit: Path,
             target = destination_artifacts / path.relative_to(source_artifacts)
             if target.exists():
                 if target.read_bytes() != path.read_bytes():
-                    raise RuntimeError(
-                        f"recovery artifact collision differs for {target}"
+                    relative = path.relative_to(source_artifacts)
+                    is_attempt_evidence = (
+                        any(part.endswith(".attempts") for part in relative.parts)
+                        or path.name.startswith("failed-attempt-")
                     )
+                    if not is_attempt_evidence:
+                        raise RuntimeError(
+                            f"recovery artifact collision differs for {target}"
+                        )
+                    # The original and isolated recovery roots each preserve
+                    # their own numbered provider attempts.  A recovered
+                    # attempt can reuse attempt-001 without overwriting the
+                    # original failed attempt at that name; only the validated
+                    # canonical evaluation is imported below.
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
@@ -76,6 +94,28 @@ def _import_successes(output_root: Path, original_audit: Path,
     return imported
 
 
+def _replay_complete_saved_response(runner: RubricScoreRunner, job):
+    """Publish an exact complete response that used pipe-delimited v8 rows."""
+
+    judge = runner._judge_for_job(job)
+    attempt_id = _rubric_score_attempt_id(job)
+    root = judge._evaluation_root(job.submission, attempt_id)
+    attempts = root.parent / f"{attempt_id}.attempts"
+    for attempt in range(1, 4):
+        state = attempts / f"attempt-{attempt:03d}.json"
+        response = attempts / f"attempt-{attempt:03d}.response.json"
+        if not state.is_file() or not response.is_file():
+            continue
+        candidate = SavedRubricResponse(state, response, _read(state)["identity"])
+        try:
+            candidate.replay(judge, job.submission)
+        except FullRubricJudgeError:
+            continue
+        runner._saved_response_replays = {job.key: candidate}
+        return runner._run_job(job)
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment", type=Path, required=True)
@@ -91,8 +131,8 @@ def main() -> None:
     for path in (args.original_audit, args.output_root):
         if not path.is_absolute() or path.is_symlink():
             raise RuntimeError(f"audit path must be absolute and non-symlinked: {path}")
-    if not 1 <= args.max_concurrency <= 4:
-        raise ValueError("recovery concurrency must be between one and four")
+    if not 1 <= args.max_concurrency <= 12:
+        raise ValueError("recovery concurrency must be between one and twelve")
 
     os.environ["RUBRIC_GEN_PATH_MAP_FILE"] = str(args.path_map)
     os.environ["RUBRIC_GEN_RUNTIME_CONFIG"] = str(args.runtime_config)
@@ -140,6 +180,7 @@ def main() -> None:
 
     successes: list[dict] = []
     failures: list[dict] = []
+    jobs_by_key = {job.key: job for job in jobs}
     args.output_root.mkdir(parents=True, exist_ok=True)
     write_json_atomic(args.output_root / "recovery-plan.json", {
         "kind": "matched-sol-opus-rubric-score-recovery",
@@ -166,6 +207,20 @@ def main() -> None:
                     "error_type": type(error).__name__,
                     "error": str(error),
                 })
+    remaining_failures = []
+    for failure in failures:
+        job = jobs_by_key[failure["key"]]
+        replayed = _replay_complete_saved_response(runner, job)
+        if replayed is None:
+            remaining_failures.append(failure)
+        else:
+            successes.append({
+                "key": job.key,
+                "model": job.model,
+                "local_response_replay": True,
+                **replayed,
+            })
+    failures = remaining_failures
     receipt = {
         "kind": "matched-sol-opus-rubric-score-recovery-result",
         "planned": len(jobs),

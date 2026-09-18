@@ -550,7 +550,8 @@ class RevisionScorer:
         )
         first_revision = submission_id == "s000"
         dropout = None
-        if self.config.red_team_trace_version == "attack_defense_v2.1_execution_verified":
+        from .rubric_dropout import DROPOUT_TRACE_VERSIONS
+        if self.config.red_team_trace_version in DROPOUT_TRACE_VERSIONS:
             from .rubric_dropout import revision_dropout
             dropout = revision_dropout(
                 generation,

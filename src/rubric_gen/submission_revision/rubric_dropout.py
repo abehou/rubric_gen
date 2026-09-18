@@ -17,6 +17,13 @@ from .rubric_generation import RubricGeneration
 
 VERSION = "rtt-rubric-dropout-fixed-count-v1"
 EXECUTION_VERIFIED_VERSION = "attack_defense_v2.1_execution_verified"
+PROVENANCE_DROPOUT_VERSION = (
+    "attack_defense_v2.1_execution_verified_proactive_provenance_dropout"
+)
+DROPOUT_TRACE_VERSIONS = frozenset({
+    EXECUTION_VERIFIED_VERSION,
+    PROVENANCE_DROPOUT_VERSION,
+})
 _RATE_SUFFIX = re.compile(r"-dropout-(?:0|30|50)\Z")
 
 
@@ -30,9 +37,9 @@ def validate_dropout_rate(rate: object, trace_version: str | None) -> float:
     value = float(rate)
     if not math.isfinite(value) or not 0 <= value < 1:
         raise ValueError("rubric_dropout_rate must satisfy 0.0 <= rate < 1.0")
-    if value and trace_version != EXECUTION_VERIFIED_VERSION:
+    if value and trace_version not in DROPOUT_TRACE_VERSIONS:
         raise ValueError(
-            "nonzero rubric_dropout_rate requires attack_defense_v2.1_execution_verified"
+            "nonzero rubric_dropout_rate requires a dropout-enabled RTT version"
         )
     return value
 

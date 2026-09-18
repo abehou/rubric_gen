@@ -1,4 +1,4 @@
-"""Run a completed local 18-assignment Dev3 through the matched Sol+Opus audit."""
+"""Run a completed local Dev3 through the matched Sol+Opus audit."""
 from __future__ import annotations
 
 import argparse
@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument("--runtime-config", type=Path, required=True)
     parser.add_argument("--receipt-root", type=Path, required=True)
     parser.add_argument("--max-concurrency", type=int, default=12)
+    parser.add_argument("--expected-assignments", type=int, default=18)
     args = parser.parse_args()
 
     experiment_path = args.experiment.expanduser()
@@ -44,6 +45,8 @@ def main() -> None:
         raise RuntimeError("local audit receipt root must be absolute and non-symlinked")
     if not 1 <= args.max_concurrency <= 12:
         raise ValueError("local audit concurrency must be between 1 and 12")
+    if args.expected_assignments < 1:
+        raise ValueError("expected assignments must be positive")
 
     os.environ["RUBRIC_GEN_RUNTIME_CONFIG"] = str(runtime_path.resolve())
     os.environ.pop("RUBRIC_GEN_OPENAI_REASONING_EFFORT", None)
@@ -67,8 +70,12 @@ def main() -> None:
     audit = Path(experiment.dag["detect"]["output_dir"])
     ledger = json.loads((study / "study.json").read_text(encoding="utf-8"))
     completed = terminal_records(experiment, ledger)
-    if len(completed) != 18 or any(row["status"] != "completed" for row in completed):
-        raise RuntimeError("matched audit requires exactly 18 completed assignments")
+    if (len(completed) != args.expected_assignments
+            or any(row["status"] != "completed" for row in completed)):
+        raise RuntimeError(
+            "matched audit requires exactly "
+            f"{args.expected_assignments} completed assignments"
+        )
 
     invocation = (
         "sol-opus-audit-"
@@ -104,6 +111,7 @@ def main() -> None:
         "audit": str(audit),
         "config_sha256": sha256_file(experiment_path),
         "runtime_config_sha256": sha256_file(runtime_path),
+        "expected_assignments": args.expected_assignments,
         "completed_assignments": len(completed),
         "resume": "native missing-only",
         "time": datetime.now(timezone.utc).isoformat(),

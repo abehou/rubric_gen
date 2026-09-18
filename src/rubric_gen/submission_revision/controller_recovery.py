@@ -423,6 +423,19 @@ class RevisionRecovery:
         manifest: dict[str, object],
     ) -> None:
         if (
+            state.phase is _RevisionPhase.FAILED_TURN
+            and isinstance(state.session_id, str)
+            and bool(state.session_id)
+            and state.effective_solver_model is None
+            and manifest.get("session_id") == state.session_id
+            and manifest.get("effective_solver_model") is None
+        ):
+            # The provider can publish its session ID before the first response
+            # returns.  A transport interruption at that boundary has no
+            # effective-model report yet; the failed turn is reset below and
+            # the incomplete session is discarded rather than resumed.
+            return
+        if (
             (state.session_id is None) != (state.effective_solver_model is None)
             or manifest.get("session_id") != state.session_id
             or manifest.get("effective_solver_model")

@@ -307,7 +307,8 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         raise ValueError("conditions must be a non-empty list")
     condition_ids: list[str] = []
     trace_version = payload["protocol"].get("red_team_trace_version")
-    dropout_conditions = trace_version == "attack_defense_v2.1_execution_verified"
+    from .rubric_dropout import DROPOUT_TRACE_VERSIONS, PROVENANCE_DROPOUT_VERSION
+    dropout_conditions = trace_version in DROPOUT_TRACE_VERSIONS
     proactive_execution_conditions = (
         trace_version in {
             "attack_defense_v2.1_execution_verified_proactive",
@@ -348,7 +349,12 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             percent = dropout_rate * 100
             if not percent.is_integer():
                 raise ValueError("rubric_dropout_rate must be an integer percentage")
-            if payload["protocol"].get(
+            if trace_version == PROVENANCE_DROPOUT_VERSION:
+                expected_id = (
+                    f"{base_id}-execution-provenance-high-proposer-"
+                    f"dropout-{int(percent)}"
+                )
+            elif payload["protocol"].get(
                 "rubric_proposer_reasoning_effort_by_stage"
             ):
                 if dropout_rate != 0.0:

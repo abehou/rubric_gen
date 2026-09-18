@@ -205,7 +205,8 @@ class SubmissionRevisionController:
         }
         if self.config.feedback_simulator is not None:
             identity["feedback_simulator"] = self.config.feedback_simulator.identity()
-        if self.config.red_team_trace_version == "attack_defense_v2.1_execution_verified":
+        from .rubric_dropout import DROPOUT_TRACE_VERSIONS
+        if self.config.red_team_trace_version in DROPOUT_TRACE_VERSIONS:
             from .rubric_dropout import implementation_sha256
             identity.update({
                 "rubric_dropout_rate": float(self.config.rubric_dropout_rate),
@@ -452,6 +453,7 @@ class SubmissionRevisionController:
             "attack_defense_v2.1_execution_verified",
             "attack_defense_v2.1_execution_verified_proactive",
             "attack_defense_v2.1_execution_verified_proactive_provenance",
+            "attack_defense_v2.1_execution_verified_proactive_provenance_dropout",
         }:
             from .task_required_enforcement import active_execution_issue
             unresolved_execution_issue = active_execution_issue(

@@ -43,6 +43,22 @@ PROPOSER_REASONING_BY_STAGE = {"quality": "high", "diagnosis": "high"}
 RUN_KIND = "execution-verified-high-allocation-local-dev3"
 COMPLETION_STAGE = "execution_verified_high_allocation_dev3_complete"
 SAVED_CASE_VALIDATOR = None
+EXPECTED_ASSIGNMENTS = 18
+EXPECTED_DROPOUT_RATES = None
+
+
+def _configure_local_module_path() -> str:
+    """Give workspace-launched app-server children an absolute package path."""
+
+    source = str((ROOT / "src").resolve())
+    existing = [
+        item for item in os.environ.get("PYTHONPATH", "").split(os.pathsep)
+        if item
+    ]
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        [source, *(item for item in existing if Path(item).resolve() != Path(source))]
+    )
+    return source
 
 
 def _base_runner():
@@ -64,8 +80,10 @@ def _arguments() -> argparse.Namespace:
 
 def _validate_experiment():
     experiment = load_experiment(CONFIG)
-    if len(experiment.execution_assignments) != 18:
-        raise RuntimeError("high-allocation Dev3 must contain exactly 18 assignments")
+    if len(experiment.execution_assignments) != EXPECTED_ASSIGNMENTS:
+        raise RuntimeError(
+            f"Dev3 must contain exactly {EXPECTED_ASSIGNMENTS} assignments"
+        )
     if tuple(experiment.task_ids) != TASKS:
         raise RuntimeError("high-allocation Dev3 task membership changed")
     if tuple(experiment.payload["execution_conditions"]) != CONDITIONS:
@@ -92,6 +110,13 @@ def _validate_experiment():
         raise RuntimeError("solver reasoning must remain low")
     if tuple(experiment.payload["execution_audit_models"]) != PANEL:
         raise RuntimeError("Sol+Opus audit panel changed")
+    if EXPECTED_DROPOUT_RATES is not None:
+        rates = {
+            float(experiment.condition(item.condition_id)["rubric_dropout_rate"])
+            for item in experiment.execution_assignments
+        }
+        if rates != set(EXPECTED_DROPOUT_RATES):
+            raise RuntimeError("Dev3 dropout rates changed")
     return experiment
 
 
@@ -103,7 +128,7 @@ def _status(study: Path, invocation: str) -> dict[str, object]:
         pass
     return {
         "invocation": invocation,
-        "expected": 18,
+        "expected": EXPECTED_ASSIGNMENTS,
         "statuses": dict(Counter(row["status"] for row in records)),
         "time": datetime.now(timezone.utc).isoformat(),
     }
@@ -117,6 +142,7 @@ def main() -> None:
         raise ValueError("local aggregate provider concurrency must be between 1 and 18")
     if os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("local Dev3 must not run with a Slurm job identity")
+    local_module_path = _configure_local_module_path()
 
     experiment = _validate_experiment()
     base = _base_runner()
@@ -155,6 +181,12 @@ def main() -> None:
     source = base._git_source(owner, bundle=BUNDLE, config=CONFIG)
     write_json_atomic(RUN_ROOT / "dev3/input-manifest.json", input_manifest)
     study = Path(experiment.dag["revise"]["output_dir"])
+    module_path_recovery = base._recover_local_module_path_failures(
+        study, invocation,
+    )
+    write_json_atomic(
+        owner / "local-module-path-recovery.json", module_path_recovery,
+    )
     launch = {
         "kind": RUN_KIND + "-launch-v1",
         "invocation": invocation,
@@ -172,11 +204,23 @@ def main() -> None:
         "stage_max_concurrency": args.max_concurrency,
         "aggregate_provider_concurrency": args.aggregate_concurrency,
         "internal_stage_fanout": INTERNAL_STAGE_FANOUT,
-        "expected_assignments": 18,
+        "expected_assignments": EXPECTED_ASSIGNMENTS,
         "tasks": list(TASKS),
         "conditions": list(CONDITIONS),
         "seed": 20260806,
         "resume": study.exists(),
+        "local_module_path": local_module_path,
+        "local_module_path_recovery": {
+            "recovered_assignments": module_path_recovery[
+                "recovered_assignments"
+            ],
+            "receipt": str(
+                (owner / "local-module-path-recovery.json").resolve()
+            ),
+            "receipt_sha256": sha256_file(
+                owner / "local-module-path-recovery.json"
+            ),
+        },
         "rubric_proposer_provider": "openai",
         "rubric_proposer_credential_source": credential_source,
         "stage_reasoning": {
@@ -228,8 +272,12 @@ def main() -> None:
 
     ledger = json.loads((study / "study.json").read_text())
     completed = terminal_records(experiment, ledger)
-    if len(completed) != 18 or any(row["status"] != "completed" for row in completed):
-        raise RuntimeError("high-allocation Dev3 completion scope is not 18 successful assignments")
+    if (len(completed) != EXPECTED_ASSIGNMENTS
+            or any(row["status"] != "completed" for row in completed)):
+        raise RuntimeError(
+            "Dev3 completion scope does not contain exactly "
+            f"{EXPECTED_ASSIGNMENTS} successful assignments"
+        )
     assignments = {item.assignment_id: item for item in experiment.assignments}
     rows = []
     for record in completed:
@@ -243,7 +291,7 @@ def main() -> None:
         "kind": RUN_KIND + "-completion-v1",
         "invocation": invocation,
         "experiment_id": experiment.experiment_id,
-        "expected": 18,
+        "expected": EXPECTED_ASSIGNMENTS,
         "completed": len(rows),
         "assignments": rows,
         "source": source,

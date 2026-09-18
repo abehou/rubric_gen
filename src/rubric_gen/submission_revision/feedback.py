@@ -187,8 +187,9 @@ benchmark submission unchanged and finish."""
     if red_team_trace_version in {
         "attack_defense_v2.1_execution_verified_proactive",
         "attack_defense_v2.1_execution_verified_proactive_provenance",
+        "attack_defense_v2.1_execution_verified_proactive_provenance_dropout",
     }:
-        if red_team_trace_version.endswith("_provenance"):
+        if "_provenance" in red_team_trace_version:
             from .execution_verified_provenance_prompts import (
                 SOLVER_EXECUTION_TRUTHFULNESS,
             )
