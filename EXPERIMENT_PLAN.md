@@ -1,3 +1,8 @@
+## 2026-09-18 — PaperBench promoted RTT Dev3 gate
+
+- 23:00 JST: The user authorizes the exact promoted `attack_defense_v2.1_execution_verified_proactive_provenance` method on corrected PaperBench Dev3 before any RTT Result20 launch: diagnosis uses Luna-high, every other proposer/solver stage uses Luna-low, and the two conditions are Full/User only with the Sol+Opus panel. Run one counted matched smoke on `self-composing-policies` rep-001, expand the same resumable study to all 18 assignments only after native completion, then audit and compare against corrected static Dev3; PaperBench RTT Result20 remains conditional on this evidence.
+- Reuse the completed static Results20 baseline only if a fresh provider-free native coverage check confirms all 120 revisions and every planned saved judgment. Existing artifact identities and ordinary transfer validation are sufficient; do not add a new frozen hash contract.
+
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
 - 11:34 EDT: Queue5 authorizes the six Full/User non-static Results20 conditions only after corrected dev3 native validation, preserving120 completed static revisions and the existing shared starting-rubric producer. Keep each native offline/online/artifact policy distinct; no trace or CPU-profile change.

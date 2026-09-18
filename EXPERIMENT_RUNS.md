@@ -1,3 +1,7 @@
+## 2026-09-18 — PaperBench promoted RTT Dev3 preparation
+
+- 23:00 JST: Existing branch `codex/trace-v21-provenance-result20-babel` now owns config `experiments/paperbench-rtt-provenance-dev3/dev3.yaml`, experiment `paperbench-code-dev-factorial-r10-4b8d47a6c574`, and local root `runs/paperbench-rtt-provenance-local-mac/dev3/`. Provider-free staging job `10490998` copied the exact corrected Dev3 seed/paraphrase directories to a 26 MiB transfer archive (386 seed-tree files, 46 paraphrase-tree files); the Mac native validators accept all nine seeds and 15 paraphrases. Baseline integrity owner `10490954` is read-only/provider-free; the counted smoke has not yet launched.
+
 ## RTT completion-pass Dev3 — 2026-09-15 17:33 EDT
 
 Source/config owner is commit `0b29dd6` in `runs/babel-code/rtt-dev3-next-20260915`; execution root is `/home/aydanh/runs/rtt-completion-pass-dev3-20260915/`, experiment `biomnibench-da-factorial-r10-a55245afa8c8`, with the validated clean NAS1 seed/paraphrase pool read-only. Jobs are preflight `10454047` -> revision `10454080` -> provider-free gate `10454082` -> missing-only Sol+Opus audit `10454087` -> provider-free derived tables `10454386`; resume only this namespace and never rerun the matched fixed or completion-parent cells.

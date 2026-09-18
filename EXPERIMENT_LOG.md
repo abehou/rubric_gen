@@ -1,3 +1,8 @@
+## 2026-09-18 — PaperBench baseline integrity and promoted RTT Dev3
+
+- 23:00 JST: Provider-free static Result20 recheck `10490954` stopped on the obsolete whole-object `grading_identity` equality in recovery pin `8226495`; this is a producer-code-provenance mismatch, not missing/changed scientific content, so current integrated validator job `10491080` is checking the same artifacts with scoring-semantic equivalence plus exact input/response/score bindings.
+- 23:00 JST: Staging job `10490998` completed without provider work and transferred the corrected PaperBench Dev3 inputs to the Mac; native validation accepts nine seeds and 15 selected-neutral/heldout-rigorous paraphrases. The promoted RTT config keeps PaperBench workspace review, diagnosis-only Luna-high, all other Luna stages low, and a counted two-assignment largest-task smoke before expansion.
+
 ## 2026-09-15 — RTT task-required pass-boundary Dev3
 
 - 18:12 EDT: Exact zero-call preflight passed in the login controller after its 1-CPU Slurm owner could not backfill: 18 assignments, nine frozen seeds, paraphrases, candidate/version and output ownership all validate. Cancelled only pending duplicate `10454047`, made revision `10454080` eligible, and tightened pending revision/audit time limits to evidence-based 4h/2h; downstream gate/audit/analysis dependencies remain intact.
