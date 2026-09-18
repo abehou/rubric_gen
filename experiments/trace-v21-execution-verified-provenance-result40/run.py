@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import shutil
 import socket
 import subprocess
 import sys
@@ -62,7 +63,18 @@ def runtime(mode: str) -> dict:
         raise RuntimeError("Results40 runtime owner capacity changed")
     if value.get("audit_provider_concurrency") != {"openai": 60, "anthropic": 60}:
         raise RuntimeError("Results40 Sol/Opus provider partitions changed")
-    return {**value, "stage_workers": 60 if mode == "execute" else 120}
+    return {
+        **value,
+        "stage_workers": revision_shard_workers() * 6 if mode == "execute" else 120,
+        "revision_shard_workers": revision_shard_workers() if mode == "execute" else None,
+    }
+
+
+def revision_shard_workers() -> int:
+    workers = int(os.environ.get("RESULT40_SHARD_WORKERS", "10"))
+    if not 1 <= workers <= 10:
+        raise RuntimeError("RESULT40_SHARD_WORKERS must be between 1 and 10")
+    return workers
 
 
 def owner(mode: str, commit: str, capacity: dict) -> Path:
@@ -142,7 +154,16 @@ def validate_task_match(task: str) -> None:
 
 def execute(path: Path) -> None:
     status_path = RUN / "revision-status.json"
-    state = {"job_id": os.environ["SLURM_JOB_ID"], "started_at": now(), "tasks": {}}
+    if status_path.exists():
+        shutil.copyfile(status_path, path / "previous-revision-status.json")
+    workers = revision_shard_workers()
+    state = {
+        "job_id": os.environ["SLURM_JOB_ID"],
+        "started_at": now(),
+        "shard_workers": workers,
+        "maximum_assignment_workers": workers * 6,
+        "tasks": {},
+    }
     state_lock = threading.Lock()
     write_json_atomic(status_path, state)
     def one(shard: tuple[str, str]) -> dict:
@@ -157,7 +178,7 @@ def execute(path: Path) -> None:
             state["tasks"][f"{task}-{kind}"] = result
             write_json_atomic(status_path, state)
         return result
-    with ThreadPoolExecutor(max_workers=10) as pool:
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(one, shard): shard for shard in SHARDS}
         for future in as_completed(futures):
             result = future.result()

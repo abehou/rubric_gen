@@ -108,6 +108,41 @@ def test_revision_orchestrator_caps_ten_shards_of_six(monkeypatch, tmp_path):
     assert receipt["assignment_count"] == 240
 
 
+def test_revision_recovery_can_reduce_shard_concurrency(monkeypatch, tmp_path):
+    module = _module("trace_result40_recovery_test", "run.py")
+    monkeypatch.setenv("SLURM_JOB_ID", "456")
+    monkeypatch.setenv("RESULT40_SHARD_WORKERS", "4")
+    monkeypatch.setattr(module, "RUN", tmp_path)
+    monkeypatch.setattr(module, "clean_commit", lambda: "source")
+    active = 0
+    peak = 0
+    guard = threading.Lock()
+
+    def fake_stage(task, kind, stage, workers, log):
+        nonlocal active, peak
+        assert stage == "revise" and workers == 6
+        with guard:
+            active += 1
+            peak = max(peak, active)
+        time.sleep(0.01)
+        with guard:
+            active -= 1
+        return {"task_id": task, "shard": kind, "stage": stage, "exit_code": 0}
+
+    monkeypatch.setattr(module, "uv_stage", fake_stage)
+    monkeypatch.setattr(module, "complete_shard", lambda task, kind: [{}] * 6)
+    monkeypatch.setattr(module, "validate_task_match", lambda task: None)
+    monkeypatch.setattr(module, "experiment", lambda task, kind: type("E", (), {"experiment_id": f"{task}-{kind}"})())
+    monkeypatch.setattr(module, "sha", lambda path: "0" * 64)
+    owner = tmp_path / "owner"
+    owner.mkdir()
+    module.execute(owner)
+    assert peak == 4
+    status = json.loads((tmp_path / "revision-status.json").read_text())
+    assert status["shard_workers"] == 4
+    assert status["maximum_assignment_workers"] == 24
+
+
 def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
     monkeypatch.setattr(capacity, "policy", lambda: {
         "version": 1,
