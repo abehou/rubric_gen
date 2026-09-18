@@ -1,0 +1,13 @@
+{
+  "job_id": "10487976",
+  "provider_calls": 0,
+  "status": "completed",
+  "exit_code": "0:0",
+  "tests": [
+    {"scope": "result40 membership, scientific identity, shard concurrency, audit partitions", "passed": 3},
+    {"scope": "execution-verified/proactive/provenance focused candidate regressions", "passed": 24, "deselected_repo_local_data_tests": 5},
+    {"scope": "independent Sol-60 plus Opus-60 audit scheduling", "passed": 1},
+    {"scope": "existing Results20 audit bootstrap", "passed": 2}
+  ],
+  "total_passed": 30
+}

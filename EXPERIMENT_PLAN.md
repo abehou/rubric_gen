@@ -1450,3 +1450,7 @@ Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_re
 ## 2026-09-17 — Approved RTT Results20 validation
 
 - The single authorized Results20 validation of `attack_defense_v2.1_execution_verified_proactive_provenance` is complete: 120/120 Full/User trace assignments and 3,678/3,678 Sol+Opus judgments. Revision retained aggregate provider concurrency 60 and internal fanout four; the single audit owner used independent Sol-60 and Opus-60 partitions (`detect --max-concurrency 120`). The frozen condition was not tuned from Results20 and no further candidate or experiment is authorized by this plan. Final evidence: [Results20 report](docs/reports/2026-09-17/trace-v21-execution-verified-provenance-result20/README.md).
+
+## 2026-09-18 — Approved promoted-RTT Results40 expansion
+
+- 02:27 EDT: Expand the completed Results20 static-versus-promoted comparison with the precommitted first twenty tasks from the Results45 extension order. Execute exactly Full/User × static/`attack_defense_v2.1_execution_verified_proactive_provenance`, three replicates (240 new assignment records), preserve the original20 rows read-only, and report new20 and cumulative40 separately. No method tuning, dropout, final-five extension, or other benchmark is in scope.

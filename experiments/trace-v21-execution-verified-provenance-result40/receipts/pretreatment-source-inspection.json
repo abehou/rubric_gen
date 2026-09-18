@@ -1,0 +1,163 @@
+{
+  "inspected": {
+    "da-1-3": [
+      {
+        "completed": 2,
+        "experiment_id": "biomnibench-da-factorial-r10-81712ed5ed7c",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c/pretreatment-rubrics",
+        "records": 6,
+        "status": "running",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/study/biomnibench-da-factorial-r10-81712ed5ed7c"
+      }
+    ],
+    "da-19-3": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-791d8b9f341e",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/study/biomnibench-da-factorial-r10-791d8b9f341e/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/study/biomnibench-da-factorial-r10-791d8b9f341e"
+      }
+    ],
+    "da-20-4": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-8bfe4828ce05",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/study/biomnibench-da-factorial-r10-8bfe4828ce05/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/study/biomnibench-da-factorial-r10-8bfe4828ce05"
+      }
+    ],
+    "da-26-2": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-028189c5ad90",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/study/biomnibench-da-factorial-r10-028189c5ad90/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/study/biomnibench-da-factorial-r10-028189c5ad90"
+      }
+    ],
+    "da-26-4": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-b5bc0babeafb",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/study/biomnibench-da-factorial-r10-b5bc0babeafb/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/study/biomnibench-da-factorial-r10-b5bc0babeafb"
+      }
+    ],
+    "da-3-5": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-e91de7eaf32d",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/study/biomnibench-da-factorial-r10-e91de7eaf32d/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/study/biomnibench-da-factorial-r10-e91de7eaf32d"
+      }
+    ],
+    "da-4-1": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-4e2b003a3209",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/study/biomnibench-da-factorial-r10-4e2b003a3209/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/study/biomnibench-da-factorial-r10-4e2b003a3209"
+      }
+    ],
+    "da-4-6": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-15c76fde59ca",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/study/biomnibench-da-factorial-r10-15c76fde59ca/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/study/biomnibench-da-factorial-r10-15c76fde59ca"
+      }
+    ],
+    "da-5-1": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-1735c400364d",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/study/biomnibench-da-factorial-r10-1735c400364d/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/study/biomnibench-da-factorial-r10-1735c400364d"
+      }
+    ],
+    "da-8-1": [
+      {
+        "completed": 6,
+        "experiment_id": "biomnibench-da-factorial-r10-d56d430de53a",
+        "pretreatment_exists": true,
+        "pretreatment_pool": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/study/biomnibench-da-factorial-r10-d56d430de53a/pretreatment-rubrics",
+        "records": 6,
+        "status": "completed_scope",
+        "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/study/biomnibench-da-factorial-r10-d56d430de53a"
+      }
+    ]
+  },
+  "job_id": "10487927",
+  "provider_calls": 0,
+  "sources": {
+    "da-19-3": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-19-3.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-791d8b9f341e",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/study/biomnibench-da-factorial-r10-791d8b9f341e"
+    },
+    "da-20-4": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-20-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-8bfe4828ce05",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/study/biomnibench-da-factorial-r10-8bfe4828ce05"
+    },
+    "da-26-2": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-26-2.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-028189c5ad90",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/study/biomnibench-da-factorial-r10-028189c5ad90"
+    },
+    "da-26-4": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-26-4.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-b5bc0babeafb",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/study/biomnibench-da-factorial-r10-b5bc0babeafb"
+    },
+    "da-3-5": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-3-5.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-e91de7eaf32d",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/study/biomnibench-da-factorial-r10-e91de7eaf32d"
+    },
+    "da-4-1": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-4-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-4e2b003a3209",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/study/biomnibench-da-factorial-r10-4e2b003a3209"
+    },
+    "da-4-6": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-4-6.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-15c76fde59ca",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/study/biomnibench-da-factorial-r10-15c76fde59ca"
+    },
+    "da-5-1": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-5-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-1735c400364d",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/study/biomnibench-da-factorial-r10-1735c400364d"
+    },
+    "da-8-1": {
+      "experiment": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-8-1.yaml",
+      "experiment_id": "biomnibench-da-factorial-r10-d56d430de53a",
+      "study_dir": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/study/biomnibench-da-factorial-r10-d56d430de53a"
+    }
+  }
+}

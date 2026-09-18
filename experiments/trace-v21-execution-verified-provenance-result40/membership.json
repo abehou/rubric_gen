@@ -1,0 +1,38 @@
+{
+  "membership_source": [
+    "experiments/biomnibench-v21-to45/queue6/membership.json",
+    "experiments/biomnibench-v21-to45/queue7/scope.json"
+  ],
+  "randomization_seed": 20260820,
+  "replicates": 3,
+  "new20": [
+    "da-8-1",
+    "da-26-4",
+    "da-20-4",
+    "da-19-3",
+    "da-4-1",
+    "da-1-3",
+    "da-3-5",
+    "da-4-6",
+    "da-5-1",
+    "da-26-2",
+    "da-9-7",
+    "da-24-3",
+    "da-6-5",
+    "da-17-3",
+    "da-1-4",
+    "da-8-3",
+    "da-17-5",
+    "da-17-1",
+    "da-9-1",
+    "da-20-1"
+  ],
+  "conditions": [
+    "full-static",
+    "full-red-team-trace-execution-verified-proactive-provenance",
+    "user-simulator-static",
+    "user-simulator-red-team-trace-execution-verified-proactive-provenance"
+  ],
+  "assignments_per_task": 12,
+  "new_assignments": 240
+}

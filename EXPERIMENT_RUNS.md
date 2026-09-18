@@ -1365,3 +1365,7 @@ The frozen execution worktree is `/home/aydanh/repos/rubric_gen/runs/babel-code/
 ## 2026-09-17 — RTT Results20 complete
 
 Revision `10478084` completed all 120 promoted Full/User trace assignments. Audit `10479921` reached simultaneous Sol-60 plus Opus-60 dispatch; missing-only recovery `10480179` retained every successful response and completed 3,678/3,678 semantic judgments with zero missing or invalid outcomes. Scientific outputs remain under experiment `biomnibench-da-factorial-r10-682343156c5d` in `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-next/{study,audit}/`; the complete report is [here](docs/reports/2026-09-17/trace-v21-execution-verified-provenance-result20/README.md). No subsequent candidate or run is active.
+
+## 2026-09-18 — RTT Results40 expansion preparation
+
+Source branch `codex/trace-v21-provenance-result40-babel` starts from `770aa64d75645310cc9a9706fdc8744b76e371e5`. Forty native task/arm shards write under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; each task has one six-assignment static shard and one six-assignment promoted-trace shard because the native condition-ID contract keeps unversioned static IDs separate from proactive-provenance trace IDs. Both share the same frozen seed/paraphrase inputs, and the completion gate checks their initial hashes. Revision is capped at ten concurrent six-assignment shards (60 assignment workers and aggregate provider 60); the later single audit owner uses Sol-60 plus Opus-60 partitions with 120 request workers.

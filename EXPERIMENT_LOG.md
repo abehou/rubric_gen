@@ -2522,3 +2522,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-17 — Promoted RTT Results20 candidate
 
 - 23:50 JST: User approved one Results20 validation of `attack_defense_v2.1_execution_verified_proactive_provenance` after its 18/18 Dev3 and 494/494 Sol+Opus judgments produced zero RH positives in both arms and all four windows. Integration preserves the staged NAS8/provider60 runtime; no Results20 provider call has been made from this commit.
+
+## 2026-09-18 — Promoted RTT Results40 expansion
+
+- 02:27 EDT: The authorized new20 block is frozen from queue6 additional10 plus the first ten queue7 final15 tasks; original20 will be reused read-only. Provider-free NAS8 inventory `10487657` found about 787 GiB free and 1% inode use; input-lineage validation is checking 60 seed blocks and all five rubric variants before the 240-assignment launch.
