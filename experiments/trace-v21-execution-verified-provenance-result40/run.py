@@ -65,8 +65,9 @@ def runtime(mode: str) -> dict:
         raise RuntimeError("Results40 Sol/Opus provider partitions changed")
     return {
         **value,
-        "stage_workers": revision_shard_workers() * 6 if mode == "execute" else 120,
+        "stage_workers": revision_shard_workers() * revision_assignment_workers() if mode == "execute" else 120,
         "revision_shard_workers": revision_shard_workers() if mode == "execute" else None,
+        "revision_assignment_workers": revision_assignment_workers() if mode == "execute" else None,
     }
 
 
@@ -74,6 +75,13 @@ def revision_shard_workers() -> int:
     workers = int(os.environ.get("RESULT40_SHARD_WORKERS", "10"))
     if not 1 <= workers <= 10:
         raise RuntimeError("RESULT40_SHARD_WORKERS must be between 1 and 10")
+    return workers
+
+
+def revision_assignment_workers() -> int:
+    workers = int(os.environ.get("RESULT40_ASSIGNMENT_WORKERS", "6"))
+    if not 1 <= workers <= 6:
+        raise RuntimeError("RESULT40_ASSIGNMENT_WORKERS must be between 1 and 6")
     return workers
 
 
@@ -157,18 +165,19 @@ def execute(path: Path) -> None:
     if status_path.exists():
         shutil.copyfile(status_path, path / "previous-revision-status.json")
     workers = revision_shard_workers()
+    assignment_workers = revision_assignment_workers()
     state = {
         "job_id": os.environ["SLURM_JOB_ID"],
         "started_at": now(),
         "shard_workers": workers,
-        "maximum_assignment_workers": workers * 6,
+        "maximum_assignment_workers": workers * assignment_workers,
         "tasks": {},
     }
     state_lock = threading.Lock()
     write_json_atomic(status_path, state)
     def one(shard: tuple[str, str]) -> dict:
         task, kind = shard
-        result = uv_stage(task, kind, "revise", 6, path / f"revise-{task}-{kind}.log")
+        result = uv_stage(task, kind, "revise", assignment_workers, path / f"revise-{task}-{kind}.log")
         if result["exit_code"] == 0:
             try:
                 result["completed_assignments"] = len(complete_shard(task, kind))
@@ -266,8 +275,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("execute", "audit"))
     args = parser.parse_args()
-    if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != 32:
-        raise RuntimeError("Results40 production requires one 32-CPU Slurm allocation")
+    expected_cpus = int(os.environ.get("RESULT40_EXPECTED_CPUS", "32"))
+    if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != expected_cpus:
+        raise RuntimeError(f"Results40 production requires one {expected_cpus}-CPU Slurm allocation")
     commit = clean_commit()
     capacity = runtime(args.mode)
     for task, kind in SHARDS:

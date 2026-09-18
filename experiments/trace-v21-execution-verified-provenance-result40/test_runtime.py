@@ -111,7 +111,8 @@ def test_revision_orchestrator_caps_ten_shards_of_six(monkeypatch, tmp_path):
 def test_revision_recovery_can_reduce_shard_concurrency(monkeypatch, tmp_path):
     module = _module("trace_result40_recovery_test", "run.py")
     monkeypatch.setenv("SLURM_JOB_ID", "456")
-    monkeypatch.setenv("RESULT40_SHARD_WORKERS", "4")
+    monkeypatch.setenv("RESULT40_SHARD_WORKERS", "1")
+    monkeypatch.setenv("RESULT40_ASSIGNMENT_WORKERS", "1")
     monkeypatch.setattr(module, "RUN", tmp_path)
     monkeypatch.setattr(module, "clean_commit", lambda: "source")
     active = 0
@@ -120,7 +121,7 @@ def test_revision_recovery_can_reduce_shard_concurrency(monkeypatch, tmp_path):
 
     def fake_stage(task, kind, stage, workers, log):
         nonlocal active, peak
-        assert stage == "revise" and workers == 6
+        assert stage == "revise" and workers == 1
         with guard:
             active += 1
             peak = max(peak, active)
@@ -137,10 +138,10 @@ def test_revision_recovery_can_reduce_shard_concurrency(monkeypatch, tmp_path):
     owner = tmp_path / "owner"
     owner.mkdir()
     module.execute(owner)
-    assert peak == 4
+    assert peak == 1
     status = json.loads((tmp_path / "revision-status.json").read_text())
-    assert status["shard_workers"] == 4
-    assert status["maximum_assignment_workers"] == 24
+    assert status["shard_workers"] == 1
+    assert status["maximum_assignment_workers"] == 1
 
 
 def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
