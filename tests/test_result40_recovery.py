@@ -108,3 +108,10 @@ def test_reconcile_refuses_live_tmp_target(tmp_path):
     else:
         raise AssertionError("live temporary owner must be preserved")
     assert (home / "tmp").is_symlink()
+
+
+def test_recovery_only_uses_measured_memory_profile_and_audit_stays_frozen():
+    bundle = MODULE.parent
+    assert "#SBATCH --mem=160G" in (bundle / "recover.sbatch").read_text()
+    assert "#SBATCH --mem=256G" in (bundle / "audit.sbatch").read_text()
+    assert '"memory_mb": int(os.environ["SLURM_MEM_PER_NODE"])' in (bundle / "run.py").read_text()

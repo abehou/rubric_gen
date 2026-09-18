@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=256G
+#SBATCH --mem=160G
 #SBATCH --time=48:00:00
 #SBATCH --no-requeue
 #SBATCH --account=dfried

@@ -91,7 +91,7 @@ def owner(mode: str, commit: str, capacity: dict) -> Path:
         "conditions": list(CONDITIONS),
         "assignment_count": 240,
         "cpus": int(os.environ["SLURM_CPUS_PER_TASK"]),
-        "memory": "256G",
+        "memory_mb": int(os.environ["SLURM_MEM_PER_NODE"]),
         "runtime": capacity,
         "internal_fanout": 4,
         "command": sys.argv,
