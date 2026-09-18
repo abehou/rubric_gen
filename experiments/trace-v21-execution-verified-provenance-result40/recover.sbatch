@@ -13,5 +13,7 @@
 #SBATCH --error=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/logs/recover-%j.err
 source experiments/trace-v21-execution-verified-provenance-result40/common.sbatch
 export RESULT40_SHARD_WORKERS=4
+/home/aydanh/repos/rubric_gen/.venv/bin/python \
+  experiments/trace-v21-execution-verified-provenance-result40/reconcile_recovery.py --apply
 exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
   experiments/trace-v21-execution-verified-provenance-result40/run.py execute
