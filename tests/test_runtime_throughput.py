@@ -111,7 +111,13 @@ def test_audit_provider_partitions_schedule_sixty_each_without_cross_consumption
         'version': 1,
         'aggregate_concurrency': 60,
         'audit_studies': 1,
-        'audit_provider_concurrency': {'openai': 60, 'anthropic': 60},
+        # A shared policy may reserve another provider for a later panel.  The
+        # active Sol/Opus subset must use only its own partitions.
+        'audit_provider_concurrency': {
+            'openai': 60,
+            'anthropic': 60,
+            'google': 60,
+        },
         'coordination_dir': str(tmp_path / 'runtime'),
     })
     release = threading.Event()
