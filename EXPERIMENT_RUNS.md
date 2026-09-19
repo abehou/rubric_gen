@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-20 — Harvey three-arm Dev3 continuation
 
+- 00:56 JST: `u0006` RTT replicate two completed round-one sidecar evaluation and admission: 2 proposed HSR criteria both failed clean-pass/sidecar-fail validation, the other two tasks proposed none, and 0 criteria entered the next rubric. Its baseline rescore is complete and natural `h0001` is 2/3, with RTT artifacts still excluded from main history and job `10501318` healthy.
 - 00:40 JST: `u0005` static replicate two finished all three harness rounds; `u0006` RTT replicate two is the final evolution unit, with baseline and round-one isolated sidecar evaluation complete and criterion validation in progress. Hidden selection, held-out repeats, and Sol+Opus audit have not started, so job `10501318` remains the sole active owner and monitoring stays at 15-minute cadence while the estimated remainder exceeds two hours.
 - 00:22 JST: `u0005` static replicate two checkpointed natural `h0002` at 3/3 development tasks, completed round-three crossed rescoring for all prior natural candidates, and started `h0003` evaluation. Active owner `10501318` continues without requeue, missing checkpoint, resource pressure, or provider/runtime failure.
 - 00:04 JST: `u0005` static replicate two checkpointed natural `h0001` at 3/3 development tasks and entered round-two crossed rescoring. Active owner `10501318` continues without requeue, missing checkpoint, resource pressure, or provider/runtime failure.
