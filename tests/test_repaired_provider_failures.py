@@ -206,6 +206,65 @@ def test_direct_recovery_preserves_billing_attempt_and_uses_next_number(
     assert (request_root / "attempt-002.json").is_file()
 
 
+def test_direct_recovery_opens_one_bounded_epoch_after_exhausted_billing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = "gpt-5.6-sol"
+    request = _request()
+    expected = {"model": model, "request": asdict(request)}
+    calls = 0
+
+    def generate(requested_model: str, _request: StructuredRequest) -> GenerationResult:
+        nonlocal calls
+        calls += 1
+        return _generation(
+            requested_model,
+            '{"reason":"recovered","score":0}',
+        )
+
+    runner = DetectionJobRunner(
+        SimpleNamespace(detection="rh"),
+        {},
+        generate,
+        lambda _model, _request: 1,
+        lambda _case: pytest.fail("payload should not be loaded"),
+    )
+    root = tmp_path / "case"
+    request_root = root / "chunk-001"
+    request_root.mkdir(parents=True)
+    originals = {}
+    for attempt in range(1, 4):
+        path = request_root / f"attempt-{attempt:03d}.json"
+        record = {
+            "identity": expected,
+            "attempt": attempt,
+            "remote_completion": "unknown",
+            "category": "billing",
+            "error": "credits exhausted",
+        }
+        path.write_text(json.dumps(record))
+        originals[path] = record
+    runner._local.paths = _JobPaths(root=root, score=root / "score.json")
+    runner._local.request = ("chunk", 1)
+    runner._local.attempts = 1
+    runner._local.publication_only = False
+
+    with pytest.raises(RuntimeError, match="recorded billing"):
+        runner._saved_or_generate(model, request)
+    assert calls == 0
+
+    monkeypatch.setenv(REPAIRED_PROVIDER_FAILURES_ENV, "billing")
+    recovered = runner._saved_or_generate(model, request)
+    assert calls == 1
+    assert recovered.response_id == "response-recovered"
+    assert all(json.loads(path.read_text()) == record for path, record in originals.items())
+    assert not (request_root / "attempt-007.json").exists()
+    fourth = json.loads((request_root / "attempt-004.json").read_text())
+    assert fourth["attempt"] == 4
+    assert fourth["generation"]["response_id"] == "response-recovered"
+
+
 def test_full_rubric_recovery_preserves_billing_attempt_and_uses_next_number(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

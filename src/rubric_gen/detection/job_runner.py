@@ -353,9 +353,11 @@ class DetectionJobRunner:
         root.mkdir(exist_ok=True)
         expected = {"model": model, "request": asdict(request)}
         last_error = None
+        attempt_offset = self._repaired_attempt_offset(root, expected)
         for attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
             self._local.attempts = max(self._local.attempts, attempt)
-            path = root / f"attempt-{attempt:03d}.json"
+            persisted_attempt = attempt_offset + attempt
+            path = root / f"attempt-{persisted_attempt:03d}.json"
             if path.exists():
                 saved = json.loads(path.read_text())
                 if saved['identity'] != expected:
@@ -378,7 +380,11 @@ class DetectionJobRunner:
                 raise RuntimeError(f'existing direct judgment requires local provenance/publication repair; refusing duplicate generation: {paths.score}')
             # Persist dispatch intent before crossing the external boundary. If
             # interrupted, completion is unknown and resubmission consumes budget.
-            saved = {"identity": expected, "attempt": attempt, "remote_completion": "unknown"}
+            saved = {
+                "identity": expected,
+                "attempt": persisted_attempt,
+                "remote_completion": "unknown",
+            }
             write_json_atomic(path, saved)
             try:
                 generation = self.generate_response(model, request)
@@ -399,6 +405,26 @@ class DetectionJobRunner:
                          category=category, wait_seconds=delay)
                     time.sleep(delay)
         raise RuntimeError(f"direct request exhausted {JUDGE_MAX_ATTEMPTS} attempts: {last_error}") from last_error
+
+    @staticmethod
+    def _repaired_attempt_offset(root: Path, expected: JsonObject) -> int:
+        """Open one fresh bounded epoch after a fully exhausted repaired outage."""
+
+        saved_attempts = []
+        for attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
+            path = root / f"attempt-{attempt:03d}.json"
+            if not path.is_file():
+                return 0
+            saved = json.loads(path.read_text())
+            if saved.get("identity") != expected or saved.get("generation") is not None:
+                return 0
+            saved_attempts.append(saved)
+        if all(
+            retry_repaired_provider_failure(saved.get("category"))
+            for saved in saved_attempts
+        ):
+            return JUDGE_MAX_ATTEMPTS
+        return 0
 
     def _run_once(
         self,
