@@ -23,3 +23,7 @@ Dated reports outside that checkpoint are internal historical development/proven
 - [User public-evidence firewall P1/P2](2026-09-12/trace-user-public-evidence-firewall/README.md): 24/24 fixed checkpoints and 108/108 calls complete; named-answer leakage is absent in the decisive fixture, but false public claims and lost executable corrections block both candidates. No canonical trajectories or outcome audits launched.
 
 - [BioMNIBench v2.1 → Results45 mission](2026-09-12/biomnibench-v21-to45/README.md): queue-1 source/job/reuse inventory, actual45-task data membership, missing30-task definition and scale-up inputs, and prospective collaborator metric interpretation; no new scientific calls.
+
+## 2026-09-19
+
+- [Gemini 3.8 Flash baseline vs latest RTT Result20](2026-09-19/gemini38-baseline-latest-result20/README.md): complete matched Gemini panel, Sol+Opus comparison, equal-weight three-auditor tables, artifact-level values, paired deltas, RH windows, coverage and cost.
