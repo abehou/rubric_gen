@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-20 — Harvey three-arm Dev3 continuation
 
+- 00:22 JST: `u0005` static replicate two checkpointed natural `h0002` at 3/3 development tasks, completed round-three crossed rescoring for all prior natural candidates, and started `h0003` evaluation. Active owner `10501318` continues without requeue, missing checkpoint, resource pressure, or provider/runtime failure.
 - 00:04 JST: `u0005` static replicate two checkpointed natural `h0001` at 3/3 development tasks and entered round-two crossed rescoring. Active owner `10501318` continues without requeue, missing checkpoint, resource pressure, or provider/runtime failure.
 
 ## 2026-09-18 — Harvey static versus RTT Dev3
