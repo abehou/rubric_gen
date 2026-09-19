@@ -270,7 +270,6 @@ def _proposal_schema(max_changes: int) -> dict[str, object]:
                         "deliverables": {
                             "type": "array",
                             "items": {"type": "string", "minLength": 1},
-                            "uniqueItems": True,
                         },
                         "obligation_mode": {
                             "type": "string",

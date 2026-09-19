@@ -565,6 +565,8 @@ def test_rtt_proposer_requires_quality_and_visible_score_gap(tmp_path: Path) -> 
             preferred = "A" if "<output_A>\ncomplete memo" in evidence else "B"
             value = {"preferred": preferred, "reason": "The complete memo is better."}
         else:
+            schema = request.schema  # type: ignore[attr-defined]
+            assert "uniqueItems" not in json.dumps(schema)
             value = {
                 "summary": "Require support for claimed authority review.",
                 "criteria": [
