@@ -12,5 +12,7 @@
 #SBATCH --output=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/logs/report-%j.out
 #SBATCH --error=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/logs/report-%j.err
 source experiments/trace-v21-execution-verified-provenance-result40/common.sbatch
-exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
+/home/aydanh/repos/rubric_gen/.venv/bin/python \
   experiments/trace-v21-execution-verified-provenance-result40/analyze.py
+exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
+  experiments/trace-v21-execution-verified-provenance-result40/render_tables.py
