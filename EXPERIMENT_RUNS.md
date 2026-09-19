@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
+- 22:07 JST on 2026-09-19: Active owner `10501318` passed one healthy hour, so heartbeat monitoring moved to a 15-minute cadence. `u0002` prospective replicate one has completed natural `h0001`, finished `r0002` crossed rescoring for `h0000/h0001`, and entered `h0002` design with valid checkpoints and unchanged execution settings.
 - 21:45 JST on 2026-09-19: `u0002` prospective replicate one has checkpointed its 3/3 stock-baseline evaluation and first prospective rubric, then entered `h0000` crossed rescoring. Owner `10501318` remains healthy with no recent provider/runtime error.
 - 21:38 JST on 2026-09-19: `u0001` RTT replicate one finished three harness rounds with natural candidates `h0000`–`h0003`; selection/held-out stages have not run early. The same owner `10501318` began `u0002`, allocated as original `prospective` replicate one, from the unchanged stock baseline.
 - 21:32 JST on 2026-09-19: `u0001` RTT round three completed its sidecar evaluation and admitted 0/0 proposed criteria because all three blinded task comparisons reported no verified coverage gap. Owner `10501318` then completed 3/3 `r0003` rescoring for `h0000` through `h0002` and entered natural `h0003` design, with the prior rubric preserved.
