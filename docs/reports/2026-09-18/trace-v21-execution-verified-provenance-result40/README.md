@@ -1,6 +1,6 @@
 # Promoted Red Team Trace Results40 expansion
 
-Status: revision recovery in progress. Pilot and main/recovery owners have preserved at least 234/240 valid assignments; formal audit remains gated on 240/240. Missing-only recovery `10499500` is waiting in the Slurm priority queue. The obsolete Sol+Opus-only audit `10499502` is held and will be replaced after the three-auditor runtime tests pass.
+Status: revision recovery in progress. Pilot and main/recovery owners have preserved at least 234/240 valid assignments; formal audit remains gated on 240/240. Missing-only recovery `10499500` and provider-free test `10500604` are waiting in the Slurm priority queue. Replacement three-model audit `10500616` waits `afterok` on both gates; provider-free report `10500618` and cost accounting `10500619` wait on that audit. The obsolete two-model chain `10499502`–`10499504` was canceled before execution.
 
 The source starts from `770aa64d75645310cc9a9706fdc8744b76e371e5`. The scientific method is frozen as `attack_defense_v2.1_execution_verified_proactive_provenance`; only native task-sharded execution and reporting are being added. Original Results20 artifacts and judgments are reused read-only and will be reproduced from the published machine-readable rows before cumulative analysis.
 

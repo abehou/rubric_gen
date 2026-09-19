@@ -1,6 +1,7 @@
 ## 2026-09-19 — Results40 recovery and three-auditor audit
 
 - 04:33 EDT: Results40 retains at least 234/240 validated assignments under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; missing-only owner `10499500` waits for Slurm priority with 8 CPU/64 GiB/4h. The obsolete two-model audit `10499502` is held. Provider-free job `10500513` validates the replacement audit owner: Sol 60 + Opus 60 for the core pass, then Gemini 60, with original20 Gemini judgments added for the cumulative40 three-model panel.
+- 05:09 EDT: Recovery `10499500` now uses a one-hour missing-only window; provider-free test `10500604` is a one-minute backfill request. Audit `10500616` depends `afterok` on both and requests 32 CPU/64 GiB/8h; provider-free report `10500618` and cost job `10500619` depend on the audit. The retired `10499502`–`10499504` two-model chain was canceled without running.
 
 ## RTT completion-pass Dev3 — 2026-09-15 17:33 EDT
 
