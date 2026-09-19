@@ -177,7 +177,11 @@ def main() -> None:
     runtime = policy()
     assert runtime["aggregate_concurrency"] == 60
     assert runtime["audit_studies"] == 1
-    assert runtime["audit_provider_concurrency"] == {"openai": 60, "anthropic": 60}
+    assert runtime["audit_provider_concurrency"] == {
+        "openai": 60,
+        "anthropic": 60,
+        "google": 60,
+    }
     assert INTERNAL_STAGE_FANOUT == 4
     old20_publication = _validate_old20_publication()
     static_shards = tuple((task, "static") for task in TASKS)
@@ -222,7 +226,21 @@ def main() -> None:
         },
         "runtime": runtime,
         "revision": {"assignment_workers": 60, "aggregate_provider_concurrency": 60, "internal_fanout": 4},
-        "audit": {"workers": 120, "openai": 60, "anthropic": 60, "audit_studies": 1},
+        "audit": {
+            "sol_opus_workers": 120,
+            "gemini_workers": 60,
+            "openai": 60,
+            "anthropic": 60,
+            "google": 60,
+            "audit_studies": 1,
+            "panels": {
+                "sol_opus": ["gpt-5.6-sol", "claude-opus-5"],
+                "gemini": ["gemini-3.8-flash"],
+                "sol_opus_gemini": [
+                    "gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash"
+                ],
+            },
+        },
     }
     write_json_atomic(BUNDLE / "receipts/input-validation.json", receipt)
     write_json_atomic(RUN / "input-validation.json", receipt)

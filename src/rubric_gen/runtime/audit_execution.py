@@ -55,11 +55,6 @@ class AuditExecutor:
         self.workers = workers
         self.providers = tuple(dict.fromkeys(provider_for(m) for m in models))
         configured = capacity.policy().get('audit_provider_concurrency') or {}
-        unknown = set(configured) - set(self.providers)
-        if unknown:
-            raise RuntimeError(
-                f"audit provider capacity has no configured model: {sorted(unknown)}"
-            )
         missing = set(self.providers) - set(configured) if configured else set()
         if missing:
             raise RuntimeError(

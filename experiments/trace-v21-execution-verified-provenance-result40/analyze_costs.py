@@ -14,6 +14,11 @@ from rubric_gen.runtime.pricing import PRICING_AS_OF
 from rubric_gen.submission_revision.experiment import load_experiment
 
 from make_configs import BUNDLE, ROOT, RUN, SHARDS, config_path
+from audit_scope import (
+    new20_gemini_scopes,
+    new20_sol_opus_scopes,
+    old20_gemini_scopes,
+)
 
 
 REPORT = ROOT / "docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40"
@@ -113,18 +118,21 @@ def main() -> None:
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("Results40 NAS cost accounting must run through Slurm")
     studies = []
-    audits = []
     roots = []
     for task, kind in SHARDS:
         experiment = load_experiment(config_path(task, kind))
         study = Path(experiment.dag["revise"]["output_dir"])
-        audit = Path(experiment.dag["detect"]["output_dir"])
         ledger = read(study / "study.json")
         studies.append(study)
-        audits.append(audit)
         roots.extend(study / row["experiment_dir"] for row in ledger["records"])
     if len(roots) != 240:
         raise RuntimeError("expected 240 Results40 new-task assignment roots")
+    audit_scopes = (
+        *new20_sol_opus_scopes(),
+        *new20_gemini_scopes(),
+        *old20_gemini_scopes(),
+    )
+    audits = [Path(experiment.dag["detect"]["output_dir"]) for _, experiment in audit_scopes]
     response_rows: list[dict[str, object]] = []
     failures: list[dict[str, object]] = []
     seen: set[str] = set()

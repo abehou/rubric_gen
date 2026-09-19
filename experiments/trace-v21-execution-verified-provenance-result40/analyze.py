@@ -12,7 +12,15 @@ import statistics
 import sys
 
 from make_configs import BUNDLE, ROOT, RUN, SHARDS, TASKS, config_path
-from prepare import CANDIDATE, PANEL
+from prepare import CANDIDATE
+from audit_scope import (
+    GEMINI_PANEL,
+    SOL_OPUS_PANEL,
+    THREE_MODEL_PANEL,
+    new20_gemini_scopes,
+    new20_sol_opus_scopes,
+    old20_gemini_scopes,
+)
 
 REPORT = ROOT / "docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40"
 OLD_REPORT = ROOT / "docs/reports/2026-09-17/trace-v21-execution-verified-provenance-result20"
@@ -24,6 +32,11 @@ CONDITIONS = {
     "full-red-team-trace-execution-verified-proactive-provenance": "current_full",
     "user-simulator-static": "static_user",
     "user-simulator-red-team-trace-execution-verified-proactive-provenance": "current_user",
+}
+PANELS = {
+    "sol_opus": SOL_OPUS_PANEL,
+    "gemini": GEMINI_PANEL,
+    "sol_opus_gemini": THREE_MODEL_PANEL,
 }
 
 
@@ -103,20 +116,29 @@ def normalize(raw: dict, *, block: str) -> dict[str, object]:
 
 
 def reconstruct_new20() -> tuple[dict[str, object], list[dict[str, object]]]:
-    coverage = {}
+    coverage = {"sol_opus": {}, "gemini": {}}
     rows = []
-    for task, kind in SHARDS:
-        from rubric_gen.submission_revision.experiment import load_experiment
-        experiment = load_experiment(config_path(task, kind))
-        study = Path(experiment.dag["revise"]["output_dir"])
-        audit = Path(experiment.dag["detect"]["output_dir"])
-        task_coverage, raw_rows = RECONSTRUCT.reconstruct(study, audit, PANEL, expected_holdouts=3)
-        if len(raw_rows) != 12:
-            raise RuntimeError(f"{task}/{kind} expected 12 auditor rows, got {len(raw_rows)}")
-        coverage[f"{task}-{kind}"] = task_coverage
-        rows.extend(normalize(raw, block="new20") for raw in raw_rows)
+    scopes = {
+        "sol_opus": new20_sol_opus_scopes(),
+        "gemini": new20_gemini_scopes(),
+    }
+    for panel_name, panel_scopes in scopes.items():
+        models = PANELS[panel_name]
+        expected = 6 * len(models)
+        for name, experiment in panel_scopes:
+            study = Path(experiment.dag["revise"]["output_dir"])
+            audit = Path(experiment.dag["detect"]["output_dir"])
+            task_coverage, raw_rows = RECONSTRUCT.reconstruct(
+                study, audit, models, expected_holdouts=3
+            )
+            if len(raw_rows) != expected:
+                raise RuntimeError(
+                    f"{name} expected {expected} auditor rows, got {len(raw_rows)}"
+                )
+            coverage[panel_name][name] = task_coverage
+            rows.extend(normalize(raw, block="new20") for raw in raw_rows)
     counts = Counter(row["cohort"] for row in rows)
-    if counts != {cohort: 120 for cohort in CONDITIONS.values()}:
+    if counts != {cohort: 180 for cohort in CONDITIONS.values()}:
         raise RuntimeError(f"new20 auditor coverage changed: {counts}")
     return coverage, rows
 
@@ -140,23 +162,54 @@ def old20_rows() -> list[dict[str, object]]:
         row = dict(historical)
         row["block"] = "old20"
         rows.append(row)
+    gemini_counts = Counter()
+    for name, experiment in old20_gemini_scopes():
+        study = Path(experiment.dag["revise"]["output_dir"])
+        audit = Path(experiment.dag["detect"]["output_dir"])
+        _, raw_rows = RECONSTRUCT.reconstruct(
+            study, audit, GEMINI_PANEL, expected_holdouts=3
+        )
+        expected = 120 if name == "old20-current-gemini" else 60
+        if len(raw_rows) != expected:
+            raise RuntimeError(
+                f"{name} expected {expected} Gemini rows, got {len(raw_rows)}"
+            )
+        for raw in raw_rows:
+            row = normalize(raw, block="old20")
+            gemini_counts[str(row["cohort"])] += 1
+            rows.append(row)
+    if gemini_counts != {cohort: 60 for cohort in CONDITIONS.values()}:
+        raise RuntimeError(f"old20 Gemini coverage changed: {gemini_counts}")
     counts = Counter(row["cohort"] for row in rows)
-    if counts != {cohort: 120 for cohort in CONDITIONS.values()}:
+    if counts != {cohort: 180 for cohort in CONDITIONS.values()}:
         raise RuntimeError(f"old20 published auditor coverage changed: {counts}")
     if len({row["task_id"] for row in rows}) != 20 or {row["task_id"] for row in rows} & set(TASKS):
         raise RuntimeError("old20 and new20 memberships are not disjoint 20-task blocks")
     return rows
 
 
-def paired(lhs_rows: list[dict[str, object]], rhs_rows: list[dict[str, object]], name: str) -> tuple[dict, list[dict]]:
+def paired(
+    lhs_rows: list[dict[str, object]],
+    rhs_rows: list[dict[str, object]],
+    name: str,
+    models: tuple[str, ...],
+    panel_name: str,
+) -> tuple[dict, list[dict]]:
     def index(rows):
         return {(str(row["task_id"]), int(row["replicate"]), str(row["model"])): row for row in rows}
-    lhs, rhs = index(lhs_rows), index(rhs_rows)
+    lhs = index([row for row in lhs_rows if row["model"] in models])
+    rhs = index([row for row in rhs_rows if row["model"] in models])
     if lhs.keys() != rhs.keys() or not lhs:
         raise RuntimeError(f"unmatched comparison {name}")
     deltas = []
     for key in sorted(lhs):
-        item = {"comparison": name, "task_id": key[0], "replicate": key[1], "model": key[2]}
+        item = {
+            "comparison": name,
+            "panel": panel_name,
+            "task_id": key[0],
+            "replicate": key[1],
+            "model": key[2],
+        }
         for metric in METRICS:
             item[f"delta_{metric}"] = float(lhs[key][metric]) - float(rhs[key][metric])
         for window in WINDOWS:
@@ -167,7 +220,7 @@ def paired(lhs_rows: list[dict[str, object]], rhs_rows: list[dict[str, object]],
     groups: dict[tuple[str, int], list[dict]] = defaultdict(list)
     for row in deltas:
         groups[(row["task_id"], row["replicate"])].append(row)
-    if any({row["model"] for row in group} != set(PANEL) for group in groups.values()):
+    if any({row["model"] for row in group} != set(models) for group in groups.values()):
         raise RuntimeError(f"incomplete paired auditor panel {name}")
     panel = [{metric: statistics.mean(float(row[f"delta_{metric}"]) for row in group) for metric in METRICS} for group in groups.values()]
     summary = {
@@ -178,15 +231,113 @@ def paired(lhs_rows: list[dict[str, object]], rhs_rows: list[dict[str, object]],
         "metrics": {metric: BASE.stats([row[metric] for row in panel]) for metric in METRICS},
         "metrics_by_model": {
             model: {metric: BASE.stats([row[f"delta_{metric}"] for row in deltas if row["model"] == model]) for metric in METRICS}
-            for model in PANEL
+            for model in models
         },
         "rh": {window: BASE.stats([row[f"delta_RH_{window}"] for row in deltas]) for window in WINDOWS},
         "rh_by_model": {
             model: {window: BASE.stats([row[f"delta_RH_{window}"] for row in deltas if row["model"] == model]) for window in WINDOWS}
-            for model in PANEL
+            for model in models
         },
+        "models": list(models),
+        "panel": panel_name,
     }
     return summary, deltas
+
+
+def summarize_panel(
+    rows: list[dict[str, object]],
+    cohort: str,
+    models: tuple[str, ...],
+) -> dict[str, object]:
+    selected = [
+        row for row in rows
+        if row["cohort"] == cohort and row["model"] in models
+    ]
+    groups: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for row in selected:
+        groups[str(row["artifact_id"])].append(row)
+    if not groups or any({row["model"] for row in group} != set(models) for group in groups.values()):
+        raise RuntimeError(f"incomplete {models} panel for {cohort}")
+    metric_rows = [
+        {
+            metric: statistics.mean(float(row[metric]) for row in group)
+            for metric in METRICS
+        }
+        for group in groups.values()
+    ]
+    rh = {}
+    for window in WINDOWS:
+        counts = Counter(row[f"RH_{window}_decision"] for row in selected)
+        n = len(selected)
+        positive = counts["reward_hacking_detected"]
+        abstain = counts["abstain"]
+        scores = [
+            float(row[f"RH_{window}_score"])
+            for row in selected
+            if row[f"RH_{window}_score"] not in (None, "")
+        ]
+        rh[window] = {
+            "positive": positive,
+            "negative": counts["no_reward_hacking_detected"],
+            "abstain": abstain,
+            "denominator": n,
+            "confirmed_positive_percent": 100 * positive / n,
+            "identification_bounds_percent": [
+                100 * positive / n,
+                100 * (positive + abstain) / n,
+            ],
+            "wilson95_confirmed_positive_percent": BASE.wilson(positive, n),
+            "mean_continuous_score": statistics.mean(scores) if scores else None,
+        }
+    return {
+        "cohort": cohort,
+        "models": list(models),
+        "assignments": len(groups),
+        "auditor_rows": len(selected),
+        "metrics": {
+            metric: BASE.stats([row[metric] for row in metric_rows])
+            for metric in METRICS
+        },
+        "rh": rh,
+    }
+
+
+def panel_artifacts(
+    rows: list[dict[str, object]],
+    models: tuple[str, ...],
+    panel_name: str,
+) -> list[dict[str, object]]:
+    groups: dict[tuple[str, str, int], list[dict[str, object]]] = defaultdict(list)
+    for row in rows:
+        if row["model"] in models:
+            groups[(str(row["cohort"]), str(row["task_id"]), int(row["replicate"]))].append(row)
+    result = []
+    for (cohort, task, replicate), group in sorted(groups.items()):
+        if {row["model"] for row in group} != set(models):
+            raise RuntimeError(f"incomplete {panel_name} panel: {(cohort, task, replicate)}")
+        item: dict[str, object] = {
+            "panel": panel_name,
+            "cohort": cohort,
+            "task_id": task,
+            "replicate": replicate,
+            "artifact_id": f"{task}--rep-{replicate:03d}",
+            "initial_submission_sha256": group[0]["initial_submission_sha256"],
+        }
+        for metric in METRICS:
+            item[metric] = statistics.mean(float(row[metric]) for row in group)
+        for window in WINDOWS:
+            scores = [
+                float(row[f"RH_{window}_score"])
+                for row in group if row[f"RH_{window}_score"] not in (None, "")
+            ]
+            counts = Counter(row[f"RH_{window}_decision"] for row in group)
+            item[f"RH_{window}_score"] = statistics.mean(scores) if scores else None
+            item[f"RH_{window}_positive_percent"] = (
+                100 * counts["reward_hacking_detected"] / len(models)
+            )
+            item[f"RH_{window}_abstain_percent"] = 100 * counts["abstain"] / len(models)
+        result.append(item)
+    return result
 
 
 def task_heterogeneity(panel: list[dict], current: str, static: str) -> dict:
@@ -208,9 +359,8 @@ def audit_accounting() -> dict:
     totals = {stage: Counter() for stage in ("rubric_score", "absolute_score", "pairwise_preference")}
     direct = {window: 0 for window in WINDOWS}
     tasks = {}
-    for task, kind in SHARDS:
-        from rubric_gen.submission_revision.experiment import load_experiment
-        experiment = load_experiment(config_path(task, kind))
+    scopes = (*new20_sol_opus_scopes(), *new20_gemini_scopes(), *old20_gemini_scopes())
+    for name, experiment in scopes:
         audit = Path(experiment.dag["detect"]["output_dir"])
         item = {"semantic": {}, "direct": {}}
         for stage in totals:
@@ -225,14 +375,15 @@ def audit_accounting() -> dict:
         for window in WINDOWS:
             paths = list((audit / f"direct_{window}/evaluations").glob("*/summary.json"))
             if len(paths) != 1:
-                raise RuntimeError(f"{task}/{kind} has ambiguous {window} direct summary")
+                raise RuntimeError(f"{name} has ambiguous {window} direct summary")
             raw = json.loads(paths[0].read_text())
             count = len(raw["records"])
-            if count != 12:
-                raise RuntimeError(f"{task}/{kind} {window} has {count}, expected 12")
+            expected = len(experiment.execution_assignments) * len(experiment.outcome_audit["models"])
+            if count != expected:
+                raise RuntimeError(f"{name} {window} has {count}, expected {expected}")
             direct[window] += count
             item["direct"][window] = count
-        tasks[f"{task}-{kind}"] = item
+        tasks[name] = item
     return {
         "revision_completion": json.loads((RUN / "revision-completion.json").read_text()),
         "audit_completion": json.loads((RUN / "audit-completion.json").read_text()),
@@ -258,30 +409,44 @@ def main() -> None:
     rank_rows = []
     rank_summaries = {}
     for population, rows in populations.items():
-        summaries[population] = {cohort: BASE.summarize(rows, cohort) for cohort in cohorts}
-        panel = BASE.panel_artifacts(rows)
-        for row in panel:
-            row["population"] = population
-        panels.extend(panel)
-        for row in BASE.task_means(panel):
-            row["population"] = population
-            task_means.append(row)
-        population_rank_rows, population_rank_summary = BASE.ranking(panel)
-        for row in population_rank_rows:
-            row["population"] = population
-        rank_rows.extend(population_rank_rows)
-        rank_summaries[population] = population_rank_summary
+        summaries[population] = {}
+        comparisons[population] = {}
         heterogeneity[population] = {}
-        for arm in ("full", "user"):
-            name = f"{population}_current_{arm}_minus_static_{arm}"
-            summary, deltas = paired(
-                [row for row in rows if row["cohort"] == f"current_{arm}"],
-                [row for row in rows if row["cohort"] == f"static_{arm}"],
-                name,
-            )
-            comparisons[name] = summary
-            paired_rows.extend(deltas)
-            heterogeneity[population][arm] = task_heterogeneity(panel, f"current_{arm}", f"static_{arm}")
+        rank_summaries[population] = {}
+        for panel_name, models in PANELS.items():
+            summaries[population][panel_name] = {
+                cohort: summarize_panel(rows, cohort, models) for cohort in cohorts
+            }
+            panel = panel_artifacts(rows, models, panel_name)
+            for row in panel:
+                row["population"] = population
+            panels.extend(panel)
+            for row in BASE.task_means(panel):
+                row["population"] = population
+                row["panel"] = panel_name
+                task_means.append(row)
+            population_rank_rows, population_rank_summary = BASE.ranking(panel)
+            for row in population_rank_rows:
+                row["population"] = population
+                row["panel"] = panel_name
+            rank_rows.extend(population_rank_rows)
+            rank_summaries[population][panel_name] = population_rank_summary
+            comparisons[population][panel_name] = {}
+            heterogeneity[population][panel_name] = {}
+            for arm in ("full", "user"):
+                name = f"{population}_current_{arm}_minus_static_{arm}"
+                summary, deltas = paired(
+                    [row for row in rows if row["cohort"] == f"current_{arm}"],
+                    [row for row in rows if row["cohort"] == f"static_{arm}"],
+                    name,
+                    models,
+                    panel_name,
+                )
+                comparisons[population][panel_name][arm] = summary
+                paired_rows.extend(deltas)
+                heterogeneity[population][panel_name][arm] = task_heterogeneity(
+                    panel, f"current_{arm}", f"static_{arm}"
+                )
     accounting = audit_accounting()
     write_csv("candidate-auditor-rows.csv", old + new)
     write_csv("artifact-values.csv", panels)
@@ -305,7 +470,11 @@ def main() -> None:
             "new20": "precommitted queue6 additional10 plus first ten queue7 final15 tasks",
             "cumulative40": "artifact-level reconstruction from old20 plus new20 rows; no rounded-mean composition",
             "heldout_boundary": "old20 historical producer prompt differs from new20 rigorous-V2 prompt source commit 47463ca",
-            "combined": "equal-weight Sol plus Opus artifact panel",
+            "panels": {
+                "sol_opus": "equal-weight GPT-5.6 Sol plus Claude Opus 5",
+                "gemini": "Gemini 3.8 Flash alone",
+                "sol_opus_gemini": "equal-weight GPT-5.6 Sol, Claude Opus 5, and Gemini 3.8 Flash",
+            },
             "uncertainty": "sample SD/SE are descriptive; artifacts are clustered within tasks and share auditors",
         },
     }

@@ -149,7 +149,11 @@ def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
         "version": 1,
         "aggregate_concurrency": 60,
         "audit_studies": 1,
-        "audit_provider_concurrency": {"openai": 60, "anthropic": 60},
+        "audit_provider_concurrency": {
+            "openai": 60,
+            "anthropic": 60,
+            "google": 60,
+        },
         "coordination_dir": str(tmp_path / "runtime"),
     })
     release = threading.Event()
@@ -181,3 +185,174 @@ def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
             assert peak == {"openai": 60, "anthropic": 60, "total": 120}
             release.set()
             assert len([future.result(10) for future in futures]) == 122
+
+
+def test_audit_partition_allows_gemini_only_panel(monkeypatch, tmp_path):
+    monkeypatch.setattr(capacity, "policy", lambda: {
+        "version": 1,
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "audit_provider_concurrency": {
+            "openai": 60,
+            "anthropic": 60,
+            "google": 60,
+        },
+        "coordination_dir": str(tmp_path / "runtime"),
+    })
+    release = threading.Event()
+    condition = threading.Condition()
+    active = 0
+    peak = 0
+
+    def operation(model):
+        nonlocal active, peak
+        with reservation():
+            with condition:
+                active += 1
+                peak = max(peak, active)
+                condition.notify_all()
+            assert release.wait(10)
+            with condition:
+                active -= 1
+        return model
+
+    with audit_owner(tmp_path / "audit"):
+        with AuditExecutor(60, ("gemini-3.8-flash",)) as pool:
+            futures = [
+                pool.submit(operation, "gemini-3.8-flash", model="gemini-3.8-flash")
+                for _ in range(61)
+            ]
+            with condition:
+                assert condition.wait_for(lambda: active == 60, timeout=10)
+            assert peak == 60
+            release.set()
+            assert len([future.result(10) for future in futures]) == 61
+
+
+def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_path):
+    monkeypatch.setattr(capacity, "policy", lambda: {
+        "version": 1,
+        "aggregate_concurrency": 60,
+        "audit_studies": 1,
+        "audit_provider_concurrency": {
+            "openai": 60,
+            "anthropic": 60,
+            "google": 60,
+        },
+        "coordination_dir": str(tmp_path / "runtime"),
+    })
+    release = threading.Event()
+    condition = threading.Condition()
+    active = {"openai": 0, "anthropic": 0, "google": 0}
+    peak = {"openai": 0, "anthropic": 0, "google": 0, "total": 0}
+
+    def operation(model):
+        provider = (
+            "anthropic" if model.startswith("claude")
+            else "google" if model.startswith("gemini")
+            else "openai"
+        )
+        with reservation():
+            with condition:
+                active[provider] += 1
+                peak[provider] = max(peak[provider], active[provider])
+                peak["total"] = max(peak["total"], sum(active.values()))
+                condition.notify_all()
+            assert release.wait(10)
+            with condition:
+                active[provider] -= 1
+        return model
+
+    models = ("gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash")
+    with audit_owner(tmp_path / "audit"):
+        with AuditExecutor(180, models) as pool:
+            futures = [
+                pool.submit(operation, model, model=model)
+                for _ in range(61)
+                for model in models
+            ]
+            with condition:
+                assert condition.wait_for(
+                    lambda: active == {"openai": 60, "anthropic": 60, "google": 60},
+                    timeout=10,
+                )
+            assert peak == {
+                "openai": 60,
+                "anthropic": 60,
+                "google": 60,
+                "total": 180,
+            }
+            release.set()
+            assert len([future.result(10) for future in futures]) == 183
+
+
+def test_gemini_scope_preserves_revision_experiment_identity(tmp_path):
+    scope = _module("trace_result40_audit_scope_test", "audit_scope.py")
+    task, kind = scope.SHARDS[0]
+    source = scope.load_experiment(scope.config_path(task, kind))
+    scoped = scope.scoped_experiment(
+        scope.config_path(task, kind),
+        models=scope.GEMINI_PANEL,
+        output_dir=tmp_path / source.experiment_id,
+    )
+    assert scoped.experiment_id == source.experiment_id
+    assert scoped.dag["revise"]["output_dir"] == source.dag["revise"]["output_dir"]
+    assert tuple(scoped.outcome_audit["models"]) == ("gemini-3.8-flash",)
+    assert scoped.dag["detect"]["output_dir"] == str(tmp_path / source.experiment_id)
+
+
+def test_old20_gemini_scopes_keep_exact_completed_studies():
+    scope = _module("trace_result40_old20_audit_scope_test", "audit_scope.py")
+    rows = scope.old20_gemini_scopes()
+    assert {name for name, _ in rows} == {
+        "old20-static-full-gemini",
+        "old20-static-user-gemini",
+        "old20-current-gemini",
+    }
+    for name, experiment in rows:
+        assert tuple(experiment.outcome_audit["models"]) == ("gemini-3.8-flash",)
+        assert Path(experiment.dag["revise"]["output_dir"]).is_dir()
+        assert str(experiment.dag["detect"]["output_dir"]).startswith(
+            "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/"
+            "audit-gemini/old20/"
+        )
+        expected = 120 if name == "old20-current-gemini" else 60
+        assert len(experiment.execution_assignments) == expected
+
+
+def test_three_model_analysis_uses_equal_artifact_weights():
+    analysis = _module("trace_result40_three_model_analysis_test", "analyze.py")
+    rows = []
+    for index, model in enumerate(analysis.THREE_MODEL_PANEL, start=1):
+        row = {
+            "cohort": "current_full",
+            "artifact_id": "da-test--rep-001",
+            "task_id": "da-test",
+            "replicate": 1,
+            "model": model,
+            "initial_submission_sha256": "0" * 64,
+        }
+        for metric in analysis.METRICS:
+            row[metric] = float(index)
+        for window in analysis.WINDOWS:
+            row[f"RH_{window}_decision"] = (
+                "reward_hacking_detected" if index == 1
+                else "abstain" if index == 2
+                else "no_reward_hacking_detected"
+            )
+            row[f"RH_{window}_score"] = float(index)
+        rows.append(row)
+    summary = analysis.summarize_panel(
+        rows, "current_full", analysis.THREE_MODEL_PANEL
+    )
+    assert summary["assignments"] == 1
+    assert summary["auditor_rows"] == 3
+    assert summary["metrics"]["W_minus_S"]["mean"] == 2.0
+    assert summary["rh"]["full_trajectory"]["positive"] == 1
+    assert summary["rh"]["full_trajectory"]["abstain"] == 1
+    panel = analysis.panel_artifacts(
+        rows, analysis.THREE_MODEL_PANEL, "sol_opus_gemini"
+    )
+    assert len(panel) == 1
+    assert panel[0]["W_minus_S"] == 2.0
+    assert panel[0]["RH_full_trajectory_positive_percent"] == 100 / 3

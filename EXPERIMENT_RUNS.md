@@ -1,3 +1,7 @@
+## 2026-09-19 — Results40 recovery and three-auditor audit
+
+- 04:33 EDT: Results40 retains at least 234/240 validated assignments under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; missing-only owner `10499500` waits for Slurm priority with 8 CPU/64 GiB/4h. The obsolete two-model audit `10499502` is held. Provider-free job `10500513` validates the replacement audit owner: Sol 60 + Opus 60 for the core pass, then Gemini 60, with original20 Gemini judgments added for the cumulative40 three-model panel.
+
 ## RTT completion-pass Dev3 — 2026-09-15 17:33 EDT
 
 Source/config owner is commit `0b29dd6` in `runs/babel-code/rtt-dev3-next-20260915`; execution root is `/home/aydanh/runs/rtt-completion-pass-dev3-20260915/`, experiment `biomnibench-da-factorial-r10-a55245afa8c8`, with the validated clean NAS1 seed/paraphrase pool read-only. Jobs are preflight `10454047` -> revision `10454080` -> provider-free gate `10454082` -> missing-only Sol+Opus audit `10454087` -> provider-free derived tables `10454386`; resume only this namespace and never rerun the matched fixed or completion-parent cells.

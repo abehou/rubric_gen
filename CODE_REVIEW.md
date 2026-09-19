@@ -1,3 +1,7 @@
+## 2026-09-19 — Audit provider subsets
+
+- 04:33 EDT: Resolved a three-provider runtime defect: `AuditExecutor` rejected a valid Sol+Opus or Gemini-only pass whenever the shared policy also reserved capacity for an inactive provider. It now requires limits for every active provider while permitting unused configured partitions; focused tests cover Sol+Opus 60+60, Gemini 60, and the full 60+60+60 scheduler without changing prompts or scoring.
+
 ## 2026-09-12 — PaperBench audit closure
 
 - 12:21 EDT: Resolved static saved-v8 delimiter replay and historical/current plan discovery with strict complete-index validation;686 tests pass on pin8226495 and current core. The private coverage checker now uses existing same_scoring_semantics while retaining exact evidence/provenance checks;23 focused tests and9 pinned-runtime checks pass.
