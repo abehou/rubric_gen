@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
+- 23:31 JST on 2026-09-19: `u0004` prospective replicate two checkpointed natural `h0001` at 3/3 tasks, completed the second rubric's crossed scores for `h0000/h0001`, and started natural `h0002` evaluation. Active owner `10501318` continues without requeue, missing checkpoint, resource pressure, or provider/runtime failure.
 - 23:14 JST on 2026-09-19: `u0003` static replicate one completed natural candidates `h0000`–`h0003` at 3/3 development tasks, so the first replicate of each arm has finished evolution. Active owner `10501318` started `u0004` prospective replicate two, checkpointed its 3/3 baseline and first evolved rubric, and entered crossed rescoring without requeue or provider/runtime failure.
 - 22:57 JST on 2026-09-19: `u0003` static replicate one completed `h0001` and `h0002`, each at 3/3 development tasks, and is processing round-three crossed rescoring before natural `h0003`. Active owner `10501318` has not requeued and shows healthy artifact growth, resource headroom, and no provider/runtime failure.
 - 22:39 JST on 2026-09-19: `u0002` prospective replicate one completed natural candidates `h0000`–`h0003`, each with 3/3 development-task results. Active owner `10501318` has started `u0003` static replicate one, checkpointed its 3/3 stock baseline and first crossed rescore, and remains healthy without requeue or provider/runtime failure.
