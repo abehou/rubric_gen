@@ -18,11 +18,18 @@ attempt each, from clean execution pin
 `red_team_trace` policy. Full and User each contribute nine assignments over
 the three canonical tasks and three replicates.
 
-The intended Sol+Opus audit is not yet complete. Opus is complete and supports
-a strict single-auditor interim extraction. The configured OpenAI organization
-ran out of API credits during Sol evaluation, leaving only a partial Sol panel.
-No partial-panel mean is reported and RTT Results20 remains held until the Sol
-gap is completed and the native two-auditor coverage gate passes.
+The intended Sol+Opus audit is now complete. After the OpenAI credit issue was
+repaired, a missing-only resume retained the old billing failures, reused every
+completed Opus and Sol judgment, and dispatched only the missing Sol work. The
+strict native coverage checker verifies 18 assignments and 520/520 semantic
+judgments across both auditors, with no missing model or judge failure.
+
+The Dev3 result does not support automatic promotion to Results20. Against the
+matched static baseline, both auditors report lower RTT W, S, and H means in
+both Full and User. The static Results20 baseline remains reusable; if a full
+sample is still needed as a paper result, only the latest RTT arm needs to run,
+and Babel remains the appropriate host. That larger spend should be an explicit
+decision rather than an automatic consequence of this Dev3 gate.
 
 ## Baseline integrity recheck
 
@@ -89,10 +96,15 @@ Results20 host.
 - Trace-defense request history in the smoke retained successful transient
   retries and four fail-closed contract-exhausted locator repairs; these are
   bounded request failures, not missing or corrupted revision artifacts.
-- Audit before the credit stop saved 772 successful provider responses. The
-  usage-based estimate is approximately USD 355 (not a provider invoice):
-  USD 242.48 Opus and USD 112.53 Sol. Opus rubric scoring alone consumed about
-  10.3M input and 494k output tokens.
+- At the credit-stop checkpoint, 772 successful provider responses had been
+  saved and the usage-based cost estimate was approximately USD 355 (not a
+  provider invoice). The missing-only recovery added Sol work only; a final
+  provider-invoice reconciliation was not attempted.
+- macOS DiagnosticReports separately show short-lived system-Python processes
+  crashing in global NumPy 1.26.4/OpenBLAS. The successful audit owner used the
+  repository environment and exited zero, and the final artifact gate passed;
+  future local helpers should use `.venv/bin/python`/`sys.executable` with BLAS
+  thread counts limited to one rather than bare system Python.
 
 The machine was not compute-bound; provider latency, token volume, and billing
 are the practical limits. A 120-assignment Results20 run would be much longer
@@ -100,67 +112,67 @@ than the six-hour Dev3 revision run and substantially more expensive to audit,
 so its primary execution should remain on Babel. Mac is useful for Dev3,
 smokes, exact resume checks, and provider-free report reconstruction.
 
-## Audit state
+## Completed audit coverage
 
-Opus has complete evidence for the candidate:
+The read-only completion gate binds every summary entry to its saved evidence
+and verifies both `gpt-5.6-sol` and `claude-opus-5`:
 
-| Stage | Complete Opus evidence |
+| Stage | Complete semantic judgments |
 | --- | ---: |
-| Rubric score | 143 semantic records / 188 assignment references |
-| Absolute score | 36 assignment references |
-| Pairwise preference | 18 semantic records |
-| Direct windows | 18 assignments in each of four windows |
+| Rubric score | 286/286 |
+| Absolute score | 54/54 |
+| Pairwise preference | 36/36 |
+| Direct full trajectory | 36/36 |
+| Direct post update | 36/36 |
+| Direct final artifact | 36/36 |
+| Direct final revision | 36/36 |
+| **Total** | **520/520** |
 
-The strict read-only extractor rejects Sol rather than emitting partial output.
-The preserved Sol gap is:
+Each auditor has 143 rubric semantic records represented by 188 assignment
+references, 27 absolute semantic records, 18 pairwise records, and 18 records
+in each direct window. The recovery preserved the original
+`credit_balance_exhausted` attempts and recognized six older direct requests
+whose immutable provider error code was billing even though the historical
+category field said `transient_provider`. No historical attempt was overwritten
+and no new Opus request was made.
 
-- rubric score: 19/143 semantic records complete, 124 missing;
-- absolute score: 18/27 semantic records complete, 9 missing;
-- direct full trajectory: 14/18 assignments complete, 4 missing;
-- direct post update: 17/18 complete, 1 missing;
-- direct final artifact: 18/18 complete;
-- direct final revision: 17/18 complete, 1 missing;
-- pairwise preference: 18/18 complete.
+## Candidate and matched-baseline results
 
-Every one of the 124 missing rubric jobs has one preserved failed attempt with
-the same provider response: `credit_balance_exhausted` / “You have no credits
-remaining.” The missing direct attempts show the same HTTP 429 quota error.
-The earlier Opus strict line-count failures were recovered through native saved
-response replay; Opus now has all 143 rubric records.
+Strict single-auditor candidate means are:
 
-The complete Opus-only candidate means are interim diagnostics, not the intended
-panel result:
+| Auditor | Arm | W | S | H | A | S-H | Final-artifact RH |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Opus | Full RTT | 84.115 | 66.122 | 70.722 | 34.889 | -4.600 | 0/9 |
+| Opus | User RTT | 73.793 | 65.979 | 63.301 | 41.111 | +2.678 | 0/9 |
+| Sol | Full RTT | 84.115 | 61.574 | 60.058 | 44.222 | +1.516 | 0/9 |
+| Sol | User RTT | 73.793 | 56.423 | 56.665 | 46.222 | -0.243 | 0/9 |
 
-| Arm | W | S | H | A | S-H | Final-artifact RH |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Full RTT | 84.115 | 66.122 | 70.722 | 34.889 | -4.600 | 0/9 |
-| User RTT | 73.793 | 65.979 | 63.301 | 41.111 | +2.678 | 0/9 |
-
-The native two-model comparison remains pending legitimate OpenAI API-credit
-restoration. Do not replace Sol, impute it from the 19 completed rubric jobs,
-or rerun Opus.
-
-## Provider-free matched Opus comparison
-
-Babel job `10496503` completed the strict static-baseline extraction without a
-provider call. The read-only adapter matched all 18 cells by task, arm,
-replicate, model, and exact initial-submission identity. The resulting
+Babel jobs `10496503` (Opus) and `10498912` (Sol) extracted the static Dev3
+baseline without provider calls. The adapter matched all 18 cells per auditor
+by task, arm, replicate, model, and exact initial-submission identity. The
 RTT-minus-static means are:
 
-| Arm | ΔW | ΔS | ΔH | ΔA | Δ(S-H) |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Full RTT | -2.791 | -10.075 | -2.594 | +2.889 | -7.481 |
-| User RTT | -9.051 | -6.169 | -6.999 | -2.000 | +0.830 |
+| Auditor | Arm | ΔW | ΔS | ΔH | ΔA | Δ(S-H) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Opus | Full RTT | -2.791 | -10.075 | -2.594 | +2.889 | -7.481 |
+| Opus | User RTT | -9.051 | -6.169 | -6.999 | -2.000 | +0.830 |
+| Sol | Full RTT | -2.791 | -6.867 | -5.945 | +1.333 | -0.921 |
+| Sol | User RTT | -9.051 | -5.438 | -2.213 | -4.000 | -3.224 |
+| Two-auditor mean | Full RTT | -2.791 | -8.471 | -4.270 | +2.111 | -4.201 |
+| Two-auditor mean | User RTT | -9.051 | -5.803 | -4.606 | -3.000 | -1.197 |
 
-Under Opus alone, neither RTT arm improves the main W/S/H means over its
-matched static baseline. Direct full-trajectory RH labels move from 3/9 to 1/9
-for Full and 2/9 to 0/9 for User; final-artifact labels contain no RH positive
-in either candidate arm. With only nine matched cells per arm and no complete
-Sol panel, these values are diagnostic rather than a promotion decision.
+The direct detector is mixed rather than a counter-signal strong enough to
+offset the score decline. Across the 18 auditor-assignment votes per arm,
+full-trajectory RH positives move from 5 to 4 for Full and 5 to 2 for User;
+post-update positives move from 6 to 3 and 4 to 1. Final-artifact positives are
+0 in both baseline and RTT, while Full final-revision positives worsen from 3
+to 5 (User remains 0). With nine matched assignments per arm, Dev3 is a gate
+and diagnostic, not a definitive full-sample estimate, but both auditors agree
+on the direction of the main W/S/H deltas.
 
-The retained report artifacts are
-`runs/paperbench-rtt-provenance-local-mac/dev3/reports/opus-baseline.json` and
-`runs/paperbench-rtt-provenance-local-mac/dev3/reports/opus-comparison.json`.
+The retained report artifacts are the `opus-*` and `sol-*` baseline, candidate,
+and comparison JSON files under
+`runs/paperbench-rtt-provenance-local-mac/dev3/reports/`.
 
 ## Source and input identity
 
@@ -169,6 +181,8 @@ The retained report artifacts are
 - Revision execution pin: `d68ec3e8729c564ef78de99829fd7931e005de94`.
 - Read-only Dev3 analysis pin:
   `d7759eb49fbbe4aa995ff2274b4dc297846534ec`.
+- Audit recovery implementation:
+  `527246f`, `1f173ee`, `22e1eb1`, and `8f15c82` on the existing branch.
 - Experiment: `paperbench-code-dev-factorial-r10-4b8d47a6c574`.
 - Candidate study:
   `runs/paperbench-rtt-provenance-local-mac/dev3/study/paperbench-code-dev-factorial-r10-4b8d47a6c574`.

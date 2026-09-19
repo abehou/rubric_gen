@@ -1,5 +1,7 @@
 ## 2026-09-19 — Repaired provider failure resume
 
+- 14:15 JST: Fixed the Dev3 adapter's native-summary metadata to distinguish 188 per-model assignment references from 143 unique semantic rubric records; strict extraction and both 18-cell comparisons pass, with no score or judgment mutation.
+- 14:15 JST: macOS DiagnosticReports attribute the repeated helper crashes to bare system Python 3.12.4 loading global NumPy 1.26.4/OpenBLAS, not the repository venv; the completed audit passes strict evidence coverage, but future local subprocess owners should use `.venv/bin/python`/`sys.executable` and one BLAS thread.
 - 14:05 JST: Resolved the audit recovery gap where preserved authentication/billing attempts permanently blocked `--resume` after external repair; an explicit category-scoped opt-in retains old attempts, spends remaining attempts, and permits one new bounded three-attempt epoch when the original direct-request budget consists entirely of the repaired outage. Recovery also reads immutable provider codes to recognize historical `credit_balance_exhausted` records mislabeled `transient_provider`; the original-source-root bridge preserves direct-run provenance, and all 102 focused/regression tests pass.
 
 ## 2026-09-12 — PaperBench audit closure

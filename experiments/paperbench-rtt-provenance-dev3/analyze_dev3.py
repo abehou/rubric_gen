@@ -92,13 +92,17 @@ def _rubric_assignments(
                         raise RuntimeError(
                             f"rubric summary does not contain complete {model} scores"
                         )
+            model_records = [
+                record
+                for record in summary["records"]
+                if record["model"] == model
+            ]
             return assignments, {
                 "source": "native-complete-summary",
-                "semantic_records": sum(
-                    1
-                    for record in summary["records"]
-                    if record["model"] == model
-                ),
+                "assignment_references": len(model_records),
+                "semantic_records": len({
+                    record["judgment_key"] for record in model_records
+                }),
             }
 
     ledger = read(study / "study.json")
