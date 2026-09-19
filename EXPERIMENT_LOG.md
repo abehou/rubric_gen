@@ -1,3 +1,7 @@
+## 2026-09-20 — Harvey RTT Dev3 continuation
+
+- 00:04 JST: `u0005` static replicate two completed natural `h0001` at 3/3 development tasks and entered round-two crossed rescoring before `h0002` design. Owner `10501318` remains healthy at 3h00m with a 507 MiB growing result root, about 4.4 GiB peak RSS, 452 GiB NFS and 934 GiB node memory available, and no recent provider/runtime failure or requeue.
+
 ## 2026-09-19 — Harvey RTT Dev3 readiness
 
 - 23:47 JST: `u0004` prospective replicate two completed all three harness rounds with `h0000`–`h0003` at 3/3 development tasks, so four of six units have finished evolution. Owner `10501318` advanced immediately to `u0005` static replicate two and began its baseline evaluation; peak RSS remains about 4.4 GiB, the result root is 464 MiB, and no terminal provider/runtime/resource failure or requeue is present.

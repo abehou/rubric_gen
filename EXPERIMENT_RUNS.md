@@ -12,6 +12,10 @@ The identical provider-free preflight passed from the lightweight login controll
 
 - 12:23 EDT: Native static replay10415061 completed on pin8226495 with900/900 Sol and900/900 Opus, zero providers; the exact existing study/audit overlay is unchanged. Dependent provider-free finalizer10415098 writes the final compact static reports; receipts and scripts are at `runs/paperbench-nontrace-audit-closure-20260912/`, with remaining cohort ownership in [Queue6 status](docs/reports/2026-09-12/paperbench-nontrace-results20/README.md).
 
+## 2026-09-20 — Harvey three-arm Dev3 continuation
+
+- 00:04 JST: `u0005` static replicate two checkpointed natural `h0001` at 3/3 development tasks and entered round-two crossed rescoring. Active owner `10501318` continues without requeue, missing checkpoint, resource pressure, or provider/runtime failure.
+
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
 - 23:47 JST on 2026-09-19: `u0004` prospective replicate two completed natural candidates `h0000`–`h0003`, all 3/3 on development tasks. Active owner `10501318` has started `u0005` static replicate two from its baseline, leaving static replicate two and RTT replicate two as the remaining evolution units; the owner remains healthy and unrequeued.
