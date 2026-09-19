@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 BUNDLE="$ROOT/experiments/trace-v21-execution-verified-provenance-result40"
 RUN=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918
 export PYTHONPATH="$ROOT/src"

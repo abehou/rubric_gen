@@ -113,6 +113,7 @@ def test_reconcile_refuses_live_tmp_target(tmp_path):
 def test_recovery_only_uses_backfill_profile_and_audit_stays_frozen():
     bundle = MODULE.parent
     recovery = (bundle / "recover.sbatch").read_text()
+    common = (bundle / "common.sbatch").read_text()
     assert "#SBATCH --cpus-per-task=8" in recovery
     assert "#SBATCH --mem=64G" in recovery
     assert "#SBATCH --time=04:00:00" in recovery
@@ -120,3 +121,5 @@ def test_recovery_only_uses_backfill_profile_and_audit_stays_frozen():
     assert "RESULT40_ASSIGNMENT_WORKERS=1" in recovery
     assert "#SBATCH --mem=256G" in (bundle / "audit.sbatch").read_text()
     assert '"memory_mb": int(os.environ["SLURM_MEM_PER_NODE"])' in (bundle / "run.py").read_text()
+    assert 'dirname "${BASH_SOURCE[0]}"' in common
+    assert "/trace-result40-20260918" not in common
