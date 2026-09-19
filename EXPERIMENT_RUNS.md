@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
+- 21:38 JST on 2026-09-19: `u0001` RTT replicate one finished three harness rounds with natural candidates `h0000`–`h0003`; selection/held-out stages have not run early. The same owner `10501318` began `u0002`, allocated as original `prospective` replicate one, from the unchanged stock baseline.
 - 21:32 JST on 2026-09-19: `u0001` RTT round three completed its sidecar evaluation and admitted 0/0 proposed criteria because all three blinded task comparisons reported no verified coverage gap. Owner `10501318` then completed 3/3 `r0003` rescoring for `h0000` through `h0002` and entered natural `h0003` design, with the prior rubric preserved.
 - 21:25 JST on 2026-09-19: Active owner `10501318` finished `u0001` natural `h0002` at 3/3 tasks and entered round-three sidecar evaluation. Its first design response needed the existing output-layout correction loop, the second attempt passed validation, and the aggregate sidecar design status is successful; valid prior checkpoints were preserved.
 - 21:18 JST on 2026-09-19: Active owner `10501318` has checkpointed `u0001` RTT round-two crossed scores for `h0000/h0001`, accepted natural `h0002`, and entered its 3-task canonical evaluation. Resource headroom and artifact growth are healthy, and the separate RTT sidecar tree has not entered natural candidate history.
