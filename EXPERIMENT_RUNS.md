@@ -1379,3 +1379,11 @@ Recovery `10491802` completed 233/240 assignments and retained seven failures wi
 The first exact recovery submission `10495061` remained pending at 256 GiB because the only idle CPU nodes exposed 187.5 GiB and was held before execution. The replacement recovery requests 160 GiB after the same four-shard profile measured approximately 50 GiB peak RSS; launch receipts now record Slurm's actual `SLURM_MEM_PER_NODE`, while the formal audit launcher remains at its frozen 256-GiB request.
 
 The 160-GiB chain `10495117/10495209/10495225/10495226` also made no call and was canceled after Slurm reserved every tested multi-hour preempt request until September 21. Recovery now uses a four-hour backfill owner with one shard, one assignment worker, 4 CPUs and 32 GiB; it retains the same aggregate provider policy and scientific configs, and any wall-time interruption is resumed missing-only. Audit remains 32 CPUs/256 GiB with Sol-60 plus Opus-60.
+
+## 2026-09-19 — RTT Results40 bounded recovery
+
+Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
+
+## 2026-09-19 — RTT Results40 bounded recovery
+
+Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
