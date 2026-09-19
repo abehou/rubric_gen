@@ -1,6 +1,6 @@
 ## 2026-09-19 — Repaired provider failure resume
 
-- 13:56 JST: Resolved the audit recovery gap where preserved authentication/billing attempts permanently blocked `--resume` after external repair; an explicit category-scoped opt-in retains old attempts, spends remaining attempts, and permits one new bounded three-attempt epoch when the original direct-request budget consists entirely of the repaired outage. A verified original-source-root bridge preserves direct-run provenance across the execution-only change; focused direct recovery/detection tests pass.
+- 14:05 JST: Resolved the audit recovery gap where preserved authentication/billing attempts permanently blocked `--resume` after external repair; an explicit category-scoped opt-in retains old attempts, spends remaining attempts, and permits one new bounded three-attempt epoch when the original direct-request budget consists entirely of the repaired outage. Recovery also reads immutable provider codes to recognize historical `credit_balance_exhausted` records mislabeled `transient_provider`; the original-source-root bridge preserves direct-run provenance, and all 102 focused/regression tests pass.
 
 ## 2026-09-12 — PaperBench audit closure
 

@@ -6,6 +6,12 @@ import os
 
 REPAIRED_PROVIDER_FAILURES_ENV = "RUBRIC_GEN_REPAIRED_PROVIDER_FAILURES"
 _REPAIRABLE_PROVIDER_FAILURES = frozenset({"authentication", "billing"})
+_PERSISTED_BILLING_MARKERS = (
+    "billing_hard_limit_reached",
+    "credit_balance_exhausted",
+    "credit_balance_too_low",
+    "insufficient_quota",
+)
 
 
 def retry_repaired_provider_failure(category: object) -> bool:
@@ -28,6 +34,24 @@ def retry_repaired_provider_failure(category: object) -> bool:
             f"subset of: {allowed}"
         )
     return category in requested
+
+
+def persisted_provider_failure_category(record: object) -> object:
+    """Recover an exact provider category from an older saved error payload.
+
+    Some historical OpenAI 429 records were labeled ``transient_provider``
+    even though their immutable error text retained the billing error code.
+    This read-only normalization is used only by the explicit repair resume.
+    """
+
+    if not isinstance(record, dict):
+        return None
+    error = record.get("error")
+    if isinstance(error, str):
+        normalized = error.lower()
+        if any(marker in normalized for marker in _PERSISTED_BILLING_MARKERS):
+            return "billing"
+    return record.get("category", record.get("failure_category"))
 
 
 def failure_category(error: BaseException) -> str:

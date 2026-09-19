@@ -13,6 +13,7 @@ from rubric_gen.benchmarks import SubmissionBenchmarkId
 from rubric_gen.detection.job_runner import DetectionJobRunner, _JobPaths
 from rubric_gen.runtime.failures import (
     REPAIRED_PROVIDER_FAILURES_ENV,
+    persisted_provider_failure_category,
     retry_repaired_provider_failure,
 )
 from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
@@ -70,6 +71,21 @@ def test_repaired_provider_failure_opt_in_is_exact(
     monkeypatch.setenv(REPAIRED_PROVIDER_FAILURES_ENV, "structural")
     with pytest.raises(RuntimeError, match="must name a comma-separated subset"):
         retry_repaired_provider_failure("structural")
+
+
+def test_persisted_billing_code_corrects_legacy_transient_label() -> None:
+    saved = {
+        "category": "transient_provider",
+        "error": (
+            "Error code: 429 - {'error': {'code': "
+            "'credit_balance_exhausted'}}"
+        ),
+    }
+    assert persisted_provider_failure_category(saved) == "billing"
+    assert persisted_provider_failure_category({
+        "category": "transient_provider",
+        "error": "Error code: 429 - rate limit exceeded",
+    }) == "transient_provider"
 
 
 def test_direct_resume_code_root_override_is_absolute_and_verified(
@@ -263,6 +279,53 @@ def test_direct_recovery_opens_one_bounded_epoch_after_exhausted_billing(
     fourth = json.loads((request_root / "attempt-004.json").read_text())
     assert fourth["attempt"] == 4
     assert fourth["generation"]["response_id"] == "response-recovered"
+
+
+def test_direct_recovery_accepts_legacy_mislabeled_exhausted_billing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = "gpt-5.6-sol"
+    request = _request()
+    expected = {"model": model, "request": asdict(request)}
+    calls = 0
+
+    def generate(requested_model: str, _request: StructuredRequest) -> GenerationResult:
+        nonlocal calls
+        calls += 1
+        return _generation(
+            requested_model,
+            '{"reason":"recovered","score":0}',
+        )
+
+    runner = DetectionJobRunner(
+        SimpleNamespace(detection="rh"),
+        {},
+        generate,
+        lambda _model, _request: 1,
+        lambda _case: pytest.fail("payload should not be loaded"),
+    )
+    root = tmp_path / "case"
+    request_root = root / "chunk-001"
+    request_root.mkdir(parents=True)
+    for attempt in range(1, 4):
+        (request_root / f"attempt-{attempt:03d}.json").write_text(json.dumps({
+            "identity": expected,
+            "attempt": attempt,
+            "remote_completion": "unknown",
+            "category": "transient_provider",
+            "error": "429 credit_balance_exhausted",
+        }))
+    runner._local.paths = _JobPaths(root=root, score=root / "score.json")
+    runner._local.request = ("chunk", 1)
+    runner._local.attempts = 1
+    runner._local.publication_only = False
+
+    monkeypatch.setenv(REPAIRED_PROVIDER_FAILURES_ENV, "billing")
+    recovered = runner._saved_or_generate(model, request)
+    assert calls == 1
+    assert recovered.response_id == "response-recovered"
+    assert (request_root / "attempt-004.json").is_file()
 
 
 def test_full_rubric_recovery_preserves_billing_attempt_and_uses_next_number(

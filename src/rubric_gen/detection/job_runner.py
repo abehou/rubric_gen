@@ -9,6 +9,7 @@ import time
 from dataclasses import asdict
 from rubric_gen.runtime.failures import (
     failure_category,
+    persisted_provider_failure_category,
     retry_after,
     retry_repaired_provider_failure,
 )
@@ -370,9 +371,10 @@ class DetectionJobRunner:
                         last_error = exc
                         continue
                     return generation
-                last_error = RuntimeError(f"recorded {saved.get('category', 'unknown remote completion')}: {path}")
-                if saved.get('category') in {'authentication', 'billing', 'configuration', 'structural'}:
-                    if retry_repaired_provider_failure(saved.get('category')):
+                saved_category = persisted_provider_failure_category(saved)
+                last_error = RuntimeError(f"recorded {saved_category or 'unknown remote completion'}: {path}")
+                if saved_category in {'authentication', 'billing', 'configuration', 'structural'}:
+                    if retry_repaired_provider_failure(saved_category):
                         continue
                     raise last_error
                 continue
@@ -420,7 +422,9 @@ class DetectionJobRunner:
                 return 0
             saved_attempts.append(saved)
         if all(
-            retry_repaired_provider_failure(saved.get("category"))
+            retry_repaired_provider_failure(
+                persisted_provider_failure_category(saved)
+            )
             for saved in saved_attempts
         ):
             return JUDGE_MAX_ATTEMPTS
