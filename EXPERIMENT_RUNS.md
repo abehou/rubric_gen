@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
+- 20:27 JST on 2026-09-19: Formal `10501087` is running on `babel-v9-16` from the frozen identity, with `u0001` baseline 3/3 development tasks checkpointed and RTT round one in sidecar evaluation. The active owner uses concurrency 3 and `/home/aydanh/runs/harvey-three-arm-20260919/full-10501087.out`; formal output has begun growing under the declared NFS root.
 - 20:19 JST on 2026-09-19: Formal `10500929` made no provider call and failed in two seconds because an empty first-run root was invoked with `--resume`; the exact empty root is retained and contains no scientific artifact. Corrected owner `10501087` starts fresh only before `experiment.json` exists and uses native resume thereafter, with all scientific settings and paths unchanged; current log is `/home/aydanh/runs/harvey-three-arm-20260919/full-10501087.out`.
 - 20:16 JST on 2026-09-19: Smoke `10500928` completed 0:0 with `status=completed`, all selection/held-out checkpoints, and complete Sol+Opus coverage; its historical failed attempts remain preserved but are excluded from the successful summary. Formal owner `10500929` cleared the afterok gate and is pending only for `fnsw` resources.
 - 19:59 JST on 2026-09-19: Smoke `10500928` completed one-round evolution with one RTT sidecar and main candidates `h0000/h0001`, and is running the development audit with no recent provider/runtime errors; formal `10500929` remains afterok-gated.
