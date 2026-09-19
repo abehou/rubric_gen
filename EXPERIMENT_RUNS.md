@@ -14,6 +14,7 @@ The identical provider-free preflight passed from the lightweight login controll
 
 ## 2026-09-18 — Harvey static versus RTT Dev3
 
+- 20:16 JST on 2026-09-19: Smoke `10500928` completed 0:0 with `status=completed`, all selection/held-out checkpoints, and complete Sol+Opus coverage; its historical failed attempts remain preserved but are excluded from the successful summary. Formal owner `10500929` cleared the afterok gate and is pending only for `fnsw` resources.
 - 19:59 JST on 2026-09-19: Smoke `10500928` completed one-round evolution with one RTT sidecar and main candidates `h0000/h0001`, and is running the development audit with no recent provider/runtime errors; formal `10500929` remains afterok-gated.
 - 19:49 JST on 2026-09-19: Smoke `10500928` is running on `babel-v9-16`; it reused `h0000`, completed a valid RTT sidecar design with functioning sandbox commands, and entered sidecar evaluation. Formal owner `10500929` remains afterok-gated and has made no provider call.
 - 19:44 JST on 2026-09-19: `10500834` saved the real smoke baseline before failing on revoked copied ChatGPT auth, and `10500919` verified API-key auth before exposing the Babel guard's hidden native sandbox helper; both failures are retained as runtime evidence. The corrected native-resume chain is smoke `10500928` -> formal `10500929` on `fnsw/fnsw_qos`, using unchanged source/config/output identities and logs `/home/aydanh/runs/harvey-three-arm-20260919/{smoke-10500928,full-10500929}.out`.
