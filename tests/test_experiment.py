@@ -238,6 +238,40 @@ def test_operational_path_map_relocates_storage_without_changing_identity(
     assert Path(two.dag["revise"]["output_dir"]).is_relative_to(second / "outputs")
 
 
+def test_operational_path_map_applies_after_resolving_relative_yaml_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    destination = tmp_path / "destination"
+    _task(destination, "da-1-1")
+    config_dir = tmp_path / "configs"
+    config_dir.mkdir()
+    payload = _payload(tmp_path)
+    payload["tasks"] = ["da-1-1"]
+    payload["tasks_dir"] = "../canonical/tasks"
+    for name, stage in payload["dag"].items():
+        suffix = "{experiment_id}" if name in {"revise", "detect"} else "shared"
+        stage["output_dir"] = f"../canonical/outputs/{name}/{suffix}"
+    path = config_dir / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+    source = (config_dir / "../canonical").resolve()
+    mapping = tmp_path / "relative-map.json"
+    mapping.write_text(json.dumps({
+        "version": 1,
+        "mappings": [
+            {"source": str(source / "tasks"), "destination": str(destination / "tasks")},
+            {"source": str(source / "outputs"), "destination": str(destination / "outputs")},
+        ],
+    }))
+    monkeypatch.setenv("RUBRIC_GEN_PATH_MAP_FILE", str(mapping))
+
+    experiment = load_experiment(path)
+
+    assert experiment.tasks_dir == destination / "tasks"
+    assert Path(experiment.dag["revise"]["output_dir"]).is_relative_to(
+        destination / "outputs"
+    )
+
+
 def test_operational_path_map_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config = tmp_path / "map.json"
     config.write_text(json.dumps({

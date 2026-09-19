@@ -811,14 +811,16 @@ def _resolve_relative(experiment_path: Path, value: object) -> Path:
         raise ValueError("experiment paths must be non-empty strings")
     path = Path(value).expanduser()
     if not path.is_absolute():
-        return (experiment_path.parent / path).resolve()
+        path = (experiment_path.parent / path).resolve()
+    else:
+        path = path.resolve()
     for source, destination in _operational_path_mappings():
         try:
             suffix = path.relative_to(source)
         except ValueError:
             continue
         return (destination / suffix).resolve()
-    return path.resolve()
+    return path
 
 
 def _operational_path_mappings() -> tuple[tuple[Path, Path], ...]:
