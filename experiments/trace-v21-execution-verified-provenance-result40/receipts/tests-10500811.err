@@ -1,0 +1,2 @@
+[2026-09-19T06:15:27.932] error: Unable to create TMPDIR [/var/tmp/aydanh-codex-runtime/redteam/tmp]: No such file or directory
+[2026-09-19T06:15:27.932] error: Setting TMPDIR to /tmp

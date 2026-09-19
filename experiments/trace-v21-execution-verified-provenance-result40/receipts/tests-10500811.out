@@ -1,0 +1,24 @@
+.........F.                                                              [100%]
+=================================== FAILURES ===================================
+____________ test_old20_gemini_scopes_keep_exact_completed_studies _____________
+
+    def test_old20_gemini_scopes_keep_exact_completed_studies():
+        scope = _module("trace_result40_old20_audit_scope_test", "audit_scope.py")
+>       rows = scope.old20_gemini_scopes()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def old20_gemini_scopes() -> tuple[tuple[str, Experiment], ...]:
+        rows = []
+        for name, source in OLD20_SOURCES.items():
+            original = load_experiment(source)
+            if original.experiment_id != EXPECTED_OLD20_IDS[name]:
+>               raise RuntimeError(f"old20 {name} experiment identity changed")
+E               RuntimeError: old20 static-full experiment identity changed
+
+experiments/trace-v21-execution-verified-provenance-result40/audit_scope.py:94: RuntimeError
+=========================== short test summary info ============================
+FAILED experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py::test_old20_gemini_scopes_keep_exact_completed_studies
+1 failed, 10 passed in 2.80s
