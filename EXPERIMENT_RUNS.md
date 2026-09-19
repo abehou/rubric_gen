@@ -1,5 +1,6 @@
 ## 2026-09-19 — PaperBench promoted RTT Dev3 execution
 
+- 12:42 JST: Provider-free extraction job `10496503` completed `0:0`; its 18-assignment Opus baseline and strict matched comparison are retained under `runs/paperbench-rtt-provenance-local-mac/dev3/reports/{opus-baseline,opus-comparison}.json`. The updated OpenAI key still returned `credit_balance_exhausted`, so no audit resume or new scientific request was started.
 - 07:50 JST: Revision source `d68ec3e`, experiment `paperbench-code-dev-factorial-r10-4b8d47a6c574`, and local study `runs/paperbench-rtt-provenance-local-mac/dev3/study/paperbench-code-dev-factorial-r10-4b8d47a6c574` are terminal 18/18; audit root `runs/paperbench-rtt-provenance-local-mac/dev3/audit-sol-opus/paperbench-code-dev-factorial-r10-4b8d47a6c574` retains complete Opus and partial Sol evidence for missing-only resume after legitimate OpenAI API-credit restoration.
 - 07:50 JST: Static Results20 integrity owner `10491080` completed provider-free at 120 revisions/3,360 judgments; detached Babel analysis pin `d7759eb` and job `10496503` own the provider-free Opus baseline Dev3 extraction, with no new branch or scientific provider work.
 

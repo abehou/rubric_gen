@@ -140,6 +140,28 @@ The native two-model comparison remains pending legitimate OpenAI API-credit
 restoration. Do not replace Sol, impute it from the 19 completed rubric jobs,
 or rerun Opus.
 
+## Provider-free matched Opus comparison
+
+Babel job `10496503` completed the strict static-baseline extraction without a
+provider call. The read-only adapter matched all 18 cells by task, arm,
+replicate, model, and exact initial-submission identity. The resulting
+RTT-minus-static means are:
+
+| Arm | ΔW | ΔS | ΔH | ΔA | Δ(S-H) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Full RTT | -2.791 | -10.075 | -2.594 | +2.889 | -7.481 |
+| User RTT | -9.051 | -6.169 | -6.999 | -2.000 | +0.830 |
+
+Under Opus alone, neither RTT arm improves the main W/S/H means over its
+matched static baseline. Direct full-trajectory RH labels move from 3/9 to 1/9
+for Full and 2/9 to 0/9 for User; final-artifact labels contain no RH positive
+in either candidate arm. With only nine matched cells per arm and no complete
+Sol panel, these values are diagnostic rather than a promotion decision.
+
+The retained report artifacts are
+`runs/paperbench-rtt-provenance-local-mac/dev3/reports/opus-baseline.json` and
+`runs/paperbench-rtt-provenance-local-mac/dev3/reports/opus-comparison.json`.
+
 ## Source and input identity
 
 - Existing implementation branch:
