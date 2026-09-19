@@ -3,8 +3,8 @@
 #SBATCH --qos=preempt_cpu_qos
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=64G
 #SBATCH --time=04:00:00
 #SBATCH --no-requeue
 #SBATCH --account=dfried
@@ -12,9 +12,9 @@
 #SBATCH --output=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/logs/recover-%j.out
 #SBATCH --error=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/logs/recover-%j.err
 source experiments/trace-v21-execution-verified-provenance-result40/common.sbatch
-export RESULT40_SHARD_WORKERS=1
+export RESULT40_SHARD_WORKERS=2
 export RESULT40_ASSIGNMENT_WORKERS=1
-export RESULT40_EXPECTED_CPUS=4
+export RESULT40_EXPECTED_CPUS=8
 /home/aydanh/repos/rubric_gen/.venv/bin/python \
   experiments/trace-v21-execution-verified-provenance-result40/reconcile_recovery.py --apply
 exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
