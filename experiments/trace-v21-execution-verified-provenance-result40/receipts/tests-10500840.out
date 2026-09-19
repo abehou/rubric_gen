@@ -1,0 +1,38 @@
+.........F.                                                              [100%]
+=================================== FAILURES ===================================
+____________ test_old20_gemini_scopes_keep_exact_completed_studies _____________
+
+    def test_old20_gemini_scopes_keep_exact_completed_studies():
+        scope = _module("trace_result40_old20_audit_scope_test", "audit_scope.py")
+>       rows = scope.old20_gemini_scopes()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+experiments/trace-v21-execution-verified-provenance-result40/audit_scope.py:121: in old20_gemini_scopes
+    completed_historical_experiment(name)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+name = 'static-full'
+
+    def completed_historical_experiment(name: str) -> Experiment:
+        """Load one completed old static study from its authoritative receipt."""
+    
+        source = OLD20_SOURCES[name]
+        study = OLD20_STUDIES[name]
+        loaded = load_experiment(source)
+        ledger = json.loads((study / "study.json").read_text())
+        expected_id = EXPECTED_OLD20_IDS[name]
+        if ledger.get("experiment_path") != str(source):
+            raise RuntimeError(f"old20 {name} source path differs from completed study")
+        if ledger.get("experiment_id") != expected_id:
+            raise RuntimeError(f"old20 {name} completed experiment identity changed")
+        expected_assignments = [row.assignment_id for row in loaded.execution_assignments]
+        if [row.get("assignment_id") for row in ledger.get("records", ())] != expected_assignments:
+>           raise RuntimeError(f"old20 {name} assignment ledger changed")
+E           RuntimeError: old20 static-full assignment ledger changed
+
+experiments/trace-v21-execution-verified-provenance-result40/audit_scope.py:78: RuntimeError
+=========================== short test summary info ============================
+FAILED experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py::test_old20_gemini_scopes_keep_exact_completed_studies
+1 failed, 10 passed in 2.39s

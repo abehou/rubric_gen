@@ -73,9 +73,32 @@ def completed_historical_experiment(name: str) -> Experiment:
         raise RuntimeError(f"old20 {name} source path differs from completed study")
     if ledger.get("experiment_id") != expected_id:
         raise RuntimeError(f"old20 {name} completed experiment identity changed")
-    expected_assignments = [row.assignment_id for row in loaded.execution_assignments]
-    if [row.get("assignment_id") for row in ledger.get("records", ())] != expected_assignments:
-        raise RuntimeError(f"old20 {name} assignment ledger changed")
+    records = {
+        row.get("assignment_id"): row
+        for row in ledger.get("records", ())
+        if row.get("assignment_id")
+    }
+    for assignment in loaded.execution_assignments:
+        recorded = records.get(assignment.assignment_id)
+        if recorded is None:
+            raise RuntimeError(
+                f"old20 {name} assignment is absent from completed ledger: "
+                f"{assignment.assignment_id}"
+            )
+        expected = {
+            "task_id": assignment.task_id,
+            "replicate": assignment.replicate,
+            "solver_id": assignment.solver_id,
+            "condition_id": assignment.condition_id,
+        }
+        if any(recorded.get(key) != value for key, value in expected.items()):
+            raise RuntimeError(
+                f"old20 {name} assignment metadata changed: {assignment.assignment_id}"
+            )
+        if recorded.get("status") != "completed":
+            raise RuntimeError(
+                f"old20 {name} assignment is not complete: {assignment.assignment_id}"
+            )
     payload = deepcopy(loaded.payload)
     payload["experiment_id"] = expected_id
     payload["dag"]["revise"]["output_dir"] = str(study)
