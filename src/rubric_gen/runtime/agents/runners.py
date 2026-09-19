@@ -7,7 +7,6 @@ from rubric_gen.runtime.capacity import limited
 import json
 import os
 import re
-import signal
 import shutil
 import subprocess
 import threading
@@ -19,10 +18,12 @@ from rubric_gen.runtime.agents.adapters import AgentAdapterRegistry
 from rubric_gen.runtime.agents.contracts import OutputValidator
 from rubric_gen.runtime.agents.costs import RunCost
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
+from rubric_gen.runtime.agents.resource_limits import limited_agent_command
 from rubric_gen.runtime.agents.workspaces import (
     TaskWorkspace,
     ensure_artifacts_dir,
 )
+from rubric_gen.runtime.process_tree import terminate_posix_process_tree
 
 
 @dataclass(frozen=True)
@@ -123,7 +124,7 @@ class AgentRunner:
             self.stderr_path(paths).open("w") as diagnostics,
         ):
             proc = subprocess.Popen(
-                command,
+                limited_agent_command(command),
                 cwd=paths.workspace_dir,
                 env=env,
                 text=True,
@@ -160,14 +161,14 @@ class AgentRunner:
     def _terminate_process(process: subprocess.Popen[str]) -> None:
         try:
             if os.name == "posix":
-                os.killpg(process.pid, signal.SIGTERM)
+                terminate_posix_process_tree(process.pid)
             else:  # pragma: no cover
                 process.terminate()
             process.wait(timeout=5)
         except (OSError, subprocess.TimeoutExpired):
             try:
                 if os.name == "posix":
-                    os.killpg(process.pid, signal.SIGKILL)
+                    terminate_posix_process_tree(process.pid, grace_seconds=0)
                 else:  # pragma: no cover
                     process.kill()
             except OSError:

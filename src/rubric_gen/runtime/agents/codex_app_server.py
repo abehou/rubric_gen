@@ -23,6 +23,7 @@ from websockets.sync.client import ClientConnection, unix_connect
 from rubric_gen.runtime.agents.adapters import sanitized_agent_environment
 from rubric_gen.runtime.agents.codex_rpc import CodexRpcGuard
 from rubric_gen.runtime.agents.codex_completion import TurnCompletionBuffer
+from rubric_gen.runtime.agents.resource_limits import limited_agent_command
 
 
 def main() -> int:
@@ -80,7 +81,7 @@ def main() -> int:
                 f"unix://{socket_path}",
             ]
             process = subprocess.Popen(
-                arguments,
+                limited_agent_command(arguments),
                 cwd=workspace,
                 env=environment,
                 stdin=subprocess.DEVNULL,

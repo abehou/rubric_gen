@@ -35,9 +35,13 @@ RECURSIVE_EXCLUDED_SOLUTION_NAMES = frozenset(
     }
 )
 EXCLUDED_SOLUTION_NAMES = RECURSIVE_EXCLUDED_SOLUTION_NAMES | frozenset(
-    {"data", "instruction.md", "packages"}
+    {"data", "instruction.md", "packages", "pkgs"}
 )
 RETAINED_HISTORICAL_SOLUTION_NAMES = frozenset({"answer.txt", "trace.md"})
+MAX_SNAPSHOT_FILE_BYTES = 512 * 1024 * 1024
+MAX_SNAPSHOT_WORKSPACE_BYTES = 1024 * 1024 * 1024
+MIN_SNAPSHOT_FREE_HEADROOM_BYTES = 64 * 1024 * 1024
+MAX_SNAPSHOT_FREE_HEADROOM_BYTES = 1024 * 1024 * 1024
 
 LIVE_ROOT_PREFIX = "submission-revision-live-"
 LIVE_ROOT_ENV = "BIOMNIBENCH_LIVE_ROOT"
@@ -134,11 +138,27 @@ class WorkspaceCompactionStats:
     removed_logical_bytes: int = 0
 
 
+class WorkspaceStorageLimitError(RuntimeError):
+    """A live solution exceeds the bounded durable-workspace policy."""
+
+
 def snapshot_solution_workspace(
     source: Path,
     destination: Path,
 ) -> WorkspaceSnapshotStats:
     """Copy a live solution into an independent, read-only snapshot."""
+    expected = inspect_solution_workspace(source)
+    free_bytes = shutil.disk_usage(destination.parent).free
+    headroom = min(
+        MAX_SNAPSHOT_FREE_HEADROOM_BYTES,
+        max(MIN_SNAPSHOT_FREE_HEADROOM_BYTES, expected.bytes),
+    )
+    required = expected.bytes + headroom
+    if free_bytes < required:
+        raise WorkspaceStorageLimitError(
+            "insufficient disk headroom for solution snapshot: "
+            f"requires {required} bytes, found {free_bytes}"
+        )
     stats = WorkspaceSnapshotStats()
     destination.mkdir()
     for child in sorted(source.iterdir(), key=lambda path: path.name):
@@ -150,6 +170,8 @@ def snapshot_solution_workspace(
             stats,
         )
     make_read_only(destination)
+    if stats != expected:
+        raise RuntimeError("solution workspace changed while it was snapshotted")
     return stats
 
 
@@ -272,6 +294,7 @@ def tree_sha256(root: Path) -> str:
 
 
 def solution_tree_sha256(root: Path) -> str:
+    inspect_solution_workspace(root)
     excluded_names = EXCLUDED_SOLUTION_NAMES | frozenset(
         child.name
         for child in root.iterdir()
@@ -295,6 +318,19 @@ def is_excluded_solution_root(path: Path) -> bool:
     except OSError:
         return False
     return stat.S_ISDIR(path_stat.st_mode) and stat.S_ISREG(marker_stat.st_mode)
+
+
+def inspect_solution_workspace(root: Path) -> WorkspaceSnapshotStats:
+    """Validate and measure the files that would enter a durable snapshot."""
+
+    if root.is_symlink() or not root.is_dir():
+        raise RuntimeError(f"invalid live solution workspace: {root}")
+    stats = WorkspaceSnapshotStats()
+    for child in sorted(root.iterdir(), key=lambda path: path.name):
+        if is_excluded_solution_root(child):
+            continue
+        _measure_solution_entry(child, root, stats)
+    return stats
 
 
 def make_tree_read_only(root: Path) -> None:
@@ -445,6 +481,37 @@ def _copy_solution_entry(
     stats.bytes += source_stat.st_size
 
 
+def _measure_solution_entry(
+    source: Path,
+    root: Path,
+    stats: WorkspaceSnapshotStats,
+) -> None:
+    if source.name in RECURSIVE_EXCLUDED_SOLUTION_NAMES:
+        return
+    source_stat = os.lstat(source)
+    if stat.S_ISLNK(source_stat.st_mode):
+        raise RuntimeError(f"solution snapshot contains a symlink: {source}")
+    if stat.S_ISDIR(source_stat.st_mode):
+        for child in sorted(source.iterdir(), key=lambda path: path.name):
+            _measure_solution_entry(child, root, stats)
+        return
+    if not stat.S_ISREG(source_stat.st_mode):
+        raise RuntimeError(f"solution snapshot contains a special file: {source}")
+    relative = source.relative_to(root).as_posix()
+    if source_stat.st_size > MAX_SNAPSHOT_FILE_BYTES:
+        raise WorkspaceStorageLimitError(
+            f"solution file exceeds {MAX_SNAPSHOT_FILE_BYTES} bytes: {relative}"
+        )
+    total = stats.bytes + source_stat.st_size
+    if total > MAX_SNAPSHOT_WORKSPACE_BYTES:
+        raise WorkspaceStorageLimitError(
+            "solution workspace exceeds "
+            f"{MAX_SNAPSHOT_WORKSPACE_BYTES} retained bytes"
+        )
+    stats.files += 1
+    stats.bytes = total
+
+
 def _tree_file_totals(root: Path) -> tuple[int, int]:
     root_stat = os.lstat(root)
     if stat.S_ISLNK(root_stat.st_mode):
@@ -539,12 +606,13 @@ def _hash_tree_once(
             continue
         if not stat.S_ISREG(path_stat.st_mode):
             raise RuntimeError(f"snapshot contains a non-regular file: {relative}")
-        raw = path.read_bytes()
         digest.update(b"F\0")
         digest.update(relative.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(len(raw).to_bytes(8, "big"))
-        digest.update(raw)
+        digest.update(path_stat.st_size.to_bytes(8, "big"))
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
     return digest.hexdigest()
 
 

@@ -190,6 +190,15 @@ def test_agent_environment_uses_workspace_local_temporary_directory(
     assert environment["PATH"].split(":")[0] == str(
         (Path(sys.prefix) / "bin").resolve()
     )
+    assert environment["PYTHONNOUSERSITE"] == "1"
+    for variable in (
+        "OPENBLAS_NUM_THREADS",
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        assert environment[variable] == "1"
     assert temporary.is_dir()
     assert temporary.stat().st_mode & 0o777 == 0o700
     (temporary / "command.out").write_text("ok\n")
@@ -237,7 +246,11 @@ def test_codex_scientific_commands_use_headless_plotting(monkeypatch) -> None:
 
 
 @pytest.mark.parametrize("variable", [
-    "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "VECLIB_MAXIMUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
 ])
 def test_codex_scientific_commands_limit_numeric_threads(variable, monkeypatch) -> None:
     monkeypatch.setenv(variable, "64")

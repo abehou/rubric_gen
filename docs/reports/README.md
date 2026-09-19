@@ -27,3 +27,5 @@ Dated reports outside that checkpoint are internal historical development/proven
 ## 2026-09-19
 
 - [Gemini 3.8 Flash baseline vs latest RTT Result20](2026-09-19/gemini38-baseline-latest-result20/README.md): complete matched Gemini panel, Sol+Opus comparison, equal-weight three-auditor tables, artifact-level values, paired deltas, RH windows, coverage and cost.
+
+- [Gemini/Qwen solver incident and retirement](2026-09-19/gemini-qwen-solver-incident/README.md): root cause, disk-amplification timeline, experiment impact, cleanup, and retained generic containment safeguards; completed Gemini-as-auditor evidence is unaffected.

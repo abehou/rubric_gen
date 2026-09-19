@@ -21,6 +21,14 @@
   for shared execution, identity, or scoring changes. Documentation-only changes
   need link/instruction checks, not a full experiment rerun.
 
+### Python subprocesses
+
+- On macOS, launch Python through the checkout's `.venv/bin/python` or the
+  current process's `sys.executable`, never bare `python` or `python3`.
+- Every Python-capable subprocess must use the shared controlled process
+  environment so the checkout interpreter stays first on `PATH`, user-site
+  packages stay disabled, and BLAS/NumExpr thread counts remain one.
+
 ## Compatibility and CLI
 
 - Do not preserve, restore, or recommend legacy behavior unless explicitly

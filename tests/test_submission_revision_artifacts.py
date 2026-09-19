@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from rubric_gen.submission_revision import artifacts
 from rubric_gen.submission_revision.artifacts import (
+    WorkspaceStorageLimitError,
     compact_historical_workspace,
     make_tree_read_only,
     prepare_evaluation_run,
@@ -68,7 +70,7 @@ def test_solution_snapshot_excludes_dependency_directories(tmp_path: Path) -> No
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     (workspace / "answer.txt").write_text("answer\n")
-    for name in (".venv", "venv", "packages"):
+    for name in (".venv", "venv", "packages", "pkgs"):
         dependency = workspace / name
         dependency.mkdir()
         (dependency / "large-library.so").write_bytes(b"library")
@@ -78,7 +80,59 @@ def test_solution_snapshot_excludes_dependency_directories(tmp_path: Path) -> No
 
     assert (snapshot / "answer.txt").is_file()
     assert stats.files == 1
-    assert all(not (snapshot / name).exists() for name in (".venv", "venv", "packages"))
+    assert all(
+        not (snapshot / name).exists()
+        for name in (".venv", "venv", "packages", "pkgs")
+    )
+
+
+def test_solution_snapshot_retains_bounded_derived_anndata(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "answer.txt").write_text("answer\n")
+    (workspace / "analysis.h5ad").write_bytes(b"derived matrix")
+
+    snapshot = tmp_path / "snapshot"
+    stats = snapshot_solution_workspace(workspace, snapshot)
+
+    assert (snapshot / "answer.txt").is_file()
+    assert (snapshot / "analysis.h5ad").read_bytes() == b"derived matrix"
+    assert stats.files == 2
+
+
+def test_solution_snapshot_rejects_oversized_file_before_copy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "answer.txt").write_text("answer\n")
+    (workspace / "too-large.bin").write_bytes(b"x" * 17)
+    monkeypatch.setattr(artifacts, "MAX_SNAPSHOT_FILE_BYTES", 16)
+
+    snapshot = tmp_path / "snapshot"
+    with pytest.raises(WorkspaceStorageLimitError, match="too-large.bin"):
+        snapshot_solution_workspace(workspace, snapshot)
+
+    assert not snapshot.exists()
+
+
+def test_solution_snapshot_rejects_oversized_retained_workspace(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "first.bin").write_bytes(b"x" * 10)
+    (workspace / "second.bin").write_bytes(b"x" * 10)
+    monkeypatch.setattr(artifacts, "MAX_SNAPSHOT_FILE_BYTES", 16)
+    monkeypatch.setattr(artifacts, "MAX_SNAPSHOT_WORKSPACE_BYTES", 16)
+
+    snapshot = tmp_path / "snapshot"
+    with pytest.raises(WorkspaceStorageLimitError, match="retained bytes"):
+        snapshot_solution_workspace(workspace, snapshot)
+
+    assert not snapshot.exists()
 
 
 def test_solution_snapshot_excludes_nested_caches_and_agent_temp(

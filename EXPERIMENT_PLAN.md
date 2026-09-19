@@ -1,3 +1,7 @@
+## 2026-09-19 — Gemini/Qwen solver experiments retired
+
+- 20:32 JST: User cancels all Gemini 3.8 Flash and Qwen solver experiments until current higher-priority work is complete. Do not resume, reconstruct, or rerun their smoke, Dev3, or audit workflows; completed Gemini-as-auditor Result20 evidence is outside this retirement and remains preserved.
+
 ## 2026-09-12 — PaperBench Queue 5 Full/User Results20
 
 - 11:34 EDT: Queue5 authorizes the six Full/User non-static Results20 conditions only after corrected dev3 native validation, preserving120 completed static revisions and the existing shared starting-rubric producer. Keep each native offline/online/artifact policy distinct; no trace or CPU-profile change.
@@ -1481,3 +1485,13 @@ Private locator may select public references but cannot transmit evaluator prose
 
 - 00:43 JST: User authorizes adapting RTT Rubric Dropout to the promoted execution-provenance + Luna-high diagnosis/proposer recipe. Reuse the completed 18-assignment provenance cohort as the strict 0% control; add only matched 30% and 50% Full/User treatments on the same three tasks, three replicates and seed `20260806`, for 36 new assignments.
 - 00:43 JST: Preserve all promoted execution/provenance behavior and low-reasoning attack, pair, compilation, application and solver stages. Drop only the ordinary solver-facing revision signal, protect the unresolved public execution issue, and leave canonical/final scoring complete. Run the 36 assignments only after saved-case/provider-free checks pass and the active Babel Results20 revision stops using the same provider route; no Results20 change or old dropout resume is part of this experiment.
+- 11:58 JST: User authorizes one mechanism-corrected RTT dropout pilot after the completed 30%/50% trajectory diagnosis. Use a fresh identity and matched 0%/30%/50% controls; preserve all base/task feedback and the execution issue, mask only dynamic learned criteria/reminders with a deterministic cross-turn balanced schedule, expose the stable fixed-base score rather than a renormalized masked score, and give both the solver and User simulator only the current revision signal. First pass provider-free and four saved `da-11-1` behavior cases, then run only `da-11-1` (three rates × Full/User × three replicates = 18 assignments); do not expand to the other Dev3 tasks or Results20 before reviewing this pilot.
+- 21:09 JST: The bounded pilot rejects both 30% and 50% learned-signal dropout: neither improves S-H jointly with W-S/H-A/W-A and holistic quality, despite zero positive RH judgments. Stop at the completed `da-11-1` evidence; do not sweep lower rates, expand dropout to full Dev3/Results20, or implement another candidate before user review.
+
+## 2026-09-18 — Qwen3.8 no-dropout Dev3
+
+- 21:44 JST: Run a separate 36-assignment Dev3 using exact free OpenRouter Qwen for the low-effort solver and rubric proposer, with xhigh diagnosis and low other proposer stages; keep the promoted computation-provenance recipe, Luna support roles, and Sol+Opus audit unchanged. Gate the matrix on a real solver-plus-diagnosis smoke, run assignments only in quota-aware concurrency-one batches, prohibit paid fallback and all dropout configuration, and preserve native resume state on provider capacity or quota failure.
+
+## 2026-09-18 — Execution-semantic consistency repair
+
+- 22:07 JST: User authorizes the bounded execution-reviewer repair identified from the completed learned-dropout trajectories: expose current executed source/output semantics and compare them with the artifact while preserving the promoted recipe, models, selector/admission, simulator and evaluation. Validate first on four saved checkpoints and stop for review before any paid Dev3; do not treat transient within-turn states as final contradictions.

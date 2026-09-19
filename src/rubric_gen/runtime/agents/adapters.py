@@ -13,6 +13,7 @@ from pathlib import Path
 from rubric_gen.runtime.agents.events import event_text
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.policy import NO_WEB_POLICY
+from rubric_gen.runtime.process_environment import controlled_process_environment
 
 
 def sanitized_agent_environment() -> dict[str, str]:
@@ -26,11 +27,12 @@ def sanitized_agent_environment() -> dict[str, str]:
         "RAYON_NUM_THREADS", "TOKENIZERS_PARALLELISM",
     }
     allowed_prefixes = ("LC_",)
-    return {
+    sanitized = {
         key: value
         for key, value in os.environ.items()
         if key in allowed_exact or key.startswith(allowed_prefixes)
     }
+    return controlled_process_environment(sanitized)
 
 
 class AgentAdapter(ABC):
@@ -349,7 +351,10 @@ ignore_default_excludes = false
 MPLBACKEND = "Agg"
 OPENBLAS_NUM_THREADS = "1"
 OMP_NUM_THREADS = "1"
+MKL_NUM_THREADS = "1"
 VECLIB_MAXIMUM_THREADS = "1"
+NUMEXPR_NUM_THREADS = "1"
+PYTHONNOUSERSITE = "1"
 
 [shell_environment_policy.filters]
 "*KEY*" = "exclude"

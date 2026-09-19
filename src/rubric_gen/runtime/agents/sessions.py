@@ -6,12 +6,10 @@ from rubric_gen.runtime.capacity import limited, emit
 
 import json
 import os
-import signal
 import shutil
 import stat
 import subprocess
 import threading
-import time
 import uuid
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -22,6 +20,8 @@ from rubric_gen.runtime.agents.costs import RunCost
 from rubric_gen.runtime.agents.contracts import SessionContract
 from rubric_gen.runtime.agents.models import AgentRunConfig, RunPaths
 from rubric_gen.runtime.agents.policy import MAX_TRANSIENT_RETRIES, NO_WEB_POLICY
+from rubric_gen.runtime.agents.resource_limits import limited_agent_command
+from rubric_gen.runtime.process_tree import terminate_posix_process_tree
 
 
 @dataclass(frozen=True)
@@ -360,7 +360,7 @@ class CliSolverSessionDriver:
             paths.stream_path.open("w") as log,
         ):
             process = subprocess.Popen(
-                command,
+                limited_agent_command(command),
                 cwd=workspace,
                 env=env,
                 text=True,
@@ -398,9 +398,16 @@ class CliSolverSessionDriver:
                     on_session_id=on_session_id,
                 )
                 if os.name == "posix" and not timed_out.is_set():
-                    os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
+                    if hasattr(os, "waitid"):
+                        os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
+                        exit_code = process.wait()
+                    else:
+                        # macOS Python does not expose waitid. Reap the exited
+                        # CLI first, then clean up any descendants in its group.
+                        exit_code = process.wait()
                     self._terminate_posix_process_group(process.pid)
-                exit_code = process.wait()
+                else:
+                    exit_code = process.wait()
                 completed = True
                 return 124 if timed_out.is_set() else exit_code
             finally:
@@ -429,15 +436,7 @@ class CliSolverSessionDriver:
 
     @staticmethod
     def _terminate_posix_process_group(process_group_id: int) -> None:
-        try:
-            os.killpg(process_group_id, signal.SIGTERM)
-        except OSError:
-            pass
-        time.sleep(0.1)
-        try:
-            os.killpg(process_group_id, signal.SIGKILL)
-        except OSError:
-            pass
+        terminate_posix_process_tree(process_group_id)
 
     @classmethod
     def _terminate_and_reap(cls, process: subprocess.Popen[str]) -> None:

@@ -17,6 +17,7 @@ from typing import Any
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.benchmarks import SubmissionBenchmarkId
+from rubric_gen.runtime.process_environment import controlled_process_environment
 from rubric_gen.submission_revision.rubrics.schema import canonical_json, load_json_strict
 
 from .artifacts import (
@@ -58,7 +59,7 @@ JUDGE_SUBPROCESS_TIMEOUT_SECONDS = 60 * 60
 
 
 def _judge_subprocess_environment() -> dict[str, str]:
-    environment = os.environ.copy()
+    environment = controlled_process_environment()
     package_root = str(Path(__file__).resolve().parents[3])
     existing_pythonpath = environment.get("PYTHONPATH")
     environment["PYTHONPATH"] = os.pathsep.join(
