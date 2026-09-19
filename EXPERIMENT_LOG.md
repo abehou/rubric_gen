@@ -1,5 +1,6 @@
 ## 2026-09-19 — PaperBench promoted RTT Dev3 result
 
+- 09:04 JST: User-authorized minimal non-benchmark `gpt-5.6-sol` probe reached OpenAI and again returned `429 insufficient_quota / credit_balance_exhausted`; no audit resume was launched, and all complete revision, Opus, and Sol artifacts remain preserved for missing-only recovery after legitimate API-credit restoration.
 - 07:50 JST: Current-code provider-free integrity job `10491080` validates the corrected static Results20 baseline at 120/120 revisions and 3,360/3,360 planned Sol+Opus judgments; the prior `10490954` failure is isolated to obsolete whole-object grading-identity comparison, not corrupted scientific content.
 - 07:50 JST: Mac RTT Dev3 completed 18/18 revisions in 6:00:14 on clean pin `d68ec3e`; Opus audit coverage is complete, while OpenAI `credit_balance_exhausted` leaves Sol partial and therefore holds the native two-auditor comparison and RTT Results20 launch ([report](docs/reports/2026-09-19/paperbench-rtt-provenance-dev3/README.md)).
 
