@@ -14,7 +14,7 @@
 source experiments/trace-v21-execution-verified-provenance-result40/common.sbatch
 export RESULT40_SHARD_WORKERS=2
 export RESULT40_ASSIGNMENT_WORKERS=1
-export RESULT40_EXPECTED_CPUS=8
+export RESULT40_EXPECTED_CPUS="${SLURM_CPUS_PER_TASK:-8}"
 /home/aydanh/repos/rubric_gen/.venv/bin/python \
   experiments/trace-v21-execution-verified-provenance-result40/reconcile_recovery.py --apply
 exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
