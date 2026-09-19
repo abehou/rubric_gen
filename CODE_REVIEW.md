@@ -1,3 +1,7 @@
+## 2026-09-19 — Repaired provider failure resume
+
+- 13:23 JST: Resolved the audit recovery gap where preserved authentication/billing attempts permanently blocked `--resume` after external repair; an explicit category-scoped opt-in now retains old attempts and spends only remaining numbered attempts across rubric, rubric-free, and direct detection paths, with 98 focused/regression tests passing.
+
 ## 2026-09-12 — PaperBench audit closure
 
 - 12:21 EDT: Resolved static saved-v8 delimiter replay and historical/current plan discovery with strict complete-index validation;686 tests pass on pin8226495 and current core. The private coverage checker now uses existing same_scoring_semantics while retaining exact evidence/provenance checks;23 focused tests and9 pinned-runtime checks pass.

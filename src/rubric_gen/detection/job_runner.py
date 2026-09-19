@@ -7,7 +7,11 @@ import math
 import threading
 import time
 from dataclasses import asdict
-from rubric_gen.runtime.failures import failure_category, retry_after
+from rubric_gen.runtime.failures import (
+    failure_category,
+    retry_after,
+    retry_repaired_provider_failure,
+)
 from rubric_gen.runtime.capacity import emit
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -366,6 +370,8 @@ class DetectionJobRunner:
                     return generation
                 last_error = RuntimeError(f"recorded {saved.get('category', 'unknown remote completion')}: {path}")
                 if saved.get('category') in {'authentication', 'billing', 'configuration', 'structural'}:
+                    if retry_repaired_provider_failure(saved.get('category')):
+                        continue
                     raise last_error
                 continue
             if getattr(self._local, 'publication_only', False):

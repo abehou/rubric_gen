@@ -5,7 +5,11 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import asdict
-from rubric_gen.runtime.failures import failure_category, retry_after
+from rubric_gen.runtime.failures import (
+    failure_category,
+    retry_after,
+    retry_repaired_provider_failure,
+)
 from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_text
@@ -273,6 +277,8 @@ class RubricFreeScoreStage:
                 if saved.get('generation') is None:
                     last_error = RuntimeError(f"recorded {saved.get('category', 'unknown remote completion')}: {attempt_path}")
                     if saved.get('category') in {'authentication', 'billing', 'configuration', 'structural'}:
+                        if retry_repaired_provider_failure(saved.get('category')):
+                            continue
                         raise last_error
                     continue
             else:

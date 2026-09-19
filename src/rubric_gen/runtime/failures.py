@@ -1,6 +1,34 @@
 """Classify operational failures before the existing bounded retry owner acts."""
 from __future__ import annotations
 
+import os
+
+
+REPAIRED_PROVIDER_FAILURES_ENV = "RUBRIC_GEN_REPAIRED_PROVIDER_FAILURES"
+_REPAIRABLE_PROVIDER_FAILURES = frozenset({"authentication", "billing"})
+
+
+def retry_repaired_provider_failure(category: object) -> bool:
+    """Allow an explicit resume to spend only the remaining attempt budget.
+
+    Authentication and billing failures are normally terminal because blindly
+    retrying them cannot help.  After the external condition is independently
+    repaired, an operator may name that exact category.  Existing attempts stay
+    immutable and the normal loop advances to the next numbered attempt.
+    """
+    raw = os.environ.get(REPAIRED_PROVIDER_FAILURES_ENV)
+    if raw is None:
+        return False
+    requested = {item.strip() for item in raw.split(",") if item.strip()}
+    invalid = requested - _REPAIRABLE_PROVIDER_FAILURES
+    if not requested or invalid:
+        allowed = ", ".join(sorted(_REPAIRABLE_PROVIDER_FAILURES))
+        raise RuntimeError(
+            f"{REPAIRED_PROVIDER_FAILURES_ENV} must name a comma-separated "
+            f"subset of: {allowed}"
+        )
+    return category in requested
+
 
 def failure_category(error: BaseException) -> str:
     seen = set()

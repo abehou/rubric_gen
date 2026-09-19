@@ -18,7 +18,11 @@ from contextvars import ContextVar
 _GENERATION_PATH = ContextVar("rubric_generation_path", default=None)
 from dataclasses import dataclass, fields, replace, asdict
 import time
-from rubric_gen.runtime.failures import failure_category, retry_after
+from rubric_gen.runtime.failures import (
+    failure_category,
+    retry_after,
+    retry_repaired_provider_failure,
+)
 from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_file, sha256_text
@@ -783,6 +787,8 @@ class RubricScoreJudge:
                     records = FullRubricArtifactRecords(**saved['records'])
                     break
                 if saved.get('failure_category') in {'authentication', 'billing', 'configuration', 'structural'}:
+                    if retry_repaired_provider_failure(saved.get('failure_category')):
+                        continue
                     raise RuntimeError(f"saved full-rubric failure requires repair: {saved.get('error')}")
                 if not generation_path.exists() or saved.get('failure_category') is not None:
                     continue
