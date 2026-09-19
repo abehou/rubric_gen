@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from rubric_gen.runtime.process_environment import (
+    install_controlled_process_environment,
+)
 from rubric_gen.runtime.capacity import limited
 
 import argparse
@@ -203,6 +206,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    install_controlled_process_environment()
     args = build_parser().parse_args(argv)
     return args.handler(args)
 
