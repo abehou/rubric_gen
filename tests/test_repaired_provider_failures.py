@@ -19,6 +19,10 @@ from rubric_gen.runtime.llm import GenerationResult, StructuredRequest
 from rubric_gen.submission_revision.evaluation.score_execution import (
     RubricFreeScoreStage,
 )
+from rubric_gen.submission_revision.evaluation.direct import (
+    RESUME_CODE_ROOT_ENV,
+    _resume_code_root,
+)
 from rubric_gen.submission_revision.evaluation.rubric_judge import RubricScoreJudge
 from rubric_gen.submission_revision.judge import (
     FrozenRubric,
@@ -66,6 +70,27 @@ def test_repaired_provider_failure_opt_in_is_exact(
     monkeypatch.setenv(REPAIRED_PROVIDER_FAILURES_ENV, "structural")
     with pytest.raises(RuntimeError, match="must name a comma-separated subset"):
         retry_repaired_provider_failure("structural")
+
+
+def test_direct_resume_code_root_override_is_absolute_and_verified(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    current = tmp_path / "current"
+    original = tmp_path / "original"
+    (current / "src/rubric_gen").mkdir(parents=True)
+    (original / "src/rubric_gen").mkdir(parents=True)
+    experiment_dir = current / "experiments" / "test"
+    experiment_dir.mkdir(parents=True)
+    experiment = SimpleNamespace(path=experiment_dir / "dev3.yaml")
+
+    assert _resume_code_root(experiment, resume=True) == current
+    monkeypatch.setenv(RESUME_CODE_ROOT_ENV, str(original))
+    assert _resume_code_root(experiment, resume=True) == original
+    assert _resume_code_root(experiment, resume=False) == current
+    monkeypatch.setenv(RESUME_CODE_ROOT_ENV, "relative/source")
+    with pytest.raises(ValueError, match="must be an absolute path"):
+        _resume_code_root(experiment, resume=True)
 
 
 def test_rubric_free_recovery_preserves_billing_attempt_and_uses_next_number(

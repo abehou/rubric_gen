@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,37 @@ from rubric_gen.submission_revision.detection_windows import RevisionDetectionWi
 from rubric_gen.submission_revision.evaluation.evidence import revision_detection_source
 from rubric_gen.submission_revision.experiment import Experiment
 from rubric_gen.submission_revision.source_resolution import StudySources, resolve_study_sources
+
+
+RESUME_CODE_ROOT_ENV = "RUBRIC_GEN_RESUME_CODE_ROOT"
+
+
+def _resume_code_root(experiment: Experiment, *, resume: bool) -> Path | None:
+    """Resolve the recorded deployment used by the existing direct run.
+
+    A recovery-only execution change may run from a newer checkout.  The direct
+    runner still verifies that this root reproduces the saved implementation
+    digest and that every scientific source matches the current checkout.
+    """
+    value = os.environ.get(RESUME_CODE_ROOT_ENV) if resume else None
+    if value is not None:
+        candidate = Path(value)
+        if not candidate.is_absolute():
+            raise ValueError(f"{RESUME_CODE_ROOT_ENV} must be an absolute path")
+        resolved = candidate.resolve(strict=True)
+        if candidate != resolved or not (resolved / "src/rubric_gen").is_dir():
+            raise ValueError(
+                f"{RESUME_CODE_ROOT_ENV} must be a non-symlinked source root"
+            )
+        return resolved
+    return next(
+        (
+            parent
+            for parent in experiment.path.parents
+            if (parent / "src/rubric_gen").is_dir()
+        ),
+        None,
+    )
 
 
 @dataclass(frozen=True)
@@ -92,7 +124,7 @@ def prepare_direct_detection(
         resolved_sources=sources.revisions,
         shared_inputs=shared_inputs,
     )
-    code_root = next((parent for parent in config.experiment.path.parents if (parent / 'src/rubric_gen').is_dir()), None)
+    code_root = _resume_code_root(config.experiment, resume=resume_evaluation)
     runner = DetectionRunner(DetectionConfig(
         source=source,
         models=models,
