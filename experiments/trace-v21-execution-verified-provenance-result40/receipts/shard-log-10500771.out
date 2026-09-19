@@ -1,0 +1,72 @@
+Traceback (most recent call last):
+  File "/home/aydanh/repos/rubric_gen/.venv/bin/rubric-gen", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/cli.py", line 207, in main
+    return args.handler(args)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/cli.py", line 49, in _require_submission_experiment
+    return args.submission_handler(args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/commands.py", line 63, in run_revise
+    )).run()
+       ^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 218, in run
+    return self._run_locked(assignments, existed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 225, in _run_locked
+    manifest = self._start_manifest(assignments, existed)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 276, in _start_manifest
+    self._validate_manifest_identity(manifest, assignments)
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 710, in _validate_manifest_identity
+    raise RuntimeError("study resume identity differs from the experiment")
+RuntimeError: study resume identity differs from the experiment
+Traceback (most recent call last):
+  File "/home/aydanh/repos/rubric_gen/.venv/bin/rubric-gen", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/cli.py", line 207, in main
+    return args.handler(args)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/cli.py", line 49, in _require_submission_experiment
+    return args.submission_handler(args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/commands.py", line 63, in run_revise
+    )).run()
+       ^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 218, in run
+    return self._run_locked(assignments, existed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 225, in _run_locked
+    manifest = self._start_manifest(assignments, existed)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 276, in _start_manifest
+    self._validate_manifest_identity(manifest, assignments)
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 710, in _validate_manifest_identity
+    raise RuntimeError("study resume identity differs from the experiment")
+RuntimeError: study resume identity differs from the experiment
+Traceback (most recent call last):
+  File "/home/aydanh/repos/rubric_gen/.venv/bin/rubric-gen", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/cli.py", line 207, in main
+    return args.handler(args)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/cli.py", line 49, in _require_submission_experiment
+    return args.submission_handler(args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/commands.py", line 63, in run_revise
+    )).run()
+       ^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 218, in run
+    return self._run_locked(assignments, existed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 225, in _run_locked
+    manifest = self._start_manifest(assignments, existed)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 276, in _start_manifest
+    self._validate_manifest_identity(manifest, assignments)
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/src/rubric_gen/submission_revision/study.py", line 710, in _validate_manifest_identity
+    raise RuntimeError("study resume identity differs from the experiment")
+RuntimeError: study resume identity differs from the experiment

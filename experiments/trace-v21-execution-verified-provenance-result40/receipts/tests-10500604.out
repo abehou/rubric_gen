@@ -1,0 +1,8 @@
+
+=============================== warnings summary ===============================
+../../home/aydanh/repos/rubric_gen/.venv/lib64/python3.12/site-packages/_pytest/cacheprovider.py:469
+  /home/aydanh/repos/rubric_gen/.venv/lib64/python3.12/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /var/spool/.pytest_cache/v/cache/nodeids: [Errno 13] Permission denied: '/var/spool/pytest-cache-files-4r0ucan7'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 warning in 0.00s

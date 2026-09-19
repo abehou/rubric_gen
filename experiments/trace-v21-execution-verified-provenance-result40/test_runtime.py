@@ -301,6 +301,17 @@ def test_gemini_scope_preserves_revision_experiment_identity(tmp_path):
     assert scoped.dag["detect"]["output_dir"] == str(tmp_path / source.experiment_id)
 
 
+def test_execution_configs_match_saved_study_identity():
+    scope = _module("trace_result40_saved_identity_test", "audit_scope.py")
+    for task, kind in scope.SHARDS:
+        source = scope.config_path(task, kind)
+        experiment = scope.load_experiment(source)
+        study = Path(experiment.dag["revise"]["output_dir"])
+        ledger = json.loads((study / "study.json").read_text())
+        assert ledger["experiment_path"] == str(source)
+        assert ledger["experiment_id"] == experiment.experiment_id
+
+
 def test_old20_gemini_scopes_keep_exact_completed_studies():
     scope = _module("trace_result40_old20_audit_scope_test", "audit_scope.py")
     rows = scope.old20_gemini_scopes()

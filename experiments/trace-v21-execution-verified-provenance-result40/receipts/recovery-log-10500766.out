@@ -1,0 +1,146 @@
+{
+  "kind": "rtt-result40-response-free-runtime-reconciliation-v1",
+  "applied": true,
+  "job_id": "10499500",
+  "time": "2026-09-19T09:55:50.870025+00:00",
+  "failed_assignment_count": 5,
+  "tmp_action_count": 1,
+  "rearmed_count": 1,
+  "studies": [
+    {
+      "study": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-20-4/static/biomnibench-da-factorial-r10-e4e732210b12",
+      "failed": [
+        {
+          "assignment_id": "da-20-4--rep-002--solver-luna--user-simulator-static",
+          "status": "failed",
+          "error_type": "CodexProviderHealthError",
+          "error": "Codex app-server start failed after 2 attempts: TransportClosedError: Codex process closed stdout. stderr_tail=Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/src/rubric_gen/runtime/agents/codex_app_server.py\", line 272, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/src/rubric_gen/runtime/agents/codex_app_server.py\", line 62, in main\n    with _local_cli_temporary(Path(codex_home), socket_dir / \"runtime\"):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib64/python3.12/contextlib.py\", line 137, in __enter__\n    return next(self.gen)\n           ^^^^^^^^^^^^^^\n  File \"/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/src/rubric_gen/runtime/agents/codex_app_server.py\", line 133, in _local_cli_temporary\n    raise RuntimeError(\"Codex tmp requires terminal-owner reconciliation: \" + str(original))\nRuntimeError: Codex tmp requires terminal-owner reconciliation: /data/user_data/aydanh/rubric_gen/live/rtt-result40-expansion-20260918/submission-revision-live-77jg80lm/.agent-state/codex/tmp",
+          "failure_category": "structural",
+          "automatic_recovery_exhausted": true
+        }
+      ],
+      "tmp_actions": [
+        {
+          "assignment_id": "da-20-4--rep-002--solver-luna--user-simulator-static",
+          "tmp": "/data/user_data/aydanh/rubric_gen/live/rtt-result40-expansion-20260918/submission-revision-live-77jg80lm/.agent-state/codex/tmp",
+          "stale_target": "/tmp/rg-codex-6011048-eefc48a6-lr4pmdf1/runtime/cli-tmp",
+          "backup": null,
+          "action": "unlink_stale_runtime_link"
+        }
+      ],
+      "rearmed": [
+        "da-20-4--rep-002--solver-luna--user-simulator-static"
+      ]
+    },
+    {
+      "study": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-20-4/trace/biomnibench-da-factorial-r10-8bc19ddce2cf",
+      "failed": [
+        {
+          "assignment_id": "da-20-4--rep-002--solver-luna--full-red-team-trace-execution-verified-proactive-provenance",
+          "status": "failed",
+          "error_type": "RuntimeError",
+          "error": "failed revision state has inconsistent solver identity",
+          "failure_category": "structural",
+          "automatic_recovery_exhausted": false
+        }
+      ],
+      "tmp_actions": [],
+      "rearmed": []
+    },
+    {
+      "study": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-3/static/biomnibench-da-factorial-r10-4045f47ab8f3",
+      "failed": [
+        {
+          "assignment_id": "da-17-3--rep-003--solver-luna--user-simulator-static",
+          "status": "failed",
+          "error_type": "RuntimeError",
+          "error": "missing snapshot metadata: /data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-3/static/biomnibench-da-factorial-r10-4045f47ab8f3/experiments/da-17-3/rep-003/luna/user-simulator-static/submissions/s003/snapshot.json",
+          "failure_category": "structural",
+          "automatic_recovery_exhausted": false
+        }
+      ],
+      "tmp_actions": [],
+      "rearmed": []
+    },
+    {
+      "study": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-3/trace/biomnibench-da-factorial-r10-abc03a646573",
+      "failed": [
+        {
+          "assignment_id": "da-17-3--rep-003--solver-luna--user-simulator-red-team-trace-execution-verified-proactive-provenance",
+          "status": "running",
+          "error_type": null,
+          "error": null,
+          "failure_category": "structural",
+          "automatic_recovery_exhausted": false
+        }
+      ],
+      "tmp_actions": [],
+      "rearmed": []
+    },
+    {
+      "study": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-1/static/biomnibench-da-factorial-r10-08a3aca6fcec",
+      "failed": [
+        {
+          "assignment_id": "da-17-1--rep-001--solver-luna--full-static",
+          "status": "failed",
+          "error_type": "RuntimeError",
+          "error": "failed solver turn artifacts are incomplete",
+          "failure_category": "structural",
+          "automatic_recovery_exhausted": false
+        }
+      ],
+      "tmp_actions": [],
+      "rearmed": []
+    }
+  ]
+}
+{"task_id": "da-8-1", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:51.690768+00:00", "finished_at": "2026-09-19T09:55:53.405250+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-8-1-static.log"}
+{"task_id": "da-8-1", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:51.691032+00:00", "finished_at": "2026-09-19T09:55:53.410382+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-8-1-trace.log"}
+{"task_id": "da-26-4", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:53.422647+00:00", "finished_at": "2026-09-19T09:55:54.615460+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-26-4-static.log"}
+{"task_id": "da-26-4", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:53.438776+00:00", "finished_at": "2026-09-19T09:55:54.628952+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-26-4-trace.log"}
+{"task_id": "da-20-4", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:54.646903+00:00", "finished_at": "2026-09-19T09:55:55.796439+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-20-4-trace.log"}
+{"task_id": "da-20-4", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:54.640893+00:00", "finished_at": "2026-09-19T09:55:55.807267+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-20-4-static.log"}
+{"task_id": "da-19-3", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:55.813479+00:00", "finished_at": "2026-09-19T09:55:57.070478+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-19-3-trace.log"}
+{"task_id": "da-19-3", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:55.798232+00:00", "finished_at": "2026-09-19T09:55:57.086884+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-19-3-static.log"}
+{"task_id": "da-4-1", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:57.072317+00:00", "finished_at": "2026-09-19T09:55:58.292517+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-4-1-static.log"}
+{"task_id": "da-4-1", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:57.111808+00:00", "finished_at": "2026-09-19T09:55:58.295875+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-4-1-trace.log"}
+{"task_id": "da-1-3", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:58.297237+00:00", "finished_at": "2026-09-19T09:55:59.549880+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-1-3-trace.log"}
+{"task_id": "da-1-3", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:58.294472+00:00", "finished_at": "2026-09-19T09:55:59.552459+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-1-3-static.log"}
+{"task_id": "da-3-5", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:59.564615+00:00", "finished_at": "2026-09-19T09:56:00.768591+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-3-5-static.log"}
+{"task_id": "da-3-5", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:55:59.565765+00:00", "finished_at": "2026-09-19T09:56:00.781927+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-3-5-trace.log"}
+{"task_id": "da-4-6", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:00.798375+00:00", "finished_at": "2026-09-19T09:56:01.981405+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-4-6-trace.log"}
+{"task_id": "da-4-6", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:00.796502+00:00", "finished_at": "2026-09-19T09:56:01.982372+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-4-6-static.log"}
+{"task_id": "da-5-1", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:01.997033+00:00", "finished_at": "2026-09-19T09:56:03.196920+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-5-1-static.log"}
+{"task_id": "da-5-1", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:01.998239+00:00", "finished_at": "2026-09-19T09:56:03.204382+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-5-1-trace.log"}
+{"task_id": "da-26-2", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:03.205485+00:00", "finished_at": "2026-09-19T09:56:04.372282+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-26-2-trace.log"}
+{"task_id": "da-26-2", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:03.198725+00:00", "finished_at": "2026-09-19T09:56:04.379301+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-26-2-static.log"}
+{"task_id": "da-9-7", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:04.373754+00:00", "finished_at": "2026-09-19T09:56:05.494172+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-9-7-static.log"}
+{"task_id": "da-9-7", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:04.397325+00:00", "finished_at": "2026-09-19T09:56:05.503065+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-9-7-trace.log"}
+{"task_id": "da-24-3", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:05.504874+00:00", "finished_at": "2026-09-19T09:56:06.685885+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-24-3-trace.log"}
+{"task_id": "da-24-3", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:05.496039+00:00", "finished_at": "2026-09-19T09:56:06.701651+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-24-3-static.log"}
+{"task_id": "da-6-5", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:06.705727+00:00", "finished_at": "2026-09-19T09:56:07.903974+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-6-5-static.log"}
+{"task_id": "da-6-5", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:06.707901+00:00", "finished_at": "2026-09-19T09:56:07.930971+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-6-5-trace.log"}
+{"task_id": "da-17-3", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:07.932442+00:00", "finished_at": "2026-09-19T09:56:09.156860+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-17-3-trace.log"}
+{"task_id": "da-17-3", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:07.906079+00:00", "finished_at": "2026-09-19T09:56:09.164871+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-17-3-static.log"}
+{"task_id": "da-1-4", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:09.159224+00:00", "finished_at": "2026-09-19T09:56:10.392551+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-1-4-static.log"}
+{"task_id": "da-1-4", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:09.181757+00:00", "finished_at": "2026-09-19T09:56:10.403670+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-1-4-trace.log"}
+{"task_id": "da-8-3", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:10.405098+00:00", "finished_at": "2026-09-19T09:56:11.510403+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-8-3-trace.log"}
+{"task_id": "da-8-3", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:10.394563+00:00", "finished_at": "2026-09-19T09:56:11.528389+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-8-3-static.log"}
+{"task_id": "da-17-5", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:11.530205+00:00", "finished_at": "2026-09-19T09:56:12.624633+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-17-5-trace.log"}
+{"task_id": "da-17-5", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:11.511973+00:00", "finished_at": "2026-09-19T09:56:12.648732+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-17-5-static.log"}
+{"task_id": "da-17-1", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:12.650111+00:00", "finished_at": "2026-09-19T09:56:13.825669+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-17-1-trace.log"}
+{"task_id": "da-17-1", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:12.626401+00:00", "finished_at": "2026-09-19T09:56:13.843367+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-17-1-static.log"}
+{"task_id": "da-9-1", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:13.854020+00:00", "finished_at": "2026-09-19T09:56:15.096664+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-9-1-trace.log"}
+{"task_id": "da-9-1", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:13.839916+00:00", "finished_at": "2026-09-19T09:56:15.106912+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-9-1-static.log"}
+{"task_id": "da-20-1", "shard": "trace", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:15.108414+00:00", "finished_at": "2026-09-19T09:56:16.274645+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-20-1-trace.log"}
+{"task_id": "da-20-1", "shard": "static", "stage": "revise", "exit_code": 1, "started_at": "2026-09-19T09:56:15.098495+00:00", "finished_at": "2026-09-19T09:56:16.288053+00:00", "log": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/owners/execute-10499500-20260919T095551Z/revise-da-20-1-static.log"}
+[2026-09-19T05:55:44.631] error: Unable to create TMPDIR [/var/tmp/aydanh-codex-runtime/redteam/tmp]: No such file or directory
+[2026-09-19T05:55:44.631] error: Setting TMPDIR to /tmp
+Traceback (most recent call last):
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/experiments/trace-v21-execution-verified-provenance-result40/run.py", line 294, in <module>
+    main()
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/experiments/trace-v21-execution-verified-provenance-result40/run.py", line 289, in main
+    (execute if args.mode == "execute" else audit)(path)
+  File "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-report-20260918/experiments/trace-v21-execution-verified-provenance-result40/run.py", line 200, in execute
+    raise RuntimeError(f"Results40 revision retained incomplete shards: {[(r['task_id'], r['shard']) for r in failures]}")
+RuntimeError: Results40 revision retained incomplete shards: [('da-8-1', 'static'), ('da-8-1', 'trace'), ('da-26-4', 'static'), ('da-26-4', 'trace'), ('da-20-4', 'trace'), ('da-20-4', 'static'), ('da-19-3', 'trace'), ('da-19-3', 'static'), ('da-4-1', 'static'), ('da-4-1', 'trace'), ('da-1-3', 'trace'), ('da-1-3', 'static'), ('da-3-5', 'static'), ('da-3-5', 'trace'), ('da-4-6', 'trace'), ('da-4-6', 'static'), ('da-5-1', 'static'), ('da-5-1', 'trace'), ('da-26-2', 'trace'), ('da-26-2', 'static'), ('da-9-7', 'static'), ('da-9-7', 'trace'), ('da-24-3', 'trace'), ('da-24-3', 'static'), ('da-6-5', 'static'), ('da-6-5', 'trace'), ('da-17-3', 'trace'), ('da-17-3', 'static'), ('da-1-4', 'static'), ('da-1-4', 'trace'), ('da-8-3', 'trace'), ('da-8-3', 'static'), ('da-17-5', 'trace'), ('da-17-5', 'static'), ('da-17-1', 'trace'), ('da-17-1', 'static'), ('da-9-1', 'trace'), ('da-9-1', 'static'), ('da-20-1', 'trace'), ('da-20-1', 'static')]

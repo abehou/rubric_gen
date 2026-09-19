@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 
 import yaml
 
 BUNDLE = Path(__file__).resolve().parent
 ROOT = BUNDLE.parents[1]
+EXECUTION_BUNDLE = Path(os.environ.get("RESULT40_CONFIG_BUNDLE", BUNDLE)).resolve()
 MEMBERSHIP = json.loads((BUNDLE / "membership.json").read_text())
 TASKS = tuple(MEMBERSHIP["new20"])
 RUN = Path("/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918")
@@ -33,7 +35,7 @@ def source_config(task: str) -> Path:
 
 
 def config_path(task: str, kind: str) -> Path:
-    return BUNDLE / "configs" / f"{task}-{kind}.yaml"
+    return EXECUTION_BUNDLE / "configs" / f"{task}-{kind}.yaml"
 
 
 def main() -> None:

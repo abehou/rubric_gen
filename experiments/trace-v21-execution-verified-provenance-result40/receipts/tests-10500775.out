@@ -1,0 +1,38 @@
+........F.                                                               [100%]
+=================================== FAILURES ===================================
+____________ test_old20_gemini_scopes_keep_exact_completed_studies _____________
+
+    def test_old20_gemini_scopes_keep_exact_completed_studies():
+        scope = _module("trace_result40_old20_audit_scope_test", "audit_scope.py")
+>       rows = scope.old20_gemini_scopes()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+experiments/trace-v21-execution-verified-provenance-result40/audit_scope.py:92: in old20_gemini_scopes
+    original = load_experiment(source)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+src/rubric_gen/submission_revision/experiment.py:217: in load_experiment
+    experiment_id = _validate(payload, resolved)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/rubric_gen/submission_revision/experiment.py:276: in _validate
+    contract.validate_experiment(tasks_dir, tuple(tasks))
+src/rubric_gen/benchmarks/base.py:43: in validate_experiment
+    self.validate_task(tasks_dir / task_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <rubric_gen.benchmarks.biomnibench_da.contract.BiomniBenchDA object at 0x14e486996c30>
+task_dir = PosixPath('/home/data/biomnibench-da/da-10-1')
+
+    def validate_task(self, task_dir: Path) -> None:
+        """Validate the common task layout plus benchmark-specific files."""
+    
+        for path in self.required_task_paths(task_dir):
+            if path.is_symlink() or not path.exists():
+>               raise ValueError(f"task input is missing or symlinked: {path}")
+E               ValueError: task input is missing or symlinked: /home/data/biomnibench-da/da-10-1/instruction.md
+
+src/rubric_gen/benchmarks/base.py:53: ValueError
+=========================== short test summary info ============================
+FAILED experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py::test_old20_gemini_scopes_keep_exact_completed_studies
+1 failed, 9 passed in 1.77s

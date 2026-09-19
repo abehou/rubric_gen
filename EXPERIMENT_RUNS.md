@@ -1389,6 +1389,8 @@ The 160-GiB chain `10495117/10495209/10495225/10495226` also made no call and wa
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
 
+Recovery `10499500` ran for 32 seconds on the account-authorized `fnsw` partition and made no provider turn: native resume correctly rejected configs loaded from a different absolute worktree path than the saved studies. The replacement uses the original frozen config files under `trace-result40-20260918` with current recovery code; provider-free compute tests use the submit directory explicitly and an operational path map for preserved old20 static inputs. Audit remains gated on 240/240 plus passing tests.
+
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.

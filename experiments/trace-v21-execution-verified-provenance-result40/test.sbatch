@@ -12,7 +12,9 @@
 #SBATCH --output=experiments/trace-v21-execution-verified-provenance-result40/receipts/tests-%j.out
 #SBATCH --error=experiments/trace-v21-execution-verified-provenance-result40/receipts/tests-%j.err
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+ROOT="${SLURM_SUBMIT_DIR:?Slurm submit directory is required}"
+export RESULT40_CONFIG_BUNDLE=/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/trace-v21-execution-verified-provenance-result40
+export RUBRIC_GEN_PATH_MAP_FILE="$ROOT/experiments/trace-v21-execution-verified-provenance-result40/path-map.json"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
