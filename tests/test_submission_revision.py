@@ -3239,6 +3239,73 @@ def test_resume_promotes_an_existing_valid_submission_snapshot(
     assert len(session.prompts) == 1
 
 
+def test_resume_completes_interrupted_submission_snapshot_metadata(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    interrupted = SubmissionRevisionController(config, dependencies)
+    snapshot_submission = interrupted.workspaces.snapshot_submission
+
+    def interrupt_after_snapshot(submission_id, workspace, trajectories, session_id):
+        result = snapshot_submission(
+            submission_id, workspace, trajectories, session_id
+        )
+        if submission_id == "s001":
+            raise KeyboardInterrupt
+        return result
+
+    interrupted.workspaces.snapshot_submission = interrupt_after_snapshot
+    with pytest.raises(KeyboardInterrupt):
+        interrupted.run()
+
+    state_path = config.experiment_dir / "state.json"
+    state = json.loads(state_path.read_text())
+    state["phase"] = "turn_in_progress"
+    state_path.write_text(json.dumps(state))
+    turn = config.experiment_dir / "turns" / "turn-001"
+    status_path = turn / "status.json"
+    turn.chmod(turn.stat().st_mode | stat.S_IWUSR | stat.S_IXUSR)
+    status_path.chmod(status_path.stat().st_mode | stat.S_IWUSR)
+    status = json.loads(status_path.read_text())
+    status.update({
+        "status": "failed",
+        "exit_code": 0,
+        "max_retries": config.agent.retries,
+        "attempt_count": 1,
+        "attempts": [{
+            "process_exit_code": 0,
+            "stream_errors": [],
+            "output_errors": [],
+        }],
+    })
+    status_path.write_text(json.dumps(status))
+    submission = config.experiment_dir / "submissions" / "s001"
+    make_tree_owner_writable(submission)
+    (submission / "snapshot.json").unlink()
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90)
+    assert len(session.prompts) == 1
+    snapshot = json.loads((submission / "snapshot.json").read_text())
+    assert snapshot["submission_id"] == "s001"
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(
+        event["event"] == "submission_snapshot_metadata_recovered"
+        for event in events
+    )
+
+
 @pytest.mark.parametrize(
     "failure_reason",
     [
@@ -3289,6 +3356,114 @@ def test_prelaunch_session_failure_resumes_without_trajectory(
         / "turn-002"
         / "status.json"
     ).is_file()
+
+
+def test_response_free_broken_pipe_resumes_from_sealed_checkpoint(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=1)
+
+    class BrokenPipeSession(FakeSession):
+        fail_once = True
+
+        def start(self, *args, **kwargs):
+            if self.fail_once:
+                self.fail_once = False
+                raise BrokenPipeError(32, "Broken pipe")
+            return super().start(*args, **kwargs)
+
+    session = BrokenPipeSession()
+    judge = FakeJudge(task, (80, 90), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+    with pytest.raises(BrokenPipeError):
+        SubmissionRevisionController(config, dependencies).run()
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90)
+    assert (
+        config.experiment_dir
+        / "interrupted-turns"
+        / "turn-001"
+        / "status.json"
+    ).is_file()
+
+
+def test_failed_transport_with_partial_identity_discards_uncertain_session(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=2)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    interrupted = SubmissionRevisionController(config, dependencies)
+    append_event = interrupted.store.append_event
+
+    def interrupt_after_first_revision(payload: dict[str, object]) -> None:
+        append_event(payload)
+        if payload.get("event") == "submission_judged" and payload.get(
+            "submission_id"
+        ) == "s001":
+            raise KeyboardInterrupt
+
+    interrupted.store.append_event = interrupt_after_first_revision
+    with pytest.raises(KeyboardInterrupt):
+        interrupted.run()
+
+    state_path = config.experiment_dir / "state.json"
+    manifest_path = config.experiment_dir / "manifest.json"
+    state = json.loads(state_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    state["phase"] = "failed_turn"
+    state["effective_solver_model"] = None
+    manifest["effective_solver_model"] = None
+    state_path.write_text(json.dumps(state))
+    manifest_path.write_text(json.dumps(manifest))
+
+    turn = config.experiment_dir / "turns" / "turn-002"
+    turn.mkdir(parents=True)
+    (turn / "prompt.txt").write_text(state["next_prompt"])
+    (turn / "trajectory.stream.jsonl").write_text('{"type":"turn.started"}\n')
+    (turn / "status.json").write_text(json.dumps({
+        "status": "failed",
+        "exit_code": 1,
+        "provider_exit_code": 1,
+        "model": config.agent.model,
+        "session_id": state["session_id"],
+        "validation_errors": ["Codex transport closed during an active turn"],
+        "attempts": [{
+            "process_exit_code": 1,
+            "turn_completed": False,
+        }],
+    }))
+    workspace = Path(manifest["live_workspace_dir"])
+    (workspace / "answer.txt").write_text("uncertain interrupted output\n")
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90, 95)
+    assert (
+        config.experiment_dir
+        / "interrupted-turns"
+        / "turn-002"
+        / "trajectory.stream.jsonl"
+    ).is_file()
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(
+        event["event"] == "solver_session_discarded"
+        and event["reason"] == "solver transport failed after session creation"
+        for event in events
+    )
 
 
 @pytest.mark.parametrize("uncertain", [False, True])

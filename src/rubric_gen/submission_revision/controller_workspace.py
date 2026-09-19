@@ -136,7 +136,14 @@ class RevisionWorkspaceManager:
         session_id: str,
     ) -> None:
         """Validate a snapshot sealed before an interrupted state update."""
-
+        snapshot_path = submission_dir / "snapshot.json"
+        if not os.path.lexists(snapshot_path):
+            self._complete_interrupted_submission_snapshot(
+                submission_dir,
+                workspace,
+                trajectories,
+                session_id,
+            )
         _verify_submission_snapshot(submission_dir)
         snapshot = _read_json_object(
             submission_dir / "snapshot.json", "recovered submission snapshot"
@@ -168,6 +175,87 @@ class RevisionWorkspaceManager:
             raise RuntimeError(
                 "existing recovered submission trajectory disagrees with the solver turn"
             )
+
+    def _complete_interrupted_submission_snapshot(
+        self,
+        submission_dir: Path,
+        workspace: Path,
+        trajectories: list[Path],
+        session_id: str,
+    ) -> None:
+        """Finish only the derived metadata for a fully copied submission.
+
+        Snapshot publication can be interrupted after workspace, cumulative
+        trajectory, and status are durable but before snapshot.json is written.
+        Reconstruct that metadata only after all persisted bytes match the live
+        completed turn; otherwise recovery remains fail-closed.
+        """
+
+        expected_names = {"workspace", "trajectory.stream.jsonl", "status.json"}
+        if (
+            submission_dir.is_symlink()
+            or not submission_dir.is_dir()
+            or {path.name for path in submission_dir.iterdir()} != expected_names
+        ):
+            raise RuntimeError("interrupted submission snapshot has uncertain contents")
+        snapshot_workspace = submission_dir / "workspace"
+        cumulative = submission_dir / "trajectory.stream.jsonl"
+        status_path = submission_dir / "status.json"
+        if (
+            snapshot_workspace.is_symlink()
+            or not snapshot_workspace.is_dir()
+            or cumulative.is_symlink()
+            or not cumulative.is_file()
+            or status_path.is_symlink()
+            or not status_path.is_file()
+        ):
+            raise RuntimeError("interrupted submission snapshot has invalid artifacts")
+        status = _read_json_object(status_path, "interrupted submission status")
+        if (
+            status.get("task") != self.task_dir.name
+            or status.get("task_dir") != str(self.task_dir)
+            or status.get("workspace_dir") != str(snapshot_workspace)
+            or status.get("provider") != self.config.agent.provider
+            or status.get("session_id") != session_id
+            or status.get("submission_id") != submission_dir.name
+            or status.get("exit_code") != 0
+            or _solution_tree_sha256(snapshot_workspace)
+            != _solution_tree_sha256(workspace)
+        ):
+            raise RuntimeError(
+                "interrupted submission snapshot disagrees with the completed turn"
+            )
+        expected_trajectory = hashlib.sha256()
+        for trajectory in trajectories:
+            raw = trajectory.read_bytes()
+            expected_trajectory.update(raw)
+            if raw and not raw.endswith(b"\n"):
+                expected_trajectory.update(b"\n")
+        if _sha256_file(cumulative) != expected_trajectory.hexdigest():
+            raise RuntimeError(
+                "interrupted submission trajectory disagrees with the completed turn"
+            )
+        submission_dir.chmod(
+            stat.S_IMODE(os.lstat(submission_dir).st_mode) | stat.S_IRWXU
+        )
+        _write_json_atomic(
+            submission_dir / "snapshot.json",
+            {
+                "submission_id": submission_dir.name,
+                "session_id": session_id,
+                "workspace_sha256": _tree_sha256(snapshot_workspace),
+                "trajectory_sha256": _sha256_file(cumulative),
+            },
+        )
+        for path in (cumulative, status_path, submission_dir / "snapshot.json"):
+            _make_read_only(path)
+        _make_read_only(submission_dir)
+        self.store.append_event(
+            {
+                "event": "submission_snapshot_metadata_recovered",
+                "submission_id": submission_dir.name,
+            }
+        )
 
     def compact_historical_submissions(
         self, state: _RevisionState

@@ -250,6 +250,10 @@ class RevisionRecovery:
         checkpoint = self._failed_turn_checkpoint(state)
         if self._recover_unfinalized_turn(state, workspace, manifest, checkpoint):
             return
+        if self._recover_failed_turn_with_partial_identity(
+            state, workspace, manifest, checkpoint
+        ):
+            return
         self._recover_reported_solver_model(state, workspace, manifest, checkpoint)
         self._validate_solver_identity(state, manifest)
         if self._app_server_never_started(state, checkpoint):
@@ -378,6 +382,63 @@ class RevisionRecovery:
         )
         return True
 
+    def _recover_failed_turn_with_partial_identity(
+        self,
+        state: _RevisionState,
+        workspace: Path,
+        manifest: dict[str, object],
+        checkpoint: _FailedTurnCheckpoint,
+    ) -> bool:
+        """Reset an evidenced failed transport after session creation.
+
+        The session ID is persisted before the provider turn completes.  A
+        transport failure at that boundary can therefore leave a session ID but
+        no effective model in both state and manifest.  The incomplete turn is
+        safe to retry only when its saved status identifies the same session and
+        model and explicitly records the response as incomplete.
+        """
+
+        if not (
+            state.phase is _RevisionPhase.FAILED_TURN
+            and isinstance(state.session_id, str)
+            and state.session_id
+            and state.effective_solver_model is None
+            and manifest.get("session_id") == state.session_id
+            and manifest.get("effective_solver_model") is None
+        ):
+            return False
+        self._validate_turn_artifacts(checkpoint)
+        status = _read_json_object(
+            checkpoint.status_path, "partial-identity solver status"
+        )
+        attempts = status.get("attempts")
+        if (
+            status.get("status") != "failed"
+            or status.get("session_id") != state.session_id
+            or status.get("model") != self.config.agent.model
+            or status.get("exit_code") == 0
+            or status.get("validation_errors")
+            != ["Codex transport closed during an active turn"]
+            or not isinstance(attempts, list)
+            or not attempts
+            or any(
+                not isinstance(attempt, dict)
+                or attempt.get("turn_completed") is not False
+                for attempt in attempts
+            )
+        ):
+            raise RuntimeError(
+                "failed partial solver identity lacks matching incomplete-turn evidence"
+            )
+        self._restore_reset_and_discard(
+            state,
+            workspace,
+            manifest,
+            checkpoint,
+            "solver transport failed after session creation",
+        )
+        return True
+
     def _recover_reported_solver_model(
         self,
         state: _RevisionState,
@@ -452,6 +513,7 @@ class RevisionRecovery:
         controlled = {
             ("controlled Codex configuration changed",),
             ("codex did not report a session ID during resume",),
+            ("[Errno 32] Broken pipe",),
         }
         if (
             status.get("status") != "failed"
