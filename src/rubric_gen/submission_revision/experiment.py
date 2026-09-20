@@ -367,10 +367,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
                 )
         elif proactive_execution_conditions:
             if trace_version.endswith("_complete_public"):
-                expected_id = (
-                    f"{base_id}-execution-verified-proactive-"
-                    "provenance-complete-public"
-                )
+                expected_id = f"{base_id}-complete-public"
             elif trace_version.endswith("_provenance"):
                 expected_id = f"{base_id}-execution-provenance-high-proposer"
                 accepted_ids = {

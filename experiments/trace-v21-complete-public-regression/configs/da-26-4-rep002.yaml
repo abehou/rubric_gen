@@ -32,13 +32,13 @@ solvers:
   retries: 1
   timeout_seconds: 7200
 assignment_selection:
-- da-26-4--rep-002--solver-luna--full-red-team-trace-execution-verified-proactive-provenance-complete-public
-- da-26-4--rep-002--solver-luna--user-simulator-red-team-trace-execution-verified-proactive-provenance-complete-public
+- da-26-4--rep-002--solver-luna--full-red-team-trace-complete-public
+- da-26-4--rep-002--solver-luna--user-simulator-red-team-trace-complete-public
 conditions:
-- condition_id: full-red-team-trace-execution-verified-proactive-provenance-complete-public
+- condition_id: full-red-team-trace-complete-public
   feedback_policy: full
   rubric_policy: red_team_trace
-- condition_id: user-simulator-red-team-trace-execution-verified-proactive-provenance-complete-public
+- condition_id: user-simulator-red-team-trace-complete-public
   feedback_policy: user_simulator
   rubric_policy: red_team_trace
 protocol:
@@ -101,8 +101,8 @@ dag:
     - paraphrase
     output_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/audit/{experiment_id}
 execution_conditions:
-- full-red-team-trace-execution-verified-proactive-provenance-complete-public
-- user-simulator-red-team-trace-execution-verified-proactive-provenance-complete-public
+- full-red-team-trace-complete-public
+- user-simulator-red-team-trace-complete-public
 execution_audit_models:
 - gpt-5.6-sol
 - claude-opus-5
