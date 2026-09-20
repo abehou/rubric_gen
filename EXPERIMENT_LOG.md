@@ -2569,3 +2569,4 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-20 — Results20 feedback-policy comparison
 
 - 13:43 EDT: Semi/Score-only revision `10510934` completed 240/240 assignments with zero failed cells; Sol/Opus audit `10511019` preserved its successful judgments and failed closed on one non-panel rubric-score job. The missing-only recovery retains audit concurrency 120 and is right-sized to 8 CPUs/64 GiB after the never-started 32-CPU request `10512113` was canceled.
+- 14:24 EDT: Missing-only diagnostics found 184 Opus rubric responses that pass the existing lossless native replay and require zero API calls; a private recovery entrypoint publishes only those validated responses while an independent Gemini-60 owner proceeds despite the separate current Anthropic credit blocker.

@@ -1425,6 +1425,13 @@ missing-only audit recovery keeps the 60+60 provider partitions while using an
 8-CPU/64-GiB Slurm allocation after the never-started 32-CPU recovery was
 canceled.
 
+Provider-free diagnosis after the failed recovery identified 184 complete saved
+Opus rubric responses accepted by the existing native replay. The experiment-
+private `recover_audit.py` publishes those responses without provider calls and
+runs the independent Gemini audit at 60 workers; it does not change judge prompts,
+schemas, models, or aggregation. Genuinely missing Opus work remains blocked by a
+fresh Anthropic insufficient-credit response and is not retried repeatedly.
+
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
