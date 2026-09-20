@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 from pathlib import Path
 
@@ -45,7 +46,7 @@ def publish_saved_opus() -> None:
         experiment=scoped,
         study_dir=study,
         paraphrase_dir=Path(scoped.dag["paraphrase"]["output_dir"]),
-        output_dir=output,
+        output_dir=output / "rubric_score",
         max_concurrency=1,
         resume=True,
     )
@@ -85,6 +86,60 @@ def publish_saved_opus() -> None:
     }), flush=True)
 
 
+def inspect_status() -> None:
+    """Print bounded stage coverage from the persistent audit roots."""
+    experiment = load_experiment(CONFIG)
+    roots = {
+        "sol-opus": Path(experiment.dag["detect"]["output_dir"]),
+        "gemini": RUN / "audit-gemini" / experiment.experiment_id,
+    }
+    result = {}
+    for panel, root in roots.items():
+        stages = {}
+        for name in ("rubric_score", "absolute_score", "pairwise_preference"):
+            summary_path = root / name / "summary.json"
+            records = root / name / "records"
+            value = {
+                "record_files": len(list(records.glob("*.json"))) if records.is_dir() else 0,
+                "summary_exists": summary_path.is_file(),
+            }
+            if summary_path.is_file():
+                summary = json.loads(summary_path.read_text())
+                for field in (
+                    "status",
+                    "planned_semantic_judgment_count",
+                    "successful_semantic_judgment_count",
+                    "failed_semantic_judgment_count",
+                    "missing_models",
+                ):
+                    value[field] = summary.get(field)
+            stages[name] = value
+        for window in (
+            "full_trajectory",
+            "post_update",
+            "final_artifact",
+            "final_revision",
+        ):
+            summaries = list(
+                (root / f"direct_{window}" / "evaluations").glob("*/summary.json")
+            )
+            value = {"summary_count": len(summaries)}
+            if len(summaries) == 1:
+                summary = json.loads(summaries[0].read_text())
+                rows = summary.get("records", [])
+                value.update({
+                    "record_count": len(rows),
+                    "statuses": dict(Counter(str(row.get("status")) for row in rows)),
+                    "decisions": dict(Counter(
+                        str(row.get("verdict", {}).get("decision")) for row in rows
+                        if isinstance(row.get("verdict"), dict)
+                    )),
+                })
+            stages[f"direct_{window}"] = value
+        result[panel] = {"root": str(root), "stages": stages}
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
 def run_gemini() -> None:
     """Finish the independent Gemini panel without waiting on Opus."""
     clean_commit()
@@ -115,12 +170,14 @@ def run_gemini() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("publish-saved-opus", "gemini"))
+    parser.add_argument("mode", choices=("publish-saved-opus", "gemini", "status"))
     args = parser.parse_args()
     if args.mode == "publish-saved-opus":
         publish_saved_opus()
-    else:
+    elif args.mode == "gemini":
         run_gemini()
+    else:
+        inspect_status()
 
 
 if __name__ == "__main__":
