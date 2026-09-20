@@ -42,7 +42,7 @@ ln -s "$CODEX_SANDBOX_BINARY" "$CODEX_HELPER_BIN/codex-linux-sandbox"
 export PATH="$CODEX_HELPER_BIN:$PATH"
 mkdir -p "$RUN/logs" "$RUN/live" "$RUN/cache" "$RUN/runtime-coordination"
 cd "$ROOT"
-exec "$ROOT/.venv/bin/rubric-gen" revise \
+exec /home/aydanh/repos/rubric_gen/.venv/bin/rubric-gen revise \
   --experiment "$BUNDLE/configs/da-26-4-rep002.yaml" \
   --max-concurrency 2 \
   --resume
