@@ -6,6 +6,7 @@ from collections import Counter
 import json
 import os
 from pathlib import Path
+import re
 
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.runtime.audit_execution import audit_output_owner
@@ -28,6 +29,16 @@ from run import (
     now,
     scoped_experiment,
 )
+
+
+def _safe_error_sample(value: object) -> str:
+    text = str(value).replace("\n", " ")
+    text = re.sub(
+        r"(?i)(authorization|bearer|api[_-]?key|token)(\s*[:=]?\s*)\S+",
+        r"\1\2<redacted>",
+        text,
+    )
+    return text[:400]
 
 
 def publish_saved_opus() -> None:
@@ -122,6 +133,7 @@ def inspect_status() -> None:
             attempts = root / name / "artifacts"
             failures: Counter[str] = Counter()
             failure_types: Counter[str] = Counter()
+            failure_samples: dict[str, str] = {}
             if attempts.is_dir():
                 for path in attempts.rglob("attempt-*.json"):
                     if path.name.endswith(".response.json"):
@@ -134,9 +146,13 @@ def inspect_status() -> None:
                     category = attempt.get("failure_category")
                     if category is not None:
                         failures[str(category)] += 1
-                        failure_types[str(attempt.get("error", "unknown")).split(":", 1)[0]] += 1
+                        error = str(attempt.get("error", "unknown"))
+                        error_type = error.split(":", 1)[0]
+                        failure_types[error_type] += 1
+                        failure_samples.setdefault(error_type, _safe_error_sample(error))
             value["attempt_failure_categories"] = dict(failures)
             value["attempt_failure_types"] = dict(failure_types)
+            value["attempt_failure_samples"] = failure_samples
             stages[name] = value
         for window in (
             "full_trajectory",
@@ -166,6 +182,11 @@ def inspect_status() -> None:
                         str(row.get("error_type") or row.get("error") or "unknown").split(":", 1)[0]
                         for row in rows if row.get("status") == "failed"
                     )),
+                    "failure_samples": {
+                        str(row.get("error_type") or row.get("error") or "unknown").split(":", 1)[0]:
+                            _safe_error_sample(row.get("error") or row.get("error_type") or "unknown")
+                        for row in rows if row.get("status") == "failed"
+                    },
                 })
             stages[f"direct_{window}"] = value
         result[panel] = {"root": str(root), "stages": stages}
