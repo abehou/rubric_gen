@@ -567,8 +567,8 @@ def test_execution_contract_keeps_same_issue_and_accepts_honest_downgrade():
     )
     assert contract.validate(unresolved)["evidence_refs"]
     changed = dict(unresolved, corrective_action="Invent a result in prose.")
-    with pytest.raises(ValueError, match="unresolved_issue_identity_changed"):
-        contract.validate(changed)
+    contract.validate(changed)
+    assert changed["corrective_action"] == prior["corrective_action"]
     downgrade = {
         **{key: "" for key in (
             "requirement", "defect", "public_evidence", "corrective_action",

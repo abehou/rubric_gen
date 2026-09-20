@@ -2565,3 +2565,6 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-20 — Results40 concurrent audit ownership
 
 - 00:14 EDT: Results40 has 240/240 valid assignments; audit `10507240` reached admission with zero judgment calls but waited behind Harvey's healthy one-study lease. The approved execution policy now admits three audit owners and isolates each owner's Sol-60, Opus-60, and Gemini-60 provider partitions; revision/non-audit work stays aggregate-60, and 30 provider-free focused checks passed on the allocated compute node.
+## 2026-09-21 — Complete-public execution regression
+
+- 02:20 JST: Result40 `da-26-4` rep-002 exposed one general RTT failure: the execution reviewer resolved a successful rerun while current `trace.md` and `answer.txt` still contradicted each other; a provenance-base saved replay with host-surfaced public status lines now retains the issue on its first Luna-low response (36,969 input / 477 output tokens, 6.37 seconds, estimated `$0.007966`). Only the matched Full/User rep-002 regression cells are authorized for rerun after focused checks; no broader Result40 rerun is planned.

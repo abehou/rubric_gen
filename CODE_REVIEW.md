@@ -693,3 +693,6 @@
 ## 2026-09-17 — Results20 candidate integration
 
 - 23:50 JST: Integrated `attack_defense_v2.1_execution_verified_proactive_provenance` with the latest Babel staging branch while retaining its completion-pass recipes. The promoted recipe keeps Luna high only for diagnosis/proposal, rejects literal/echoed output as execution evidence, and leaves historical v2.1 behavior unchanged.
+## 2026-09-21 — Execution reviewer issue continuity
+
+- 02:20 JST: Exact-string equality for an unresolved issue caused valid reviewer paraphrases to consume repair calls; the saved host issue now remains authoritative while unresolved, and current public evidence/references remain model-produced. The complete-public candidate also provides a derived locator containing exact current/fresh execution-status lines so resolution considers the whole public submission rather than one favorable excerpt.

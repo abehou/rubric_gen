@@ -153,12 +153,15 @@ class EnforcementContract:
         elif decision == "correct":
             if prior_status != "unresolved":
                 errors.append({"field": "prior_issue_status", "reason": "active_issue_must_remain_or_resolve"})
-            for key in (
-                "requirement", "defect", "corrective_action",
-                "preserve_supported_work", "if_execution_unavailable",
-            ):
-                if value[key] != self.prior_issue.get(key):
-                    errors.append({"field": key, "reason": "unresolved_issue_identity_changed"})
+            else:
+                # The saved issue owns its durable instruction while it remains
+                # unresolved. Keep the new evidence summary and references, but
+                # do not spend repair calls on a harmless model paraphrase.
+                for key in (
+                    "requirement", "defect", "corrective_action",
+                    "preserve_supported_work", "if_execution_unavailable",
+                ):
+                    value[key] = self.prior_issue.get(key, "")
         elif decision == "pass":
             if prior_status not in {"resolved_execution", "resolved_downgrade"}:
                 errors.append({"field": "prior_issue_status", "reason": "prior_issue_resolution_required"})

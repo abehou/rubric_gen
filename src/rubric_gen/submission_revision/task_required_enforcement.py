@@ -41,10 +41,15 @@ EXECUTION_VERIFIED_PROACTIVE_VERSION = (
 EXECUTION_VERIFIED_PROACTIVE_PROVENANCE_VERSION = (
     "attack_defense_v2.1_execution_verified_proactive_provenance"
 )
+EXECUTION_VERIFIED_PROACTIVE_PROVENANCE_COMPLETE_PUBLIC_VERSION = (
+    "attack_defense_v2.1_execution_verified_proactive_provenance_"
+    "complete_public"
+)
 EXECUTION_VERIFIED_VERSIONS = {
     EXECUTION_VERIFIED_VERSION,
     EXECUTION_VERIFIED_PROACTIVE_VERSION,
     EXECUTION_VERIFIED_PROACTIVE_PROVENANCE_VERSION,
+    EXECUTION_VERIFIED_PROACTIVE_PROVENANCE_COMPLETE_PUBLIC_VERSION,
 }
 VERSIONS = {
     VERSION, REQUIREMENT_ONLY_VERSION, SOURCE_BOUND_VERSION,
@@ -412,9 +417,31 @@ def current_submission_artifact(*, history, output_dir: Path, source_checkpoint:
     }
 
 
+_PUBLIC_STATUS_CUE = re.compile(
+    r"\b(?:current|fresh|new(?:ly)?|this revision|rerun|re-run|"
+    r"completed?|completion|executed?|execution|verified?|verification|"
+    r"stale|prior run|previous run|did not|failed)\b",
+    re.IGNORECASE,
+)
+
+
+def _public_execution_status_summary(text: str) -> str:
+    """Surface public execution-status claims without interpreting them."""
+    candidates = [
+        {"artifact_line": line_number, "text": line.rstrip("\n")}
+        for line_number, line in enumerate(text.splitlines(keepends=True), 1)
+        if _PUBLIC_STATUS_CUE.search(line)
+    ]
+    return canonical_json({
+        "kind": "public-execution-status-summary-v1",
+        "status_candidates": candidates,
+    })
+
+
 def enforcement_request(*, instruction, original_rubric, development_rubric,
                         artifact, output_dir, source_checkpoint,
-                        freeze_witness=False, execution_verified=False):
+                        freeze_witness=False, execution_verified=False,
+                        complete_public_review=False):
     if execution_verified:
         witness, witness_record = execution_verified_witness(output_dir, source_checkpoint)
     else:
@@ -438,6 +465,10 @@ def enforcement_request(*, instruction, original_rubric, development_rubric,
         texts["execution_delta"] = delta_text
         if prior_issue is not None:
             texts["prior_issue"] = canonical_json(prior_issue)
+        if complete_public_review:
+            texts["artifact_status_summary"] = (
+                _public_execution_status_summary(artifact.content)
+            )
     documents = {name: PublicDocument(name, text) for name, text in texts.items()}
     native_ids = {
         "task": "task-instruction",
@@ -450,6 +481,11 @@ def enforcement_request(*, instruction, original_rubric, development_rubric,
         native_ids["execution_delta"] = delta_record["execution_delta_sha256"]
         if prior_issue is not None:
             native_ids["prior_issue"] = prior_issue["issue_id"]
+        if complete_public_review:
+            native_ids["artifact_status_summary"] = (
+                "artifact-status-summary-"
+                + sha256_text(texts["artifact_status_summary"])[:16]
+            )
     evidence = {
         "review_scope": (
             "one_execution_truthfulness_issue"

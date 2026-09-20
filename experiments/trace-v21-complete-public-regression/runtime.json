@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "aggregate_concurrency": 6,
+  "audit_studies": 2,
+  "coordination_dir": "/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/runtime-coordination"
+}
