@@ -8,8 +8,20 @@ from pathlib import Path
 from statistics import fmean
 
 from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
+from rubric_gen.submission_revision.experiment import load_experiment
 
 from report_heldout5 import _assignment_ids, _audit_roots, endpoint
+from run_neutral_heldout5 import (
+    AUDIT_ROOT,
+    NEUTRAL_POOL,
+    ORIGINAL_CONFIG,
+    REPAIRED_CONFIG,
+    load_four_source_targets,
+    neutral_jobs,
+    neutral_scope,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,13 +44,30 @@ def neutral_scores() -> dict[tuple[str, str], dict[int, float]]:
         "successful_judgments"
     ) != 40:
         raise RuntimeError("neutral-heldout score panel is incomplete")
+    original = load_experiment(ORIGINAL_CONFIG)
+    repaired = load_experiment(REPAIRED_CONFIG)
+    experiment = neutral_scope(repaired)
+    targets = load_four_source_targets(original, repaired)
+    stage = RubricScoreStage(
+        EvaluationConfig(
+            experiment=experiment,
+            study_dir=NEUTRAL_RUN / "four-read-only-source-studies",
+            paraphrase_dir=NEUTRAL_POOL,
+            output_dir=AUDIT_ROOT,
+            max_concurrency=12,
+            resume=True,
+        ),
+        targets,
+    )
+    jobs = neutral_jobs(stage, targets)
     values: dict[tuple[str, str], dict[int, float]] = defaultdict(dict)
-    for row in summary["records"]:
-        roles = row["rubric_roles"]
-        if len(roles) != 1 or roles[0]["name"] != "holdout":
+    for job in jobs:
+        row = read(AUDIT_ROOT / "records" / f"{job.key}.json")
+        role = job.roles[0]
+        if role.name != "holdout" or role.variant_index is None:
             raise RuntimeError("neutral score has a non-heldout role")
-        variant = int(roles[0]["variant_index"])
-        key = (str(row["assignment_id"]), str(row["model"]))
+        variant = int(role.variant_index)
+        key = (job.target.assignment_id, job.model)
         if variant in values[key]:
             raise RuntimeError(f"duplicate neutral score: {key} {variant}")
         values[key][variant] = float(row["score"])
