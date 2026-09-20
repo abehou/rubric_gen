@@ -25,3 +25,4 @@ PY=/home/aydanh/repos/rubric_gen/.venv/bin/python
   -k 'not canonical_design and not high_allocation_changes and not proactive_candidate_changes and not proactive_local_runner and not provenance_local_runner'
 "$PY" -m pytest -q tests/test_runtime_throughput.py::test_audit_provider_partitions_schedule_sixty_each_without_cross_consumption
 "$PY" -m pytest -q tests/test_trace_result20_audit_bootstrap.py
+"$PY" -m pytest -q tests/test_result40_audit_rearm.py tests/test_result40_gemini_rearm.py
