@@ -144,3 +144,20 @@ only as secondary stress-test evidence.  The new policy is `uniform_neutral`, an
 dispatch.  The run uses a general-partition A6000 reservation for scheduling only,
 8 CPUs / 32 GiB, paraphrase concurrency 2, audit workers 12, and aggregate provider
 concurrency 6.  No revision or solver call is included.
+
+Job `10514937` completed the bounded panel at source `f19beea5c98f`: five fresh
+neutral paraphrases plus 40/40 Sol/Gemini scores, zero errors, 75 seconds, and 233
+MiB peak RSS. The paired [result table](neutral-heldout5.md) supports the prompt-
+policy hypothesis. For the repaired Full/User artifacts, equal-weight S-H changes
+from `9.33/11.83` under rigorous-3 to `4.90/5.90` under neutral-5. The same-count
+neutral-3 check gives `3.50/6.50`, so the direction is not caused only by increasing
+three heldouts to five. Six of eight model-by-artifact H values rise, one is flat,
+and one falls.
+
+The effect is substantial but incomplete. Neutral heldouts do not make unfinished
+work count as complete, and one original User/Gemini pair worsens. The scientifically
+supported change is therefore to make equal-semantics neutral heldouts the primary
+wording-generalization measurement and retain rigorous heldouts as a separately
+named stress test, not to make heldouts generically more lenient. A broader saved-
+artifact measurement should remain matched across static/RTT and both arms; it
+requires no trajectory rerun.
