@@ -1393,6 +1393,16 @@ Recovery `10499500` ran for 32 seconds on the account-authorized `fnsw` partitio
 
 Recovery `10502684` durably completed the missing `da-17-3` static and trace cells, bringing coverage to 239/240, before it was stopped during a redundant provider-free outer workspace rehash. Conditional recovery `10506164` (4 CPUs, 64 GiB, 24 hours, one shard/assignment worker) will resume only `da-17-1/full-static/rep-001`; provider-free test `10506919` passed 12/12. Audit `10502686` has a 48-hour limit and remains gated behind verified revision completion, followed by report/cost jobs `10502687`/`10502688`.
 
+## 2026-09-20 — Results40 audit concurrency migration
+
+Recovery `10506164` completed the final cell, giving 240/240 assignments. Audit
+`10507240` validated its source scope and waited without making a judgment call
+under the historical one-study lease. Its missing-only replacement uses the same
+NAS8 audit root with `audit_studies=3`; every admitted study has independent
+Sol-60 and Opus-60 partitions (120 concurrent requests), plus Gemini-60 for its
+standalone pass. Provider-free capacity, Results40 identity, and bootstrap tests
+passed 30/30; ordinary revision capacity remains aggregate 60.
+
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.

@@ -2,7 +2,7 @@ import multiprocessing as mp
 from pathlib import Path
 import time
 import pytest
-from rubric_gen.runtime.capacity import Slots, limited
+from rubric_gen.runtime.capacity import Slots, limited, reservation
 from rubric_gen.runtime import capacity
 
 
@@ -20,6 +20,21 @@ def occupy(root, cap, active, peak, ready=None):
             active.value -= 1
 
 
+def occupy_audit_study(config, active, peak, all_ready, release):
+    import os
+    os.environ[capacity._RUNTIME_CONFIG_ENV] = config
+    with reservation("audit"):
+        with reservation("audit-provider-openai"):
+            with active.get_lock():
+                active.value += 1
+                peak.value = max(peak.value, active.value)
+                if active.value == 3:
+                    all_ready.set()
+            assert release.wait(20)
+            with active.get_lock():
+                active.value -= 1
+
+
 @pytest.mark.parametrize("cap",[1,3])
 def test_cross_process_pool_never_multiplies_budget(tmp_path,cap):
     ctx = mp.get_context('spawn')
@@ -30,6 +45,40 @@ def test_cross_process_pool_never_multiplies_budget(tmp_path,cap):
         p.join(20);assert p.exitcode == 0
     assert 1 <= peak.value <= cap
     assert active.value == 0
+
+
+def test_three_audit_studies_have_independent_provider_partitions(tmp_path):
+    import json
+    config = tmp_path / "runtime.json"
+    config.write_text(json.dumps({
+        "version": 1,
+        "aggregate_concurrency": 1,
+        "audit_studies": 3,
+        "audit_provider_concurrency": {"openai": 1},
+        "coordination_dir": str(tmp_path / "runtime"),
+    }))
+    ctx = mp.get_context("spawn")
+    active, peak = ctx.Value("i", 0), ctx.Value("i", 0)
+    all_ready, release = ctx.Event(), ctx.Event()
+    jobs = [
+        ctx.Process(
+            target=occupy_audit_study,
+            args=(str(config), active, peak, all_ready, release),
+        )
+        for _ in range(3)
+    ]
+    for process in jobs:
+        process.start()
+    assert all_ready.wait(20)
+    assert active.value == 3
+    assert peak.value == 3
+    release.set()
+    for process in jobs:
+        process.join(20)
+        assert process.exitcode == 0
+    assert active.value == 0
+    provider_roots = sorted((tmp_path / "runtime" / "audit-provider-openai").glob("study-*"))
+    assert len(provider_roots) == 3
 
 
 def test_crashed_owner_releases_kernel_lease(tmp_path):

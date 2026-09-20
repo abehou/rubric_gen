@@ -176,7 +176,7 @@ def main() -> None:
         raise RuntimeError("new20 membership is not a disjoint 20-task block")
     runtime = policy()
     assert runtime["aggregate_concurrency"] == 60
-    assert runtime["audit_studies"] == 1
+    assert runtime["audit_studies"] == 3
     assert runtime["audit_provider_concurrency"] == {
         "openai": 60,
         "anthropic": 60,
@@ -232,7 +232,7 @@ def main() -> None:
             "openai": 60,
             "anthropic": 60,
             "google": 60,
-            "audit_studies": 1,
+            "audit_studies": 3,
             "panels": {
                 "sol_opus": ["gpt-5.6-sol", "claude-opus-5"],
                 "gemini": ["gemini-3.8-flash"],

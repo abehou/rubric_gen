@@ -1,7 +1,7 @@
 {
   "version": 1,
   "aggregate_concurrency": 60,
-  "audit_studies": 1,
+  "audit_studies": 3,
   "audit_provider_concurrency": {
     "openai": 60,
     "anthropic": 60,

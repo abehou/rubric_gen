@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-20T00:14:00-04:00",
+  "provider_calls": 0,
+  "audit_studies": 3,
+  "per_study": {
+    "executor_max_concurrency": 120,
+    "openai_sol": 60,
+    "anthropic_opus": 60,
+    "google_gemini": 60
+  },
+  "ordinary_revision_aggregate_concurrency": 60,
+  "tests": {
+    "runtime_capacity_and_result40": "27 passed",
+    "audit_partition_and_bootstrap": "3 passed"
+  },
+  "scientific_semantics_changed": false,
+  "note": "Provider partitions are scoped to the admitted audit-study slot so concurrent studies cannot consume one another's allocation."
+}

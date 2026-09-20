@@ -187,7 +187,7 @@ def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
     monkeypatch.setattr(capacity, "policy", lambda: {
         "version": 1,
         "aggregate_concurrency": 60,
-        "audit_studies": 1,
+        "audit_studies": 3,
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
@@ -230,7 +230,7 @@ def test_audit_partition_allows_gemini_only_panel(monkeypatch, tmp_path):
     monkeypatch.setattr(capacity, "policy", lambda: {
         "version": 1,
         "aggregate_concurrency": 60,
-        "audit_studies": 1,
+        "audit_studies": 3,
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
@@ -272,7 +272,7 @@ def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_p
     monkeypatch.setattr(capacity, "policy", lambda: {
         "version": 1,
         "aggregate_concurrency": 60,
-        "audit_studies": 1,
+        "audit_studies": 3,
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,

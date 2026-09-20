@@ -1,6 +1,12 @@
 # Promoted Red Team Trace Results40 expansion
 
-Status: missing-only revision recovery has preserved 239/240 valid assignments. The sole unfinished cell is `da-17-1 / full-static / rep-001`; recovered `da-17-3` static and trace studies are both terminal at 6/6. Formal audit remains gated on 240/240. Conditional recovery `10506164` has a 24-hour allowance; audit `10502686` then runs Sol+Opus followed by the Gemini-only extension, with report/cost jobs `10502687`/`10502688` dependent on audit success.
+Status: missing-only revision recovery completed 240/240 valid assignments. The
+first Results40 audit owner `10507240` reached the complete source/admission gate
+but made no judgment call because the old one-study lease was held by the healthy
+Harvey audit. The approved runtime update admits three audit studies and gives
+each study independent Sol-60 and Opus-60 partitions (120 total); Results40 will
+resume missing-only after that provider-free migration. Its Gemini-only pass uses
+the same study owner and a separate 60-request partition.
 
 The source starts from `770aa64d75645310cc9a9706fdc8744b76e371e5`. The scientific method is frozen as `attack_defense_v2.1_execution_verified_proactive_provenance`; only native task-sharded execution and reporting are being added. Original Results20 artifacts and judgments are reused read-only and will be reproduced from the published machine-readable rows before cumulative analysis.
 

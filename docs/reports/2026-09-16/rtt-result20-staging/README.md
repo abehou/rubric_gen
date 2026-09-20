@@ -80,6 +80,15 @@ calls. Both producer and audit use 32 allocated CPUs; provider request
 concurrency and CPU allocation remain distinct. Recovery uses native missing-only
 resume and must preserve completed assignments and judgments.
 
+For new audits after 2026-09-20, the shared owner limit is three concurrent
+studies. Each admitted study receives its own provider partitions: up to 60 Sol
+requests and 60 Opus requests concurrently (120 total for the study), while a
+Gemini-only pass may use its independent 60-request partition. The three-study
+lease lets BioMNIBench, PaperBench, and Harvey advance without sharing one audit
+owner slot or consuming one another's provider partitions. Revision and other
+non-audit work remain on the single aggregate-60 pool. Historical Results20 ran
+under the one-study policy documented above; its judgments are unchanged.
+
 Provider-free Results20 preflight `10477780` validated the final execution
 configuration: 120 assignments, ordinary provider capacity 60, one audit owner,
 and independent 60-slot OpenAI and Anthropic audit partitions (120 total). The

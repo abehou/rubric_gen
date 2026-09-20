@@ -23,6 +23,7 @@ from rubric_gen.runtime.paths import PROJECT_ROOT
 
 _LOCAL = threading.local()
 _RUNTIME_CONFIG_ENV = "RUBRIC_GEN_RUNTIME_CONFIG"
+_AUDIT_SLOT_ENV = "RUBRIC_GEN_AUDIT_STUDY_SLOT"
 
 
 def _runtime_config_path() -> Path:
@@ -44,7 +45,8 @@ def policy() -> dict:
             or set(value) - required - {"audit_provider_concurrency"}
             or value["version"] != 1 or type(value["aggregate_concurrency"]) is not int
             or not 1 <= value["aggregate_concurrency"] <= 60
-            or value["audit_studies"] != 1
+            or type(value["audit_studies"]) is not int
+            or not 1 <= value["audit_studies"] <= 3
             or not Path(value["coordination_dir"]).is_absolute()):
         raise RuntimeError("invalid shared runtime capacity policy")
     provider_limits = value.get("audit_provider_concurrency")
@@ -117,7 +119,8 @@ class Slots:
             while not held:
                 offset = random.randrange(self.capacity)
                 for index in range(self.capacity):
-                    fd = self._open(f"slot-{(index + offset) % self.capacity:03d}.lock")
+                    slot_index = (index + offset) % self.capacity
+                    fd = self._open(f"slot-{slot_index:03d}.lock")
                     try:
                         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
                     except BlockingIOError:
@@ -126,18 +129,18 @@ class Slots:
                     except BaseException:
                         os.close(fd)
                         raise
-                    held.append(fd)
+                    held.append((slot_index, fd))
                     if len(held) == count:
                         break
                 if len(held) != count:
-                    for fd in held:
+                    for _, fd in held:
                         os.close(fd)
                     held.clear()
                 if not held:
                     time.sleep(0.5 + random.random())
-            yield
+            yield tuple(index for index, _ in held)
         finally:
-            for fd in held:
+            for _, fd in held:
                 os.close(fd)
 
     def active_count(self):
@@ -229,11 +232,21 @@ def reservation(kind="provider", count=1):
     else:
         raise ValueError(f"unknown reservation kind: {kind}")
     root = Path(settings["coordination_dir"]) / kind
+    if kind.startswith("audit-provider-") and settings["audit_studies"] > 1:
+        audit_slot = os.environ.get(_AUDIT_SLOT_ENV)
+        if audit_slot is None or not audit_slot.isdigit():
+            raise RuntimeError("partitioned audit provider request has no study slot")
+        root = root / f"study-{int(audit_slot):03d}"
     started = time.monotonic()
     lease_id = uuid.uuid4().hex
     emit('waiting', kind=kind, slots=count, lease_id=lease_id)
-    with Slots(root, capacity).lease(count):
+    with Slots(root, capacity).lease(count) as slot_indices:
         depths[key] = 1; _LOCAL.depths = depths
+        previous_audit_slot = os.environ.get(_AUDIT_SLOT_ENV)
+        if kind == "audit":
+            if len(slot_indices) != 1:
+                raise RuntimeError("audit owner must reserve exactly one study slot")
+            os.environ[_AUDIT_SLOT_ENV] = str(slot_indices[0])
         try:
             emit("acquired", kind=kind, slots=count, lease_id=lease_id,
                  wait_seconds=time.monotonic() - started)
@@ -242,6 +255,11 @@ def reservation(kind="provider", count=1):
             try:
                 emit("released", kind=kind, slots=count, lease_id=lease_id)
             finally:
+                if kind == "audit":
+                    if previous_audit_slot is None:
+                        os.environ.pop(_AUDIT_SLOT_ENV, None)
+                    else:
+                        os.environ[_AUDIT_SLOT_ENV] = previous_audit_slot
                 depths.pop(key, None)
 
 
