@@ -21,6 +21,7 @@ set +a
 export PYTHONPATH="$ROOT/src"
 export RUBRIC_GEN_PROJECT_ROOT="$ROOT"
 export RUBRIC_GEN_RUNTIME_CONFIG="$BUNDLE/runtime.json"
+export CODEX_HOME=/home/aydanh/codex-babel/redteam
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1
 export PYTHONNOUSERSITE=1

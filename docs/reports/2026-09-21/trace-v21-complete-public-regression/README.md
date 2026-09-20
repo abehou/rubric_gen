@@ -39,4 +39,9 @@ No attacker, pair selector, proposer allocation, admission mathematics, solver, 
 - Revision concurrency: 2 assignment workers, aggregate provider concurrency 6, internal stage fanout 4.
 - Audit will start only after both trajectories are inspected for the intended behavior. It will contain only the missing Sol+Opus judgments for the two new candidate artifacts.
 
-Status: implementation and saved-case behavior validation passed; targeted Babel execution not yet launched.
+Status: implementation and saved-case behavior validation passed. The first targeted
+Babel attempt preserved all successful RTT-stage calls, then failed at solver turn 1
+because the job copied the revoked shared `~/.codex/auth.json`. The sbatch entry point
+now binds Babel's existing authenticated Red Team Codex home; only the two private
+failed-turn credential copies are refreshed before native resume, so no completed
+provider result is regenerated.

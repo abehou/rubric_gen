@@ -1,3 +1,7 @@
+## 2026-09-21 — Complete-public targeted regression
+
+- 03:12 JST: Both authorized regression assignments preserved all successful RTT-stage requests but stopped at solver turn 1 after copying Babel's revoked shared Codex credential; bound the job to the existing authenticated `codex-redteam` home for native failed-turn resume without regenerating completed provider work.
+
 ## 2026-09-20 — Semi/Score-only Results20 authorization
 
 - 11:07 EDT: Results40 completion was revalidated at 240/240 with all three auditor panels and final commit `a49936fd` on the remote branch. The next bounded task adds only Semi/Score-only static and promoted-RTT Results20 cells; Full/User are read-only report inputs and no method or evaluation semantics change is authorized.
