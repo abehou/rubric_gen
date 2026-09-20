@@ -12,7 +12,7 @@
 #SBATCH --output=/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/logs/revise-%j.out
 #SBATCH --error=/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/logs/revise-%j.err
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+ROOT="${SLURM_SUBMIT_DIR:?submit this job from the regression worktree root}"
 BUNDLE="$ROOT/experiments/trace-v21-complete-public-regression"
 RUN=/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921
 export PYTHONPATH="$ROOT/src"
