@@ -15,9 +15,11 @@ from rubric_gen.artifacts.serialization import write_json_atomic
 
 
 MODEL = "claude-opus-5"
-EXPECTED_FAILURES = 16
+EXPECTED_FAILURES = 17
 RUN = Path("/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918")
-ERROR = "direct request exhausted 3 attempts: model response contains no JSON object"
+NO_JSON = "model response contains no JSON object"
+EMPTY_RESPONSE = "Anthropic returned an empty response"
+ALLOWED_ERRORS = {NO_JSON, EMPTY_RESPONSE}
 
 
 def read_object(path: Path) -> dict:
@@ -37,11 +39,8 @@ def plan(root: Path, archive: Path, *, expected: int = EXPECTED_FAILURES) -> lis
         for record in summary.get("records", ()):
             if record.get("model") != MODEL or record.get("status") != "failed":
                 continue
-            if (
-                record.get("failure_category") != "structural"
-                or record.get("error") != ERROR
-                or record.get("max_attempts") != 3
-            ):
+            record_error = str(record.get("error", ""))
+            if record.get("failure_category") != "structural" or record.get("max_attempts") != 3:
                 raise RuntimeError(f"unsupported Opus RH failure in {summary_path}: {record}")
             case_id = record.get("case_id")
             if type(case_id) is not str or not case_id:
@@ -55,36 +54,57 @@ def plan(root: Path, archive: Path, *, expected: int = EXPECTED_FAILURES) -> lis
             if score.exists():
                 raise RuntimeError(f"refusing to rearm a completed Opus RH judgment: {score}")
             attempts = sorted(model_root.glob("chunk-*/attempt-*.json"))
-            if len(attempts) != 3:
-                raise RuntimeError(f"expected three exhausted Opus attempts: {model_root}")
+            if not attempts:
+                raise RuntimeError(f"failed Opus RH judgment has no saved attempts: {model_root}")
+            failed_attempts: list[Path] = []
             response_ids: list[str] = []
-            for number, attempt in enumerate(attempts, start=1):
+            for attempt in attempts:
                 state = read_object(attempt)
                 generation = state.get("generation")
-                if (
-                    state.get("attempt") != number
-                    or state.get("error") != "model response contains no JSON object"
-                    or not isinstance(generation, dict)
-                    or generation.get("requested_model") != MODEL
-                    or state.get("remote_completion") != "confirmed"
-                ):
+                error = state.get("error")
+                if error is None:
+                    if (
+                        not isinstance(generation, dict)
+                        or generation.get("requested_model") != MODEL
+                        or state.get("remote_completion") != "confirmed"
+                    ):
+                        raise RuntimeError(f"saved successful chunk is invalid: {attempt}")
+                    continue
+                if error not in ALLOWED_ERRORS:
                     raise RuntimeError(f"attempt is not the reviewed exhausted Opus case: {attempt}")
-                response_id = generation.get("response_id")
-                if type(response_id) is not str or not response_id:
-                    raise RuntimeError(f"Opus attempt lacks a response id: {attempt}")
-                response_ids.append(response_id)
-            relative = model_root.relative_to(root)
-            destination = archive / relative
-            if destination.exists():
-                raise RuntimeError(f"recovery archive already exists: {destination}")
+                if error == NO_JSON:
+                    if (
+                        not isinstance(generation, dict)
+                        or generation.get("requested_model") != MODEL
+                        or state.get("remote_completion") != "confirmed"
+                    ):
+                        raise RuntimeError(f"invalid confirmed Opus response: {attempt}")
+                    response_id = generation.get("response_id")
+                    if type(response_id) is not str or not response_id:
+                        raise RuntimeError(f"Opus attempt lacks a response id: {attempt}")
+                    response_ids.append(response_id)
+                elif state.get("remote_completion") != "unknown":
+                    raise RuntimeError(f"empty Opus response has unexpected completion state: {attempt}")
+                failed_attempts.append(attempt)
+            if not failed_attempts:
+                raise RuntimeError(f"failed Opus RH judgment has no failed attempts: {model_root}")
+            if not (
+                record_error == f"direct request exhausted 3 attempts: {NO_JSON}"
+                or record_error.startswith("recorded structural: ")
+            ):
+                raise RuntimeError(f"unsupported Opus RH summary error in {summary_path}: {record_error}")
+            destinations = [archive / attempt.relative_to(root) for attempt in failed_attempts]
+            if any(destination.exists() for destination in destinations):
+                raise RuntimeError(f"recovery archive already exists for {model_root}")
             actions.append({
                 "kind": "direct_rh_judgment",
                 "window": summary.get("source", {}).get("window"),
                 "case_id": case_id,
                 "model": MODEL,
-                "source": str(model_root),
-                "archive": str(destination),
-                "saved_attempts": 3,
+                "failed_attempts": [str(attempt) for attempt in failed_attempts],
+                "archives": [str(destination) for destination in destinations],
+                "saved_failed_attempts": len(failed_attempts),
+                "preserved_successful_chunks": len(attempts) - len(failed_attempts),
                 "response_ids": response_ids,
             })
             seen.add(model_root)
@@ -102,10 +122,13 @@ def run(root: Path, receipt: Path, *, expected: int = EXPECTED_FAILURES) -> dict
     archive = root / "recovery-evidence" / f"opus-rh-json-rearm-{stamp}"
     actions = plan(root, archive, expected=expected)
     for action in actions:
-        source = Path(str(action["source"]))
-        destination = Path(str(action["archive"]))
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        source.rename(destination)
+        for source_value, destination_value in zip(
+            action["failed_attempts"], action["archives"], strict=True
+        ):
+            source = Path(str(source_value))
+            destination = Path(str(destination_value))
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            source.rename(destination)
     result = {
         "kind": "results40-opus-rh-json-rearm",
         "created_at": datetime.now(timezone.utc).isoformat(),

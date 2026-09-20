@@ -12,7 +12,7 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def fixture(tmp_path: Path, *, complete=False, error="model response contains no JSON object"):
+def fixture(tmp_path: Path, *, complete=False, error=MODULE.NO_JSON):
     root = tmp_path / "audit"
     evaluation = root / "task/direct_full_trajectory/evaluations/run"
     model_root = evaluation / "cases/case-1" / MODULE.MODEL
@@ -40,7 +40,7 @@ def fixture(tmp_path: Path, *, complete=False, error="model response contains no
             "model": MODULE.MODEL,
             "status": "failed",
             "failure_category": "structural",
-            "error": MODULE.ERROR,
+            "error": f"direct request exhausted 3 attempts: {MODULE.NO_JSON}",
             "max_attempts": 3,
             "case_id": "case-1",
         }],
@@ -55,8 +55,9 @@ def test_rearms_exact_reviewed_opus_rh_failure_and_preserves_evidence(tmp_path):
     assert result["request_semantics_changed"] is False
     assert result["rearmed_judgments"] == 1
     assert result["actions"][0]["response_ids"] == response_ids
-    assert not model_root.exists()
-    assert Path(result["actions"][0]["archive"]).is_dir()
+    assert model_root.is_dir()
+    assert not list(model_root.glob("chunk-*/attempt-*.json"))
+    assert all(Path(path).is_file() for path in result["actions"][0]["archives"])
 
 
 def test_refuses_completed_or_different_failure(tmp_path):
@@ -70,5 +71,30 @@ def test_refuses_completed_or_different_failure(tmp_path):
 
 def test_refuses_unexpected_failure_count(tmp_path):
     root, _, _ = fixture(tmp_path)
-    with pytest.raises(RuntimeError, match="expected 16"):
+    with pytest.raises(RuntimeError, match="expected 17"):
         MODULE.run(root, tmp_path / "receipt.json")
+
+
+def test_preserves_successful_chunks_and_rearms_empty_response(tmp_path):
+    root, model_root, _ = fixture(tmp_path, error=MODULE.EMPTY_RESPONSE)
+    failed = sorted(model_root.glob("chunk-*/attempt-*.json"))
+    for attempt in failed:
+        value = json.loads(attempt.read_text())
+        value["generation"] = None
+        value["remote_completion"] = "unknown"
+        attempt.write_text(json.dumps(value))
+    good = model_root / "chunk-000/attempt-001.json"
+    good.parent.mkdir()
+    good.write_text(json.dumps({
+        "attempt": 1,
+        "error": None,
+        "remote_completion": "confirmed",
+        "generation": {"requested_model": MODULE.MODEL, "response_id": "good"},
+    }))
+    summary = next(root.glob("**/summary.json"))
+    value = json.loads(summary.read_text())
+    value["records"][0]["error"] = f"recorded structural: {failed[-1]}"
+    summary.write_text(json.dumps(value))
+    result = MODULE.run(root, tmp_path / "receipt.json", expected=1)
+    assert good.exists()
+    assert result["actions"][0]["preserved_successful_chunks"] == 1
