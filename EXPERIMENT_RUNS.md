@@ -1,6 +1,7 @@
 ## 2026-09-20 — Semi/Score-only Results20 prepared
 
 - 11:07 EDT: The new four-cell bundle is `experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml`, with 240 assignments and persistent root `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/`. It reuses canonical Results20 seeds/paraphrases/g1 and the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` recipe; provider-free compute validation precedes launch at revision concurrency 60 and Sol/Opus/Gemini partitions 60 each.
+- 11:14 EDT: Provider-free job `10510923` validates experiment `biomnibench-da-factorial-r10-2e389d4e31bb`: 240 assignments, all 60 frozen seeds, selected/development plus five paraphrase variants, exact g1 inventory, canonical models and writable NAS8 roots; provider calls remain zero.
 
 ## 2026-09-20 — Results40 complete
 
