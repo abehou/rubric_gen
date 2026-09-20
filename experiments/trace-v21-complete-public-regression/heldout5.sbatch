@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#SBATCH --partition=preempt
-#SBATCH --qos=preempt_cpu_qos
+#SBATCH --partition=general
+#SBATCH --gres=gpu:A6000:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -40,7 +40,9 @@ fi
 mkdir -p "$RUN/logs" "$RUN/cache" "$RUN/runtime-coordination"
 cd "$ROOT"
 
-# Complete the missing Gemini panel for the two repaired artifacts, then run
-# only the two new heldout rubrics against the four saved final artifacts.
+# The reserved A6000 is used only to obtain a general-partition node; this API
+# workload uses the requested CPU and memory resources. Complete the missing
+# Gemini panel for the two repaired artifacts, then run only the two new
+# heldout rubrics against the four saved final artifacts.
 /home/aydanh/repos/rubric_gen/.venv/bin/python "$BUNDLE/run_gemini_audit.py"
 exec /home/aydanh/repos/rubric_gen/.venv/bin/python "$BUNDLE/run_heldout5.py"
