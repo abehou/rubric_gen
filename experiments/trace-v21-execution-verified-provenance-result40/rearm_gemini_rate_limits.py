@@ -37,6 +37,12 @@ def read_object(path: Path) -> dict:
     return value
 
 
+def is_live_path(root: Path, path: Path) -> bool:
+    """Exclude immutable recovery evidence from a later missing-only scan."""
+
+    return "recovery-evidence" not in path.relative_to(root).parts
+
+
 def is_retryable_operational_failure(value: dict) -> bool:
     error = str(value.get("error", ""))
     return any(marker in error for marker in RATE_LIMIT_MARKERS)
@@ -47,6 +53,8 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
     selected: set[Path] = set()
     for name in ("rubric_score", "absolute_score", "pairwise_preference"):
         for summary_path in sorted(root.glob(f"**/{name}/summary.json")):
+            if not is_live_path(root, summary_path):
+                continue
             summary = read_object(summary_path)
             if summary.get("status") != "incomplete":
                 continue
@@ -87,6 +95,8 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
         # summary.json. Recover the same narrowly recognized saved failures
         # directly from their artifact directories in that case.
         for artifact in sorted(root.glob(f"**/{name}/artifacts/*")):
+            if not is_live_path(root, artifact):
+                continue
             if artifact in selected or artifact.is_symlink() or not artifact.is_dir():
                 continue
             if list(artifact.rglob("evaluation.json")):
@@ -120,6 +130,8 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
         # only record-free keys whose every saved attempt is the same narrowly
         # recognized operational failure as rearmable.
         for attempt_root in sorted(root.glob(f"**/{name}/attempts/*")):
+            if not is_live_path(root, attempt_root):
+                continue
             if attempt_root.is_symlink() or not attempt_root.is_dir():
                 continue
             stage = attempt_root.parents[1]
@@ -156,6 +168,8 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
 def direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
     actions: list[dict[str, object]] = []
     for summary_path in sorted(root.glob("**/direct_*/evaluations/*/summary.json")):
+        if not is_live_path(root, summary_path):
+            continue
         summary = read_object(summary_path)
         stage = summary_path.parents[2]
         for record in summary.get("records", ()):
@@ -242,7 +256,10 @@ def run(root: Path, receipt: Path) -> dict[str, object]:
 def main() -> None:
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("Gemini audit recovery must run through Slurm")
-    root = RUN / "audit-gemini"
+    default_root = RUN / "audit-gemini"
+    root = Path(os.environ.get("RESULT40_GEMINI_REARM_ROOT", default_root))
+    if root != default_root and default_root not in root.parents:
+        raise RuntimeError(f"Gemini recovery root is outside the Results40 audit tree: {root}")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     receipt = RUN / f"gemini-rate-limit-rearm-{stamp}.json"
     result = run(root, receipt)

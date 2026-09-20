@@ -521,3 +521,15 @@ def test_gemini_rearm_expected_count_prevents_broad_recovery(tmp_path, monkeypat
     with pytest.raises(RuntimeError, match="expected 2 Gemini operational failures, found 1"):
         recovery.run(root, tmp_path / "receipt.json")
     assert attempt.exists()
+
+
+def test_gemini_rearm_ignores_archived_recovery_evidence(tmp_path):
+    recovery = _module("trace_result40_gemini_archive_test", "rearm_gemini_rate_limits.py")
+    root = tmp_path / "audit-gemini"
+    live = root / "absolute_score" / "attempts" / "live-key"
+    archived = root / "recovery-evidence" / "old" / "absolute_score" / "attempts" / "archived-key"
+    for path in (live, archived):
+        path.mkdir(parents=True)
+        (path / "attempt-000001.json").write_text(json.dumps({"error": "HTTP 503 UNAVAILABLE"}))
+    actions = recovery.semantic_actions(root, tmp_path / "archive")
+    assert [item["judgment_key"] for item in actions] == ["live-key"]
