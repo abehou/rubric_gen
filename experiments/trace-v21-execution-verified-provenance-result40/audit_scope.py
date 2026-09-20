@@ -6,8 +6,10 @@ the execution-time auditor subset and the destination audit directory change.
 from __future__ import annotations
 
 from copy import deepcopy
+from contextlib import contextmanager
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
 
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
@@ -18,6 +20,7 @@ from make_configs import ROOT, RUN, SHARDS, config_path
 SOL_OPUS_PANEL = ("gpt-5.6-sol", "claude-opus-5")
 GEMINI_PANEL = ("gemini-3.8-flash",)
 THREE_MODEL_PANEL = (*SOL_OPUS_PANEL, *GEMINI_PANEL)
+PATH_MAP_ENV = "RUBRIC_GEN_PATH_MAP_FILE"
 
 # Historical static configs are loaded from the exact paths recorded by their
 # completed study ledgers.  Current code derives a different ID for those old
@@ -37,6 +40,27 @@ OLD20_STUDIES = {
     "static-full": AUTHORITATIVE_CHECKOUT / "runs/babel-result20-current-20260908/full-static/study/biomnibench-da-factorial-r10-bfbdd0f9833c",
     "static-user": AUTHORITATIVE_CHECKOUT / "runs/babel-result20-cue-contrast-20260908/static/study/biomnibench-da-factorial-r10-f0203f5d69f3",
 }
+
+
+@contextmanager
+def historical_source_paths():
+    """Load completed old20 sources with their recorded home paths.
+
+    The Results40 path map is required by the new task-sharded inputs, but it
+    relocates the still-readable historical task tree to NAS8 after resolving
+    the old YAML.  Old20 revision manifests record the original home task path,
+    so using the relocation while validating those immutable manifests creates
+    a producer-identity mismatch before any judgment request.  The completed
+    ledger paths are replaced explicitly below; only this historical source
+    load retains its recorded task path.
+    """
+
+    previous = os.environ.pop(PATH_MAP_ENV, None)
+    try:
+        yield
+    finally:
+        if previous is not None:
+            os.environ[PATH_MAP_ENV] = previous
 
 
 def scoped_experiment(
@@ -66,7 +90,8 @@ def completed_historical_experiment(name: str) -> Experiment:
 
     source = OLD20_SOURCES[name]
     study = OLD20_STUDIES[name]
-    loaded = load_experiment(source)
+    with historical_source_paths():
+        loaded = load_experiment(source)
     ledger = json.loads((study / "study.json").read_text())
     expected_id = EXPECTED_OLD20_IDS[name]
     if ledger.get("experiment_path") != str(source):

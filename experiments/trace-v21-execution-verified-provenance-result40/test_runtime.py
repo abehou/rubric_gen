@@ -368,6 +368,31 @@ def test_old20_gemini_scopes_keep_exact_completed_studies():
         )
         expected = 120 if name == "old20-current-gemini" else 60
         assert len(experiment.execution_assignments) == expected
+        if name.startswith("old20-static-"):
+            from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+            from rubric_gen.submission_revision.evaluation.targets import (
+                load_evaluation_targets,
+            )
+            from rubric_gen.submission_revision.source_resolution import (
+                resolve_study_sources,
+            )
+
+            study = Path(experiment.dag["revise"]["output_dir"])
+            sources = resolve_study_sources(study, experiment)
+            assert len(sources.revisions) == 60
+            first = sources.revisions[0]
+            assert first.manifest["task_dir"] == str(
+                first.producer.task_dir(first.assignment.task_id)
+            )
+            targets = load_evaluation_targets(EvaluationConfig(
+                experiment=experiment,
+                study_dir=study,
+                paraphrase_dir=Path(experiment.dag["paraphrase"]["output_dir"]),
+                output_dir=Path(experiment.dag["detect"]["output_dir"]),
+                max_concurrency=60,
+                resume=True,
+            ), sources)
+            assert len(targets) == 60
 
 
 def test_three_model_analysis_uses_equal_artifact_weights():
