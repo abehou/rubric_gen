@@ -63,7 +63,7 @@ def main() -> None:
     assert tuple(experiment.task_ids) == TASKS
     assert experiment.replicates == 3
     assert len(experiment.execution_assignments) == 240
-    assert tuple(experiment.execution_conditions) == CONDITIONS
+    assert tuple(experiment.execution_conditions) == tuple(sorted(CONDITIONS))
     assert tuple(experiment.outcome_audit["models"]) == PANEL
     assert experiment.protocol["red_team_trace_version"] == TRACE_VERSION
     assert experiment.protocol["rubric_proposer_model"] == "gpt-5.6-luna"
