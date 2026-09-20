@@ -15,6 +15,9 @@ set -euo pipefail
 ROOT="${SLURM_SUBMIT_DIR:?submit this job from the regression worktree root}"
 BUNDLE="$ROOT/experiments/trace-v21-complete-public-regression"
 RUN=/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921
+set -a
+source /home/aydanh/repos/rubric_gen/.env.local
+set +a
 export PYTHONPATH="$ROOT/src"
 export RUBRIC_GEN_PROJECT_ROOT="$ROOT"
 export RUBRIC_GEN_RUNTIME_CONFIG="$BUNDLE/runtime.json"

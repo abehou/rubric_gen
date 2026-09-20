@@ -35,7 +35,7 @@ No attacker, pair selector, proposer allocation, admission mathematics, solver, 
 ## Targeted run
 
 - Frozen seed/paraphrase/pretreatment inputs are the exact Result40 `da-26-4` sources.
-- New output root: `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/`
+- New output root: `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/`; the two response-free attempts made without the existing Babel key remain preserved under `study/`, while the authenticated run uses `study-authenticated/`.
 - Revision concurrency: 2 assignment workers, aggregate provider concurrency 6, internal stage fanout 4.
 - Audit will start only after both trajectories are inspected for the intended behavior. It will contain only the missing Sol+Opus judgments for the two new candidate artifacts.
 

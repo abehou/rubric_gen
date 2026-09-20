@@ -94,12 +94,12 @@ dag:
     depends_on:
     - seed
     - paraphrase
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/study/{experiment_id}
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/study-authenticated/{experiment_id}
   detect:
     depends_on:
     - revise
     - paraphrase
-    output_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/audit/{experiment_id}
+    output_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/audit-authenticated/{experiment_id}
 execution_conditions:
 - full-red-team-trace-complete-public
 - user-simulator-red-team-trace-complete-public
