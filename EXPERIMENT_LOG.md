@@ -1,3 +1,7 @@
+## 2026-09-20 — Results40 Opus missing-only recovery
+
+- 01:02 EDT: Results40 audit `10508375` is preserving complete Sol/Opus judgments but some Opus rubric responses exhausted the unchanged three-attempt structured-cardinality contract. Added a provider-free, exact-key recovery that archives all invalid responses before rearming only those absent judgments; request content, judge model, scoring semantics, and successful judgments remain unchanged (20 focused/runtime tests pass).
+
 ## 2026-09-15 — RTT task-required pass-boundary Dev3
 
 - 18:12 EDT: Exact zero-call preflight passed in the login controller after its 1-CPU Slurm owner could not backfill: 18 assignments, nine frozen seeds, paraphrases, candidate/version and output ownership all validate. Cancelled only pending duplicate `10454047`, made revision `10454080` eligible, and tightened pending revision/audit time limits to evidence-based 4h/2h; downstream gate/audit/analysis dependencies remain intact.

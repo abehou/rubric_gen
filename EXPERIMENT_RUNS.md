@@ -1,3 +1,7 @@
+## 2026-09-20 — Results40 three-auditor audit recovery
+
+- First-pass owner `10508375` runs from source `6a2ee964b8fd1bde7fa1a40ab0e0cd7fa4d4ccce` on `babel-p5-28`, using one admitted study slot with Sol 60 and Opus 60 concurrent partitions before Gemini 60. Completed judgments are durable under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; after the owner exits, archive only exhausted Opus rubric-cardinality attempts with `experiments/trace-v21-execution-verified-provenance-result40/rearm_audit.sbatch`, then run the ordinary audit owner missing-only.
+
 ## 2026-09-19 — Results40 recovery and three-auditor audit
 
 - 04:33 EDT: Results40 retains at least 234/240 validated assignments under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; missing-only owner `10499500` waits for Slurm priority with 8 CPU/64 GiB/4h. The obsolete two-model audit `10499502` is held. Provider-free job `10500513` validates the replacement audit owner: Sol 60 + Opus 60 for the core pass, then Gemini 60, with original20 Gemini judgments added for the cumulative40 three-model panel.
