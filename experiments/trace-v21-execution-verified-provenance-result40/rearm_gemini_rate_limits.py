@@ -42,6 +42,7 @@ def is_retryable_operational_failure(value: dict) -> bool:
 
 def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
     actions: list[dict[str, object]] = []
+    selected: set[Path] = set()
     for name in ("rubric_score", "absolute_score", "pairwise_preference"):
         for summary_path in sorted(root.glob(f"**/{name}/summary.json")):
             summary = read_object(summary_path)
@@ -79,6 +80,37 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                     "archive": str(destination),
                     "saved_attempts": len(states),
                 })
+                selected.add(artifact)
+        # A fatal provider-admission error can stop the stage before it writes
+        # summary.json. Recover the same narrowly recognized saved failures
+        # directly from their artifact directories in that case.
+        for artifact in sorted(root.glob(f"**/{name}/artifacts/*")):
+            if artifact in selected or artifact.is_symlink() or not artifact.is_dir():
+                continue
+            if list(artifact.rglob("evaluation.json")):
+                continue
+            attempts = sorted(artifact.rglob("attempt-*.json"))
+            states = [
+                read_object(path)
+                for path in attempts
+                if not path.name.endswith(".response.json")
+                and not path.name.startswith("failed-attempt-")
+            ]
+            if not states or not all(is_retryable_operational_failure(state) for state in states):
+                continue
+            key = artifact.name
+            destination = archive / "semantic" / name / key
+            if destination.exists():
+                raise RuntimeError(f"recovery archive already exists: {destination}")
+            actions.append({
+                "kind": "semantic_judgment",
+                "stage": name,
+                "judgment_key": key,
+                "source": str(artifact),
+                "archive": str(destination),
+                "saved_attempts": len(states),
+                "discovered_without_summary": True,
+            })
     return actions
 
 

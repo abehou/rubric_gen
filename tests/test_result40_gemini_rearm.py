@@ -67,6 +67,17 @@ def test_rearms_pre_request_capacity_seal_failure(tmp_path):
     assert not artifact.exists()
 
 
+def test_rearms_semantic_failure_when_fatal_stage_wrote_no_summary(tmp_path):
+    root, artifact = semantic_fixture(
+        tmp_path, error="shared capacity changed; refuse a split budget"
+    )
+    (artifact.parents[1] / "summary.json").unlink()
+    result = MODULE.run(root, tmp_path / "receipt.json")
+    assert result["rearmed_items"] == 1
+    assert result["actions"][0]["discovered_without_summary"] is True
+    assert not artifact.exists()
+
+
 @pytest.mark.parametrize("fixture", [semantic_fixture, direct_fixture])
 def test_refuses_non_rate_limit_failures(tmp_path, fixture):
     root, *_ = fixture(tmp_path, error="some other provider failure")
