@@ -6,13 +6,20 @@ from collections import defaultdict
 import json
 from pathlib import Path
 from statistics import fmean
+import tarfile
+import tempfile
 
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
 from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
 from rubric_gen.submission_revision.experiment import load_experiment
 
-from report_heldout5 import _assignment_ids, _audit_roots, endpoint
+from report_heldout5 import (
+    _assignment_ids,
+    _assignment_record,
+    _audit_roots,
+    _saved_record,
+)
 from run_neutral_heldout5 import (
     AUDIT_ROOT,
     NEUTRAL_POOL,
@@ -32,6 +39,10 @@ BASE_RUN = Path(
 NEUTRAL_RUN = BASE_RUN / "neutral-heldout5"
 REPORT = ROOT / "docs/reports/2026-09-21/trace-v21-complete-public-regression"
 MODELS = ("gpt-5.6-sol", "gemini-3.8-flash")
+SOL_ARCHIVE = (
+    ROOT
+    / "diagnostics/targeted-audit-evidence.tgz"
+)
 
 
 def read(path: Path) -> dict:
@@ -76,8 +87,61 @@ def neutral_scores() -> dict[tuple[str, str], dict[int, float]]:
     return dict(values)
 
 
-def analyze() -> dict[str, object]:
-    roots = _audit_roots()
+def saved_endpoint(
+    *,
+    study: Path,
+    audit: Path,
+    assignment_id: str,
+    model: str,
+) -> dict[str, float]:
+    assignment = _assignment_record(study, assignment_id)
+    experiment_dir = study / str(assignment["experiment_dir"])
+    state = read(experiment_dir / "state.json")
+    submission_id = str(state["submission_ids"][-1])
+    composition = read(
+        experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
+    )
+    references = [
+        reference
+        for reference in read(audit / "rubric_score/summary.json")["records"]
+        if reference["assignment_id"] == assignment_id
+        and reference["model"] == model
+        and reference["artifact"] == "final"
+    ]
+    role_scores: dict[tuple[str, int | None], float] = {}
+    for reference in references:
+        for role in reference["rubric_roles"]:
+            key = (str(role["name"]), role["variant_index"])
+            if key in role_scores:
+                raise RuntimeError(f"duplicate saved role: {assignment_id} {key}")
+            role_scores[key] = float(reference["score"])
+    selected = role_scores.get(("selected", 0))
+    heldouts = [
+        score
+        for (role, index), score in role_scores.items()
+        if role == "holdout" and index in {2, 3, 4}
+    ]
+    if selected is None or len(heldouts) != 3:
+        raise RuntimeError(f"saved rigorous panel is incomplete: {assignment_id} {model}")
+    absolute_refs = [
+        reference
+        for reference in read(audit / "absolute_score/summary.json")["records"]
+        if reference["assignment_id"] == assignment_id
+        and reference["model"] == model
+        and reference["artifact"] == "final"
+    ]
+    if len(absolute_refs) != 1:
+        raise RuntimeError(f"saved absolute score is incomplete: {assignment_id} {model}")
+    absolute = _saved_record(audit, "absolute_score", absolute_refs[0])
+    return {
+        "W": float(composition["reference_score"]),
+        "S": selected,
+        "H3": fmean(heldouts),
+        "A": float(absolute["verdict"]["score"]),
+    }
+
+
+def analyze_with_roots(roots: dict[str, dict[str, Path]]) -> dict[str, object]:
     assignment_ids = _assignment_ids()
     neutral = neutral_scores()
     rows: list[dict[str, object]] = []
@@ -85,7 +149,7 @@ def analyze() -> dict[str, object]:
         for arm in ("Full", "User"):
             assignment_id = assignment_ids[version][arm]
             for model in MODELS:
-                old = endpoint(
+                old = saved_endpoint(
                     study=roots[version]["study"],
                     audit=roots[version][model],
                     assignment_id=assignment_id,
@@ -107,7 +171,6 @@ def analyze() -> dict[str, object]:
                     "H_change_neutral_minus_rigorous": h_neutral - float(old["H3"]),
                     "W": old["W"],
                     "A": old["A"],
-                    "RH": old["RH"],
                 })
 
     combined = []
@@ -140,6 +203,21 @@ def analyze() -> dict[str, object]:
         "rows": rows,
         "combined": combined,
     }
+
+
+def analyze() -> dict[str, object]:
+    roots = _audit_roots()
+    repaired_sol = roots["repaired"]["gpt-5.6-sol"]
+    if (repaired_sol / "rubric_score/summary.json").is_file():
+        return analyze_with_roots(roots)
+    if not SOL_ARCHIVE.is_file():
+        raise RuntimeError(f"saved repaired Sol archive is missing: {SOL_ARCHIVE}")
+    with tempfile.TemporaryDirectory(prefix="rtt-saved-sol-") as directory:
+        extracted = Path(directory)
+        with tarfile.open(SOL_ARCHIVE, "r:gz") as archive:
+            archive.extractall(extracted, filter="data")
+        roots["repaired"]["gpt-5.6-sol"] = extracted
+        return analyze_with_roots(roots)
 
 
 def markdown(report: dict[str, object]) -> str:
