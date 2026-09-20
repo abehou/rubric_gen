@@ -78,6 +78,32 @@ def test_rearms_semantic_failure_when_fatal_stage_wrote_no_summary(tmp_path):
     assert not artifact.exists()
 
 
+def test_rearms_flat_semantic_attempts_without_summary_and_preserves_records(tmp_path):
+    root = tmp_path / "audit-gemini"
+    stage = root / "old20/static/absolute_score"
+    failed_key = "b" * 32
+    completed_key = "c" * 32
+    failed = stage / "attempts" / failed_key
+    completed_attempts = stage / "attempts" / completed_key
+    failed.mkdir(parents=True)
+    completed_attempts.mkdir(parents=True)
+    error = "Gemini API request failed with HTTP 429: RESOURCE_EXHAUSTED"
+    (failed / "attempt-001.json").write_text(json.dumps({"attempt": 1, "error": error}))
+    (completed_attempts / "attempt-001.json").write_text(json.dumps({"attempt": 1}))
+    records = stage / "records"
+    records.mkdir()
+    completed_record = records / f"{completed_key}.json"
+    completed_record.write_text("{}")
+
+    result = MODULE.run(root, tmp_path / "receipt.json")
+
+    assert result["rearmed_items"] == 1
+    assert result["actions"][0]["storage_layout"] == "flat_attempts"
+    assert not failed.exists()
+    assert completed_attempts.exists()
+    assert completed_record.exists()
+
+
 @pytest.mark.parametrize("fixture", [semantic_fixture, direct_fixture])
 def test_refuses_non_rate_limit_failures(tmp_path, fixture):
     root, *_ = fixture(tmp_path, error="some other provider failure")

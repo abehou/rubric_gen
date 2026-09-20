@@ -111,6 +111,43 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                 "saved_attempts": len(states),
                 "discovered_without_summary": True,
             })
+        # Scalar absolute/pairwise stages persist provider attempts directly as
+        # ``attempts/<semantic-key>/attempt-*.json``.  A fatal batch failure can
+        # leave successful records plus only these failed attempt directories,
+        # without summary.json or the older nested ``artifacts`` layout.  Treat
+        # only record-free keys whose every saved attempt is the same narrowly
+        # recognized operational failure as rearmable.
+        for attempt_root in sorted(root.glob(f"**/{name}/attempts/*")):
+            if attempt_root.is_symlink() or not attempt_root.is_dir():
+                continue
+            stage = attempt_root.parents[1]
+            key = attempt_root.name
+            completed = stage / "records" / f"{key}.json"
+            if completed.exists():
+                if completed.is_symlink() or not completed.is_file():
+                    raise RuntimeError(
+                        f"completed Gemini semantic record is not a regular file: {completed}"
+                    )
+                continue
+            attempts = sorted(attempt_root.glob("attempt-*.json"))
+            states = [read_object(path) for path in attempts]
+            if not states or not all(is_retryable_operational_failure(state) for state in states):
+                continue
+            destination = (
+                archive / "semantic-flat" / stage.relative_to(root) / "attempts" / key
+            )
+            if destination.exists():
+                raise RuntimeError(f"recovery archive already exists: {destination}")
+            actions.append({
+                "kind": "semantic_judgment",
+                "stage": name,
+                "judgment_key": key,
+                "source": str(attempt_root),
+                "archive": str(destination),
+                "saved_attempts": len(states),
+                "discovered_without_summary": True,
+                "storage_layout": "flat_attempts",
+            })
     return actions
 
 
