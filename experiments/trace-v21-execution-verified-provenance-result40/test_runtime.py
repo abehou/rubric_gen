@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+from types import SimpleNamespace
 
 from rubric_gen.runtime import capacity
 from rubric_gen.runtime.audit_execution import AuditExecutor, audit_owner
@@ -142,6 +143,44 @@ def test_revision_recovery_can_reduce_shard_concurrency(monkeypatch, tmp_path):
     status = json.loads((tmp_path / "revision-status.json").read_text())
     assert status["shard_workers"] == 1
     assert status["maximum_assignment_workers"] == 1
+
+
+def test_completed_shard_reopens_audit_targets_without_rehashing_workspaces(
+    monkeypatch, tmp_path
+):
+    module = _module("trace_result40_completion_test", "run.py")
+    study = tmp_path / "study"
+    study.mkdir()
+    (study / "study.json").write_text("{}")
+    identifiers = tuple(f"assignment-{index}" for index in range(6))
+    rows = [
+        {"assignment_id": identifier, "status": "completed"}
+        for identifier in identifiers
+    ]
+    experiment = SimpleNamespace(
+        dag={
+            "revise": {"output_dir": str(study)},
+            "paraphrase": {"output_dir": str(tmp_path / "paraphrase")},
+            "detect": {"output_dir": str(tmp_path / "detect")},
+        }
+    )
+    sources = object()
+    observed = {}
+    monkeypatch.setattr(module, "experiment", lambda task, kind: experiment)
+    monkeypatch.setattr(module, "terminal_records", lambda exp, ledger: rows)
+    monkeypatch.setattr(
+        module, "resolve_study_sources", lambda root, exp: sources
+    )
+
+    def fake_targets(config, received_sources):
+        observed.update(config=config, sources=received_sources)
+        return tuple(SimpleNamespace(assignment_id=value) for value in identifiers)
+
+    monkeypatch.setattr(module, "load_evaluation_targets", fake_targets)
+    assert module.complete_shard("da-test", "trace") == rows
+    assert observed["sources"] is sources
+    assert observed["config"].study_dir == study
+    assert observed["config"].max_concurrency == 6
 
 
 def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):

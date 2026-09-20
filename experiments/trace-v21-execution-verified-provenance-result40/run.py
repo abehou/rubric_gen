@@ -19,9 +19,11 @@ from dotenv import dotenv_values
 
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.runtime.capacity import policy
+from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
 from rubric_gen.submission_revision.execution_scope import terminal_records
 from rubric_gen.submission_revision.experiment import load_experiment
-from rubric_gen.submission_revision.study_validation import validate_completed_revision
+from rubric_gen.submission_revision.source_resolution import resolve_study_sources
 
 from make_configs import BUNDLE, CONDITIONS, ROOT, RUN, SHARDS, TASKS, config_path
 from prepare import PANEL, sha
@@ -190,11 +192,24 @@ def complete_shard(task: str, kind: str) -> list[dict]:
     rows = terminal_records(exp, ledger)
     if len(rows) != 6 or any(row["status"] != "completed" for row in rows):
         raise RuntimeError(f"{task}/{kind} is not 6/6 complete")
-    assignments = {a.assignment_id: a for a in exp.execution_assignments}
-    seed = Path(exp.dag["seed"]["output_dir"])
-    paraphrase = Path(exp.dag["paraphrase"]["output_dir"])
-    for row in rows:
-        validate_completed_revision(study / row["experiment_dir"], assignments[row["assignment_id"]], exp, seed, paraphrase)
+    # StudyRunner performs full artifact/hash validation before it changes an
+    # assignment record to completed.  Repeating that scan here re-read large
+    # immutable workspaces and exhausted several recovery wall-time limits.
+    # Reopen the exact sources through the audit target loader instead: this
+    # rechecks study/producer identity, terminal state, rubric generations and
+    # the concrete initial/final targets without duplicating workspace hashing.
+    sources = resolve_study_sources(study, exp)
+    targets = load_evaluation_targets(EvaluationConfig(
+        experiment=exp,
+        study_dir=study,
+        paraphrase_dir=Path(exp.dag["paraphrase"]["output_dir"]),
+        output_dir=Path(exp.dag["detect"]["output_dir"]),
+        max_concurrency=6,
+        resume=True,
+    ), sources)
+    expected = {row["assignment_id"] for row in rows}
+    if len(targets) != 6 or {target.assignment_id for target in targets} != expected:
+        raise RuntimeError(f"{task}/{kind} audit target scope differs from completed assignments")
     return rows
 
 
