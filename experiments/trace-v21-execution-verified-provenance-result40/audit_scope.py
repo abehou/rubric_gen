@@ -26,14 +26,15 @@ HISTORICAL_REVISION_PROMPT_SHA256 = (
     "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788"
 )
 
-# Historical static configs are loaded from the exact paths recorded by their
-# completed study ledgers.  Current code derives a different ID for those old
-# YAMLs, so their completed ledgers remain the authoritative native identity.
+# Historical configs are loaded from the exact paths recorded by their completed
+# study ledgers.  The completed ledgers remain the authoritative native identity
+# when another worktree contains byte-equivalent configuration at a new path.
 AUTHORITATIVE_CHECKOUT = Path("/home/aydanh/repos/rubric_gen")
+RESULT20_CHECKOUT = AUTHORITATIVE_CHECKOUT / "runs/babel-code/trace-v21-result20-20260917"
 OLD20_SOURCES = {
     "static-full": AUTHORITATIVE_CHECKOUT / "runs/babel-code/result20-current/experiments/babel/biomnibench-result20-current-full-static.yaml",
     "static-user": AUTHORITATIVE_CHECKOUT / "investigation/result20-cue-contrast-20260908/static-results20.yaml",
-    "current": ROOT / "experiments/trace-v21-execution-verified-provenance-result20/result20.yaml",
+    "current": RESULT20_CHECKOUT / "experiments/trace-v21-execution-verified-provenance-result20/result20.yaml",
 }
 EXPECTED_OLD20_IDS = {
     "static-full": "biomnibench-da-factorial-r10-bfbdd0f9833c",
@@ -43,6 +44,7 @@ EXPECTED_OLD20_IDS = {
 OLD20_STUDIES = {
     "static-full": AUTHORITATIVE_CHECKOUT / "runs/babel-result20-current-20260908/full-static/study/biomnibench-da-factorial-r10-bfbdd0f9833c",
     "static-user": AUTHORITATIVE_CHECKOUT / "runs/babel-result20-cue-contrast-20260908/static/study/biomnibench-da-factorial-r10-f0203f5d69f3",
+    "current": Path("/data/user_data/aydanh/rubric_gen/runs/rtt-result20-next/study/biomnibench-da-factorial-r10-682343156c5d"),
 }
 
 
@@ -128,7 +130,7 @@ def scoped_experiment(
 
 
 def completed_historical_experiment(name: str) -> Experiment:
-    """Load one completed old static study from its authoritative receipt."""
+    """Load one completed old20 study from its authoritative receipt."""
 
     source = OLD20_SOURCES[name]
     study = OLD20_STUDIES[name]

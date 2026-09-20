@@ -405,6 +405,12 @@ def test_old20_gemini_scopes_keep_exact_completed_studies():
                     resume=True,
                 ), sources)
             assert len(targets) == 60
+        if name == "old20-current-gemini":
+            ledger = json.loads(
+                (Path(experiment.dag["revise"]["output_dir"]) / "study.json").read_text()
+            )
+            assert Path(ledger["experiment_path"]) == scope.OLD20_SOURCES["current"]
+            assert ledger["experiment_id"] == experiment.experiment_id
 
 
 def test_three_model_analysis_uses_equal_artifact_weights():
