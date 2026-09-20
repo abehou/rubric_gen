@@ -268,6 +268,12 @@ def test_audit_partition_allows_gemini_only_panel(monkeypatch, tmp_path):
             assert len([future.result(10) for future in futures]) == 5
 
 
+def test_results40_owner_uses_quota_safe_gemini_workers():
+    module = _module("trace_result40_audit_workers_test", "run.py")
+    assert module.audit_scope_workers(("gpt-5.6-sol", "claude-opus-5")) == 120
+    assert module.audit_scope_workers(("gemini-3.8-flash",)) == 2
+
+
 def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_path):
     monkeypatch.setattr(capacity, "policy", lambda: {
         "version": 1,

@@ -100,6 +100,14 @@ def revision_assignment_workers() -> int:
     return workers
 
 
+def audit_scope_workers(models: tuple[str, ...]) -> int:
+    if models == SOL_OPUS_PANEL:
+        return 120
+    if models == GEMINI_PANEL:
+        return 2
+    raise RuntimeError(f"unsupported Results40 audit panel: {models}")
+
+
 def owner(mode: str, commit: str, capacity: dict) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     root = RUN / "owners" / f"{mode}-{os.environ['SLURM_JOB_ID']}-{stamp}"
@@ -322,7 +330,11 @@ def audit(path: Path) -> None:
     # without placing a Google access failure between Sol/Opus and completion.
     scopes = (*new20_sol_opus_scopes(), *all_gemini_scopes())
     for name, exp in scopes:
-        workers = 120 if tuple(exp.outcome_audit["models"]) == SOL_OPUS_PANEL else 4
+        # Gemini's 20M input-token/minute quota was still exceeded twice with
+        # four request workers on the long original20 inputs.  Two workers keep
+        # the unchanged requests below that provider limit; the sealed Google
+        # provider partition remains 60 and Sol/Opus remains 60+60.
+        workers = audit_scope_workers(tuple(exp.outcome_audit["models"]))
         result = audit_stage(name, exp, workers, path / f"detect-{name}.log")
         status["scopes"][name] = result
         write_json_atomic(status_path, status)

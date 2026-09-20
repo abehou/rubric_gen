@@ -228,7 +228,7 @@ def main() -> None:
         "revision": {"assignment_workers": 60, "aggregate_provider_concurrency": 60, "internal_fanout": 4},
         "audit": {
             "sol_opus_workers": 120,
-            "gemini_workers": 4,
+            "gemini_workers": 2,
             "openai": 60,
             "anthropic": 60,
             "google": 60,

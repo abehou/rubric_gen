@@ -62,7 +62,7 @@ def test_rearms_pre_request_capacity_seal_failure(tmp_path):
     result = MODULE.run(root, tmp_path / "receipt.json")
     assert result["provider_calls"] == 0
     assert result["google_provider_concurrency"] == 60
-    assert result["gemini_executor_workers"] == 4
+    assert result["gemini_executor_workers"] == 2
     assert result["rearmed_items"] == 1
     assert not artifact.exists()
 
