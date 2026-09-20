@@ -2,6 +2,7 @@
 
 - 11:07 EDT: The new four-cell bundle is `experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml`, with 240 assignments and persistent root `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/`. It reuses canonical Results20 seeds/paraphrases/g1 and the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` recipe; provider-free compute validation precedes launch at revision concurrency 60 and Sol/Opus/Gemini partitions 60 each.
 - 11:14 EDT: Provider-free job `10510923` validates experiment `biomnibench-da-factorial-r10-2e389d4e31bb`: 240 assignments, all 60 frozen seeds, selected/development plus five paraphrase variants, exact g1 inventory, canonical models and writable NAS8 roots; provider calls remain zero.
+- 19:37 EDT: Revision remains 240/240. Provider-free replay recovered 184 paid Opus rubric responses; Gemini quota rearm `10514839` plus missing-only audit `10514868` completed rubric 1,657/1,657, absolute 299/299, pairwise 239/239 and 240/240 per RH window. Sol is preserved; remaining Opus work waits on restored Anthropic credit.
 
 ## 2026-09-20 — Results40 complete
 
