@@ -116,7 +116,11 @@ def recorded_experiment(study_dir: Path) -> Experiment:
     return experiment
 
 
-def source_targets(configured: Experiment) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
+def source_targets(
+    configured: Experiment,
+    *,
+    replicate: int | None = None,
+) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
     study_dir = Path(str(configured.dag["revise"]["output_dir"]))
     producer = recorded_experiment(study_dir)
     config = EvaluationConfig(
@@ -127,9 +131,19 @@ def source_targets(configured: Experiment) -> tuple[evaluation_jobs.EvaluationTa
         max_concurrency=4,
         resume=True,
     )
+    sources = resolve_study_sources(study_dir, producer)
+    if replicate is not None:
+        sources = replace(
+            sources,
+            revisions=tuple(
+                source
+                for source in sources.revisions
+                if source.assignment.replicate == replicate
+            ),
+        )
     return load_evaluation_targets(
         config,
-        resolve_study_sources(study_dir, producer),
+        sources,
     )
 
 
@@ -151,9 +165,7 @@ def load_four_source_targets(
     original: Experiment,
     repaired: Experiment,
 ) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
-    original_targets = tuple(
-        target for target in source_targets(original) if target.replicate == 2
-    )
+    original_targets = source_targets(original, replicate=2)
     repaired_targets = source_targets(repaired)
     targets = (*original_targets, *repaired_targets)
     if len(targets) != 4:
