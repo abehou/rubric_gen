@@ -30,10 +30,10 @@ TASKS = (
     "da-16-1", "da-18-5", "da-18-7", "da-19-1", "da-19-6",
 )
 CONDITIONS = (
-    "semi-static",
-    "semi-red-team-trace-execution-verified-proactive-provenance",
-    "score-only-static",
-    "score-only-red-team-trace-execution-verified-proactive-provenance",
+    "semi-static-execution-provenance-high-proposer",
+    "semi-red-team-trace-execution-provenance-high-proposer",
+    "score-only-static-execution-provenance-high-proposer",
+    "score-only-red-team-trace-execution-provenance-high-proposer",
 )
 PANEL = ("gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash")
 TRACE_VERSION = "attack_defense_v2.1_execution_verified_proactive_provenance"
@@ -78,11 +78,11 @@ def main() -> None:
     )
     assert INTERNAL_STAGE_FANOUT == 4
     expected_conditions = {
-        "semi-static": ("semi", "fixed"),
-        "semi-red-team-trace-execution-verified-proactive-provenance":
+        "semi-static-execution-provenance-high-proposer": ("semi", "fixed"),
+        "semi-red-team-trace-execution-provenance-high-proposer":
             ("semi", "red_team_trace"),
-        "score-only-static": ("score_only", "fixed"),
-        "score-only-red-team-trace-execution-verified-proactive-provenance":
+        "score-only-static-execution-provenance-high-proposer": ("score_only", "fixed"),
+        "score-only-red-team-trace-execution-provenance-high-proposer":
             ("score_only", "red_team_trace"),
     }
     for condition_id, expected in expected_conditions.items():
