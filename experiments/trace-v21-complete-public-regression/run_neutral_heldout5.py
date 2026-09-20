@@ -267,8 +267,11 @@ def neutral_jobs(
                     evaluation_implementation_sha256=implementation,
                 ))
     jobs = tuple(jobs_list)
-    if len(jobs) != 40:
-        raise RuntimeError(f"expected 40 neutral-heldout judgments, found {len(jobs)}")
+    expected = len(targets) * 5 * len(MODELS)
+    if len(jobs) != expected:
+        raise RuntimeError(
+            f"expected {expected} neutral-heldout judgments, found {len(jobs)}"
+        )
     if any(
         len(job.roles) != 1
         or job.roles[0].name != "holdout"
@@ -277,7 +280,7 @@ def neutral_jobs(
         for job in jobs
     ):
         raise RuntimeError("neutral-heldout job scope contains another rubric or artifact")
-    if len({job.key for job in jobs}) != 40:
+    if len({job.key for job in jobs}) != expected:
         raise RuntimeError("neutral-heldout jobs are not unique")
     return jobs
 
@@ -285,12 +288,15 @@ def neutral_jobs(
 def run_scores(
     experiment: Experiment,
     targets: tuple[evaluation_jobs.EvaluationTarget, ...],
+    *,
+    audit_root: Path = AUDIT_ROOT,
+    run_kind: str = "neutral-heldout5-final-rubric-score-only",
 ) -> dict[str, object]:
     config = EvaluationConfig(
         experiment=experiment,
         study_dir=RUN / "four-read-only-source-studies",
         paraphrase_dir=NEUTRAL_POOL,
-        output_dir=AUDIT_ROOT,
+        output_dir=audit_root,
         max_concurrency=WORKERS,
         resume=True,
     )
@@ -304,7 +310,7 @@ def run_scores(
         predispatch_plan=plan,
     )
     launch = {
-        "kind": "neutral-heldout5-final-rubric-score-only",
+        "kind": run_kind,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "job_id": os.environ.get("SLURM_JOB_ID"),
         "source_commit": subprocess.check_output(
@@ -318,11 +324,11 @@ def run_scores(
         "max_concurrency": WORKERS,
         "aggregate_concurrency": 6,
     }
-    AUDIT_ROOT.mkdir(parents=True, exist_ok=True)
-    write_json_atomic(AUDIT_ROOT / "launch.json", launch)
+    audit_root.mkdir(parents=True, exist_ok=True)
+    write_json_atomic(audit_root / "launch.json", launch)
     records: dict[str, dict[str, object]] = {}
     errors: list[BaseException] = []
-    with audit_output_owner(AUDIT_ROOT), reservation("audit"), AuditExecutor(
+    with audit_output_owner(audit_root), reservation("audit"), AuditExecutor(
         WORKERS, MODELS
     ) as executor:
         futures = {
@@ -338,12 +344,14 @@ def run_scores(
     summary = {
         **launch,
         "finished_at": datetime.now(timezone.utc).isoformat(),
-        "status": "completed" if not errors and len(records) == 40 else "incomplete",
+        "status": (
+            "completed" if not errors and len(records) == len(jobs) else "incomplete"
+        ),
         "successful_judgments": len(records),
         "errors": [f"{type(error).__name__}: {error}" for error in errors],
         "records": [records[key] for key in sorted(records)],
     }
-    write_json_atomic(AUDIT_ROOT / "summary.json", summary)
+    write_json_atomic(audit_root / "summary.json", summary)
     if summary["status"] != "completed":
         raise RuntimeError("neutral-heldout rubric scoring is incomplete")
     return summary
