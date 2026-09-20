@@ -147,7 +147,7 @@ def neutral_selection(
     )
 
 
-def load_four_targets(
+def load_four_source_targets(
     original: Experiment,
     repaired: Experiment,
 ) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
@@ -164,6 +164,12 @@ def load_four_targets(
     ]
     if arms.count("full") != 2 or arms.count("user") != 2:
         raise RuntimeError("neutral-heldout comparison requires two targets per arm")
+    return targets
+
+
+def attach_neutral_selection(
+    targets: tuple[evaluation_jobs.EvaluationTarget, ...],
+) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
     return tuple(
         replace(target, selection=neutral_selection(target.selection))
         for target in targets
@@ -276,8 +282,9 @@ def main() -> int:
     original = load_experiment(ORIGINAL_CONFIG)
     repaired = load_experiment(REPAIRED_CONFIG)
     neutral = neutral_scope(repaired)
+    source_targets = load_four_source_targets(original, repaired)
     pool = prepare_neutral_pool(neutral)
-    targets = load_four_targets(original, repaired)
+    targets = attach_neutral_selection(source_targets)
     summary = run_scores(neutral, targets)
     completion = {
         "kind": "neutral-heldout5-da-26-4-rep002-completion",
