@@ -18,6 +18,8 @@ export PYTHONPATH="$ROOT/src:$ROOT/experiments/trace-v21-execution-verified-prov
 export PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
 export RESULT40_SOURCE_COMMIT="$(git -C "$ROOT" rev-parse HEAD)"
+: "${RESULT40_EXPECTED_OPUS_RH_FAILURES:=17}"
+export RESULT40_EXPECTED_OPUS_RH_FAILURES
 cd "$ROOT"
 exec /home/aydanh/repos/rubric_gen/.venv/bin/python \
   experiments/trace-v21-execution-verified-provenance-result40/rearm_opus_rh.py

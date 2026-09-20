@@ -146,9 +146,12 @@ def run(root: Path, receipt: Path, *, expected: int = EXPECTED_FAILURES) -> dict
 def main() -> None:
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("Opus RH recovery must run through Slurm")
+    expected = int(os.environ.get("RESULT40_EXPECTED_OPUS_RH_FAILURES", EXPECTED_FAILURES))
+    if expected <= 0:
+        raise RuntimeError("expected Opus RH failure count must be positive")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     receipt = RUN / f"opus-rh-json-rearm-{stamp}.json"
-    result = run(RUN / "audit", receipt)
+    result = run(RUN / "audit", receipt, expected=expected)
     print(json.dumps({
         "rearmed_judgments": result["rearmed_judgments"],
         "receipt": str(receipt),
