@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import os
 from pathlib import Path
 
 from rubric_gen.artifacts.serialization import write_json_atomic
@@ -71,8 +72,13 @@ def publish_saved_opus() -> None:
         completed = []
         for job in jobs:
             record = runner._run_job(job)
-            if record.get("judgment_key") != job.key:
-                raise RuntimeError("published replay record key changed")
+            # Rubric-score records are named by the semantic key rather than
+            # carrying a redundant ``judgment_key`` field.  ``_run_job`` has
+            # already validated the complete native record and artifacts; keep
+            # this additional check aligned with the actual record contract.
+            record_path = runner.output.path("records", f"{job.key}.json")
+            if not record_path.is_file() or record != json.loads(record_path.read_text()):
+                raise RuntimeError("published replay record was not persisted natively")
             completed.append(job.key)
         write_json_atomic(receipt, {
             "provider_calls": 0,
@@ -147,19 +153,22 @@ def run_gemini() -> None:
     experiment = load_experiment(CONFIG)
     check_revision_receipt(experiment)
     sources = install_reuse()
+    workers = int(os.environ.get("RESULT20_FEEDBACK_GEMINI_WORKERS", "12"))
+    if not 1 <= workers <= 60:
+        raise RuntimeError("Gemini recovery workers must be between 1 and 60")
     output = RUN / "audit-gemini" / experiment.experiment_id
     scoped = scoped_experiment(experiment, GEMINI, output)
     receipt = RUN / "audit-gemini-status.json"
     write_json_atomic(receipt, {
         "started_at": now(),
         "models": list(GEMINI),
-        "workers": 60,
+        "workers": workers,
         "reuse_sources": sources,
     })
     result = audit_stage(
         "gemini",
         scoped,
-        60,
+        workers,
         RUN / "detect-gemini.log",
     )
     write_json_atomic(receipt, {**result, "reuse_sources": sources})
