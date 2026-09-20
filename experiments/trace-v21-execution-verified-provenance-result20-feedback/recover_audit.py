@@ -121,6 +121,7 @@ def inspect_status() -> None:
                     value[field] = summary.get(field)
             attempts = root / name / "artifacts"
             failures: Counter[str] = Counter()
+            failure_types: Counter[str] = Counter()
             if attempts.is_dir():
                 for path in attempts.rglob("attempt-*.json"):
                     if path.name.endswith(".response.json"):
@@ -133,7 +134,9 @@ def inspect_status() -> None:
                     category = attempt.get("failure_category")
                     if category is not None:
                         failures[str(category)] += 1
+                        failure_types[str(attempt.get("error", "unknown")).split(":", 1)[0]] += 1
             value["attempt_failure_categories"] = dict(failures)
+            value["attempt_failure_types"] = dict(failure_types)
             stages[name] = value
         for window in (
             "full_trajectory",
@@ -158,6 +161,10 @@ def inspect_status() -> None:
                     "failure_categories": dict(Counter(
                         str(row.get("failure_category")) for row in rows
                         if row.get("status") == "failed"
+                    )),
+                    "failure_types": dict(Counter(
+                        str(row.get("error_type") or row.get("error") or "unknown").split(":", 1)[0]
+                        for row in rows if row.get("status") == "failed"
                     )),
                 })
             stages[f"direct_{window}"] = value
