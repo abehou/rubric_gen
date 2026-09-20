@@ -79,3 +79,9 @@ def test_preserves_completed_direct_judgment_from_stale_failure_summary(tmp_path
     (good.parents[1] / "score.json").write_text("{}")
     assert MODULE.direct_actions(root, tmp_path / "archive") == []
     assert (good.parents[1] / "score.json").exists()
+
+
+def test_leaves_pre_attempt_direct_failure_for_native_missing_only_resume(tmp_path):
+    root, _, bad = direct_fixture(tmp_path)
+    bad.unlink()
+    assert MODULE.direct_actions(root, tmp_path / "archive") == []

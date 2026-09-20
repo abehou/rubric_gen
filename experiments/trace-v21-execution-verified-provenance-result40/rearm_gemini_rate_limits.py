@@ -112,7 +112,10 @@ def direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                     raise RuntimeError(f"Gemini direct failure is not a supported operational case: {attempt}")
                 failed.append(attempt)
             if not failed:
-                raise RuntimeError(f"Gemini direct failure has no saved supported attempt: {model_root}")
+                # Provider admission can fail before an attempt file is
+                # created.  There is no persisted request to archive; native
+                # resume already treats this case as missing work.
+                continue
             for attempt in failed:
                 relative = attempt.relative_to(model_root)
                 destination = archive / "direct" / stage.name / case_id / MODEL / relative
