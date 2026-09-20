@@ -180,7 +180,7 @@ def main() -> None:
     assert runtime["audit_provider_concurrency"] == {
         "openai": 60,
         "anthropic": 60,
-        "google": 60,
+        "google": 4,
     }
     assert INTERNAL_STAGE_FANOUT == 4
     old20_publication = _validate_old20_publication()
@@ -228,10 +228,10 @@ def main() -> None:
         "revision": {"assignment_workers": 60, "aggregate_provider_concurrency": 60, "internal_fanout": 4},
         "audit": {
             "sol_opus_workers": 120,
-            "gemini_workers": 60,
+            "gemini_workers": 4,
             "openai": 60,
             "anthropic": 60,
-            "google": 60,
+            "google": 4,
             "audit_studies": 3,
             "panels": {
                 "sol_opus": ["gpt-5.6-sol", "claude-opus-5"],

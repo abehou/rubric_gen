@@ -1,0 +1,69 @@
+import importlib.util
+import json
+from pathlib import Path
+
+import pytest
+
+
+ROOT = Path(__file__).parents[1]
+SCRIPT = ROOT / "experiments/trace-v21-execution-verified-provenance-result40/rearm_gemini_rate_limits.py"
+SPEC = importlib.util.spec_from_file_location("result40_gemini_rearm", SCRIPT)
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+def semantic_fixture(tmp_path: Path, *, error="Gemini API request failed with HTTP 429: RESOURCE_EXHAUSTED"):
+    root = tmp_path / "audit-gemini"
+    stage = root / "old20/static/rubric_score"
+    key = "a" * 32
+    attempts = stage / "artifacts" / key / "evaluations/s000/rubric/attempt.attempts"
+    attempts.mkdir(parents=True)
+    (attempts / "attempt-001.json").write_text(json.dumps({"attempt": 1, "error": error}))
+    (stage / "summary.json").write_text(json.dumps({
+        "status": "incomplete",
+        "judge_failures": [{"model": MODULE.MODEL, "judgment_key": key}],
+    }))
+    return root, stage / "artifacts" / key
+
+
+def direct_fixture(tmp_path: Path, *, error="Gemini API request failed with HTTP 429: Quota exceeded"):
+    root = tmp_path / "audit-gemini"
+    evaluation = root / "old20/static/direct_full_trajectory/evaluations/run"
+    model_root = evaluation / "cases/case-1" / MODULE.MODEL
+    good = model_root / "chunk-001/attempt-001.json"
+    bad = model_root / "chunk-002/attempt-001.json"
+    good.parent.mkdir(parents=True)
+    bad.parent.mkdir(parents=True)
+    good.write_text(json.dumps({"generation": {"text": "ok"}}))
+    bad.write_text(json.dumps({"error": error}))
+    (evaluation / "summary.json").write_text(json.dumps({
+        "records": [{"model": MODULE.MODEL, "case_id": "case-1", "status": "failed"}],
+    }))
+    return root, good, bad
+
+
+def test_rearms_only_failed_rate_limited_state_and_preserves_valid_chunks(tmp_path):
+    root, artifact = semantic_fixture(tmp_path)
+    _, good, bad = direct_fixture(tmp_path)
+    result = MODULE.run(root, tmp_path / "receipt.json")
+    assert result["provider_calls"] == 0
+    assert result["request_semantics_changed"] is False
+    assert result["rearmed_items"] == 2
+    assert not artifact.exists()
+    assert good.exists()
+    assert not bad.exists()
+    assert all(Path(action["archive"]).exists() for action in result["actions"])
+
+
+@pytest.mark.parametrize("fixture", [semantic_fixture, direct_fixture])
+def test_refuses_non_rate_limit_failures(tmp_path, fixture):
+    root, *_ = fixture(tmp_path, error="some other provider failure")
+    with pytest.raises(RuntimeError):
+        MODULE.run(root, tmp_path / "receipt.json")
+
+
+def test_refuses_completed_direct_judgment(tmp_path):
+    root, good, _ = direct_fixture(tmp_path)
+    (good.parents[1] / "score.json").write_text("{}")
+    with pytest.raises(RuntimeError):
+        MODULE.run(root, tmp_path / "receipt.json")

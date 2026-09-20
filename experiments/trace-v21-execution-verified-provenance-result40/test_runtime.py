@@ -191,7 +191,7 @@ def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
-            "google": 60,
+            "google": 4,
         },
         "coordination_dir": str(tmp_path / "runtime"),
     })
@@ -234,7 +234,7 @@ def test_audit_partition_allows_gemini_only_panel(monkeypatch, tmp_path):
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
-            "google": 60,
+            "google": 4,
         },
         "coordination_dir": str(tmp_path / "runtime"),
     })
@@ -256,16 +256,16 @@ def test_audit_partition_allows_gemini_only_panel(monkeypatch, tmp_path):
         return model
 
     with audit_owner(tmp_path / "audit"):
-        with AuditExecutor(60, ("gemini-3.8-flash",)) as pool:
+        with AuditExecutor(4, ("gemini-3.8-flash",)) as pool:
             futures = [
                 pool.submit(operation, "gemini-3.8-flash", model="gemini-3.8-flash")
-                for _ in range(61)
+                for _ in range(5)
             ]
             with condition:
-                assert condition.wait_for(lambda: active == 60, timeout=10)
-            assert peak == 60
+                assert condition.wait_for(lambda: active == 4, timeout=10)
+            assert peak == 4
             release.set()
-            assert len([future.result(10) for future in futures]) == 61
+            assert len([future.result(10) for future in futures]) == 5
 
 
 def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_path):
@@ -276,7 +276,7 @@ def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_p
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
-            "google": 60,
+            "google": 4,
         },
         "coordination_dir": str(tmp_path / "runtime"),
     })
@@ -304,25 +304,30 @@ def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_p
 
     models = ("gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash")
     with audit_owner(tmp_path / "audit"):
-        with AuditExecutor(180, models) as pool:
+        with AuditExecutor(124, models) as pool:
             futures = [
                 pool.submit(operation, model, model=model)
                 for _ in range(61)
                 for model in models
+                if not model.startswith("gemini")
             ]
+            futures.extend(
+                pool.submit(operation, "gemini-3.8-flash", model="gemini-3.8-flash")
+                for _ in range(5)
+            )
             with condition:
                 assert condition.wait_for(
-                    lambda: active == {"openai": 60, "anthropic": 60, "google": 60},
+                    lambda: active == {"openai": 60, "anthropic": 60, "google": 4},
                     timeout=10,
                 )
             assert peak == {
                 "openai": 60,
                 "anthropic": 60,
-                "google": 60,
-                "total": 180,
+                "google": 4,
+                "total": 124,
             }
             release.set()
-            assert len([future.result(10) for future in futures]) == 183
+            assert len([future.result(10) for future in futures]) == 127
 
 
 def test_gemini_scope_preserves_revision_experiment_identity(tmp_path):

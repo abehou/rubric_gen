@@ -75,7 +75,7 @@ def runtime(mode: str) -> dict:
     value = policy()
     if value["aggregate_concurrency"] != 60 or value["audit_studies"] != 3:
         raise RuntimeError("Results40 runtime owner capacity changed")
-    expected_audit = {"openai": 60, "anthropic": 60, "google": 60}
+    expected_audit = {"openai": 60, "anthropic": 60, "google": 4}
     if value.get("audit_provider_concurrency") != expected_audit:
         raise RuntimeError("Results40 Sol/Opus/Gemini provider partitions changed")
     return {
@@ -322,7 +322,7 @@ def audit(path: Path) -> None:
     # without placing a Google access failure between Sol/Opus and completion.
     scopes = (*new20_sol_opus_scopes(), *all_gemini_scopes())
     for name, exp in scopes:
-        workers = 120 if tuple(exp.outcome_audit["models"]) == SOL_OPUS_PANEL else 60
+        workers = 120 if tuple(exp.outcome_audit["models"]) == SOL_OPUS_PANEL else 4
         result = audit_stage(name, exp, workers, path / f"detect-{name}.log")
         status["scopes"][name] = result
         write_json_atomic(status_path, status)
