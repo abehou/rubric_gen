@@ -13,7 +13,7 @@ This run adds the two remaining feedback policies to the completed original20 Fu
 - Gemini audit: `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/audit-gemini/biomnibench-da-factorial-r10-2e389d4e31bb`
 - Revision job `10510934`: 240/240 assignments complete, with 60 assignments in each of Semi static, Semi RTT, Score-only static, and Score-only RTT.
 
-## Audit status at 2026-09-20 19:37 EDT
+## Audit status at 2026-09-20 19:53 EDT
 
 Gemini is complete after exact missing-only recovery:
 
@@ -28,5 +28,7 @@ The first Gemini-60 pass preserved partial results but hit the provider's input-
 Sol/Opus recovery has preserved all successful records. Absolute (598/598) and pairwise (478/478) are complete. Provider-free replay recovered 184 previously paid Opus rubric responses, bringing rubric coverage to 2,952/3,314 and leaving 362 genuinely missing rubric judgments. The four RH windows still have 146, 113, 140, and 108 failed rows respectively; these are Opus-side missing work, while saved Sol judgments remain intact.
 
 The remaining Opus requests are externally blocked by fresh Anthropic `credit balance is too low` responses. The audit will not repeatedly retry this permanent failure. When Anthropic access is restored, resume only the archived/failed Opus work, then run `report.sbatch`; the analysis refuses incomplete native audit coverage.
+
+Provider-free rearm job `10515177` completed successfully and archived only the exact live terminal failures eligible for missing-only recovery: 15 Opus rubric-score artifacts and 29 Opus RH attempts. It preserved completed scores and all saved provider responses; its receipt is `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/opus-missing-rearm-20260920T235101Z.json`. This preparation made zero provider calls and does not remove the external Anthropic credit requirement for the remaining judgments.
 
 No scientific result is reported from a surviving-provider subset. Final outputs will include Sol+Opus, Sol, Opus, Gemini, and equal-weight three-model tables with W/S/H/A, all four gaps, all four RH windows, abstentions, paired deltas, and artifact/task-level exports.
