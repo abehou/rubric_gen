@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
+from rubric_gen.submission_revision.source_resolution import resolve_study_sources
 
 from make_configs import ROOT, RUN, SHARDS, config_path
 
@@ -21,6 +22,9 @@ SOL_OPUS_PANEL = ("gpt-5.6-sol", "claude-opus-5")
 GEMINI_PANEL = ("gemini-3.8-flash",)
 THREE_MODEL_PANEL = (*SOL_OPUS_PANEL, *GEMINI_PANEL)
 PATH_MAP_ENV = "RUBRIC_GEN_PATH_MAP_FILE"
+HISTORICAL_REVISION_PROMPT_SHA256 = (
+    "e3f0c1ad59899ab81252d03aef3984e93c69c535a1f3f0aa066078e97e53e788"
+)
 
 # Historical static configs are loaded from the exact paths recorded by their
 # completed study ledgers.  Current code derives a different ID for those old
@@ -61,6 +65,44 @@ def historical_source_paths():
     finally:
         if previous is not None:
             os.environ[PATH_MAP_ENV] = previous
+
+
+@contextmanager
+def historical_revision_prompt(name: str, experiment: Experiment):
+    """Validate one old static producer while using the current audit code.
+
+    The revision prompt implementation is generation provenance and is not an
+    outcome-judge input.  Both completed original20 static studies contain one
+    exact historical implementation hash across all 60 sealed revisions.  The
+    current target loader otherwise compares those immutable manifests with the
+    current revision prompt hash before any audit request.  Scope the recorded
+    value to these two named read-only studies only, after validating every
+    selected native source, and restore the loader immediately afterward.
+    """
+
+    if name not in {"old20-static-full-gemini", "old20-static-user-gemini"}:
+        yield
+        return
+    sources = resolve_study_sources(
+        Path(experiment.dag["revise"]["output_dir"]), experiment
+    )
+    hashes = {
+        source.manifest.get("prompt_implementation_sha256")
+        for source in sources.revisions
+    }
+    if (
+        len(sources.revisions) != 60
+        or hashes != {HISTORICAL_REVISION_PROMPT_SHA256}
+    ):
+        raise RuntimeError(f"old20 {name} revision prompt provenance changed")
+    from rubric_gen.submission_revision.evaluation import targets
+
+    original = targets.prompt_implementation_sha256
+    targets.prompt_implementation_sha256 = lambda: HISTORICAL_REVISION_PROMPT_SHA256
+    try:
+        yield
+    finally:
+        targets.prompt_implementation_sha256 = original
 
 
 def scoped_experiment(

@@ -384,14 +384,15 @@ def test_old20_gemini_scopes_keep_exact_completed_studies():
             assert first.manifest["task_dir"] == str(
                 first.producer.task_dir(first.assignment.task_id)
             )
-            targets = load_evaluation_targets(EvaluationConfig(
-                experiment=experiment,
-                study_dir=study,
-                paraphrase_dir=Path(experiment.dag["paraphrase"]["output_dir"]),
-                output_dir=Path(experiment.dag["detect"]["output_dir"]),
-                max_concurrency=60,
-                resume=True,
-            ), sources)
+            with scope.historical_revision_prompt(name, experiment):
+                targets = load_evaluation_targets(EvaluationConfig(
+                    experiment=experiment,
+                    study_dir=study,
+                    paraphrase_dir=Path(experiment.dag["paraphrase"]["output_dir"]),
+                    output_dir=Path(experiment.dag["detect"]["output_dir"]),
+                    max_concurrency=60,
+                    resume=True,
+                ), sources)
             assert len(targets) == 60
 
 

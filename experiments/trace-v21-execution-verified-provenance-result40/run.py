@@ -32,6 +32,7 @@ from audit_scope import (
     SOL_OPUS_PANEL,
     THREE_MODEL_PANEL,
     all_gemini_scopes,
+    historical_revision_prompt,
     new20_sol_opus_scopes,
 )
 
@@ -157,13 +158,14 @@ def audit_stage(name: str, exp, workers: int, log: Path) -> dict:
     try:
         with log.open("a") as output, redirect_stdout(output), redirect_stderr(output):
             with audit_output_owner(output_dir):
-                exit_code = _run_detect_owned(
-                    args,
-                    exp,
-                    Path(exp.dag["revise"]["output_dir"]),
-                    Path(exp.dag["paraphrase"]["output_dir"]),
-                    output_dir,
-                )
+                with historical_revision_prompt(name, exp):
+                    exit_code = _run_detect_owned(
+                        args,
+                        exp,
+                        Path(exp.dag["revise"]["output_dir"]),
+                        Path(exp.dag["paraphrase"]["output_dir"]),
+                        output_dir,
+                    )
     except Exception as exc:
         from rubric_gen.runtime.failures import failure_category
 
