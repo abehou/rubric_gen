@@ -2565,3 +2565,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-20 — Results40 concurrent audit ownership
 
 - 00:14 EDT: Results40 has 240/240 valid assignments; audit `10507240` reached admission with zero judgment calls but waited behind Harvey's healthy one-study lease. The approved execution policy now admits three audit owners and isolates each owner's Sol-60, Opus-60, and Gemini-60 provider partitions; revision/non-audit work stays aggregate-60, and 30 provider-free focused checks passed on the allocated compute node.
+
+## 2026-09-20 — Results20 feedback-policy comparison
+
+- 13:43 EDT: Semi/Score-only revision `10510934` completed 240/240 assignments with zero failed cells; Sol/Opus audit `10511019` preserved its successful judgments and failed closed on one non-panel rubric-score job. The missing-only recovery retains audit concurrency 120 and is right-sized to 8 CPUs/64 GiB after the never-started 32-CPU request `10512113` was canceled.

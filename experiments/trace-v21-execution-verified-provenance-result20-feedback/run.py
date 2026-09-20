@@ -324,8 +324,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("execute", "audit"))
     args = parser.parse_args()
-    if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != 32:
-        raise RuntimeError("Results20 feedback production requires 32 Slurm CPUs")
+    expected_cpus = int(os.environ.get("RESULT20_FEEDBACK_EXPECTED_CPUS", "32"))
+    if (
+        not os.environ.get("SLURM_JOB_ID")
+        or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != expected_cpus
+    ):
+        raise RuntimeError(
+            f"Results20 feedback production requires {expected_cpus} Slurm CPUs"
+        )
     commit = clean_commit()
     capacity = runtime(args.mode)
     experiment = load_experiment(CONFIG)

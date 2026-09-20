@@ -1416,6 +1416,15 @@ Sol-60 and Opus-60 partitions (120 concurrent requests), plus Gemini-60 for its
 standalone pass. Provider-free capacity, Results40 identity, and bootstrap tests
 passed 30/30; ordinary revision capacity remains aggregate 60.
 
+## 2026-09-20 — Semi/Score-only Results20 execution
+
+Revision owner `10510934` completed and validated 240/240 assignments for the
+four Semi/Score-only static/promoted-RTT cells. Audit owner `10511019` preserved
+the completed Sol/Opus work but stopped on one non-panel rubric-score failure;
+missing-only audit recovery keeps the 60+60 provider partitions while using an
+8-CPU/64-GiB Slurm allocation after the never-started 32-CPU recovery was
+canceled.
+
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
