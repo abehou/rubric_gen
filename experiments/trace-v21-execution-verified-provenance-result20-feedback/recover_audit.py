@@ -119,6 +119,21 @@ def inspect_status() -> None:
                     "missing_models",
                 ):
                     value[field] = summary.get(field)
+            attempts = root / name / "artifacts"
+            failures: Counter[str] = Counter()
+            if attempts.is_dir():
+                for path in attempts.rglob("attempt-*.json"):
+                    if path.name.endswith(".response.json"):
+                        continue
+                    try:
+                        attempt = json.loads(path.read_text())
+                    except (OSError, json.JSONDecodeError):
+                        failures["unreadable_attempt"] += 1
+                        continue
+                    category = attempt.get("failure_category")
+                    if category is not None:
+                        failures[str(category)] += 1
+            value["attempt_failure_categories"] = dict(failures)
             stages[name] = value
         for window in (
             "full_trajectory",
@@ -139,6 +154,10 @@ def inspect_status() -> None:
                     "decisions": dict(Counter(
                         str(row.get("verdict", {}).get("decision")) for row in rows
                         if isinstance(row.get("verdict"), dict)
+                    )),
+                    "failure_categories": dict(Counter(
+                        str(row.get("failure_category")) for row in rows
+                        if row.get("status") == "failed"
                     )),
                 })
             stages[f"direct_{window}"] = value
