@@ -104,7 +104,10 @@ def direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                 raise RuntimeError(f"invalid missing Opus direct case: {summary_path}")
             model_root = summary_path.parent / "cases" / case_id / MODEL
             if (model_root / "score.json").exists():
-                raise RuntimeError(f"refusing to rearm completed Opus RH work: {model_root}")
+                # A later missing-only pass may have completed a row while the
+                # enclosing summary remained stale after another stage failed.
+                # Native resume will validate the score and rebuild the summary.
+                continue
             for attempt in sorted(model_root.glob("chunk-*/attempt-*.json")):
                 state = read_object(attempt)
                 error = str(state.get("error", ""))
