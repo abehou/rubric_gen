@@ -90,6 +90,7 @@ def plan(root: Path, archive: Path, *, expected: int = EXPECTED_FAILURES) -> lis
                 raise RuntimeError(f"failed Opus RH judgment has no failed attempts: {model_root}")
             if not (
                 record_error == f"direct request exhausted 3 attempts: {NO_JSON}"
+                or record_error == EMPTY_RESPONSE
                 or record_error.startswith("recorded structural: ")
             ):
                 raise RuntimeError(f"unsupported Opus RH summary error in {summary_path}: {record_error}")

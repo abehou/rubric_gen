@@ -93,7 +93,7 @@ def test_preserves_successful_chunks_and_rearms_empty_response(tmp_path):
     }))
     summary = next(root.glob("**/summary.json"))
     value = json.loads(summary.read_text())
-    value["records"][0]["error"] = f"recorded structural: {failed[-1]}"
+    value["records"][0]["error"] = MODULE.EMPTY_RESPONSE
     summary.write_text(json.dumps(value))
     result = MODULE.run(root, tmp_path / "receipt.json", expected=1)
     assert good.exists()
