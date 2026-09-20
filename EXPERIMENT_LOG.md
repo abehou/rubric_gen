@@ -1,6 +1,7 @@
 ## 2026-09-21 — Complete-public targeted regression
 
 - 03:12 JST: Both authorized regression assignments preserved all successful RTT-stage requests but stopped at solver turn 1 after copying Babel's revoked shared Codex credential; bound the job to the existing authenticated `codex-redteam` home for native failed-turn resume without regenerating completed provider work.
+- 03:58 JST: Targeted job `10512216` completed both `da-26-4` rep-002 arms: Full reached a fresh-run/public-artifact-consistent `resolved_execution`, while User honestly downgraded the unjoinable patient-level analysis and retained CCLE output only as supplementary; authorize only their missing Sol+Opus audit at concurrency 12.
 
 ## 2026-09-20 — Semi/Score-only Results20 authorization
 

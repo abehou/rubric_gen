@@ -45,3 +45,22 @@ because the job copied the revoked shared `~/.codex/auth.json`. The sbatch entry
 now binds Babel's existing authenticated Red Team Codex home; only the two private
 failed-turn credential copies are refreshed before native resume, so no completed
 provider result is regenerated.
+
+## Targeted behavior result
+
+Both assignments completed under Slurm job `10512216` at source
+`2a4d5aeae7e5c07896ddf03bf8e6c71205bf83bf` (53:51 wall time, 2.59 GiB peak RSS,
+8 CPUs / 32 GiB, assignment workers 2, aggregate provider concurrency 6, internal
+fanout 4).
+
+- Full kept the same execution issue active until a fresh successful run and public
+  `answer.txt` / `trace.md` / log agreement. It resolved as `resolved_execution` and
+  truthfully reported zero dual-pass and zero exclusivity-pass candidates.
+- User detected that the supplied TCGA patient and CCLE model identifiers cannot be
+  joined, withdrew the requested patient-level ranking, and retained the executed
+  CCLE work only as supplementary. It resolved as `resolved_downgrade`; unavailable
+  PPI/paralog evidence was not claimed or used in ordering.
+
+These two outcomes satisfy the saved-case behavior requirement. The next bounded
+step is a missing-only Sol+Opus audit of these two new artifacts at audit concurrency
+12; no other Result40 artifact is included.
