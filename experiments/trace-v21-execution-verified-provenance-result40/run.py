@@ -104,7 +104,7 @@ def audit_scope_workers(models: tuple[str, ...]) -> int:
     if models == SOL_OPUS_PANEL:
         return 120
     if models == GEMINI_PANEL:
-        return 2
+        return 1
     raise RuntimeError(f"unsupported Results40 audit panel: {models}")
 
 
@@ -330,8 +330,8 @@ def audit(path: Path) -> None:
     # without placing a Google access failure between Sol/Opus and completion.
     scopes = (*new20_sol_opus_scopes(), *all_gemini_scopes())
     for name, exp in scopes:
-        # Gemini's 20M input-token/minute quota was still exceeded twice with
-        # four request workers on the long original20 inputs.  Two workers keep
+        # Gemini's 20M input-token/minute quota was still exceeded with two
+        # request workers on the long original20 inputs.  One worker keeps
         # the unchanged requests below that provider limit; the sealed Google
         # provider partition remains 60 and Sol/Opus remains 60+60.
         workers = audit_scope_workers(tuple(exp.outcome_audit["models"]))

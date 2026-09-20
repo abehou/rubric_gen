@@ -224,7 +224,7 @@ def run(root: Path, receipt: Path) -> dict[str, object]:
         "request_semantics_changed": False,
         "model": MODEL,
         "google_provider_concurrency": 60,
-        "gemini_executor_workers": 2,
+        "gemini_executor_workers": 1,
         "actions": actions,
         "rearmed_items": len(actions),
     }
