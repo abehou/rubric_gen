@@ -1,0 +1,2301 @@
+{
+  "revision_completion": {
+    "assignment_count": 240,
+    "configs": {
+      "da-1-3-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-bea5d96d53fe",
+        "sha256": "3a239bb7a09f4a99ed9f006df67599c6ade3a4354a2a4d9ba4f32790d5e9964a"
+      },
+      "da-1-3-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-9171e9645e6d",
+        "sha256": "97d57b9f418b72d8a574439d49214027a74031829f65bc2812b0f8c2c4183885"
+      },
+      "da-1-4-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-671d32bb5d8d",
+        "sha256": "29bbb2a88e5da53ace1c064712aa707fa8ec2630fc9c5ce1d099588cd588ebe7"
+      },
+      "da-1-4-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-b17b44618eb8",
+        "sha256": "ea9e28aad384ba27fd4e6c566cf342fdea0c256c81bab8e0940ad22a32b92344"
+      },
+      "da-17-1-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-08a3aca6fcec",
+        "sha256": "fc16565ed98793231fd2606d48007dbd512329318363b604dc35c5ccc213df34"
+      },
+      "da-17-1-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-fa26b6b04e6a",
+        "sha256": "a3bf83a596afeeb29b61289f46943577c2836bfbd286801eda27cb691fd009b7"
+      },
+      "da-17-3-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-4045f47ab8f3",
+        "sha256": "da415f0b12b5ddd8f1dc4f9b8c6788c6746bc8ed60c4840a380d778234f47d84"
+      },
+      "da-17-3-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-abc03a646573",
+        "sha256": "01cf684446b6f39644129419456083a749dbc278404c1979cb0bd84950e56475"
+      },
+      "da-17-5-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-e8d3273c60f2",
+        "sha256": "9e08c27a02c339228cb45e0cafc2a01d55f4ef7c9f988a468dad560a5b8ab619"
+      },
+      "da-17-5-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-52099c5260fd",
+        "sha256": "bfe008f5982e16b33916202b1a388b1faa8feae19f25b9840df086cf83e7d138"
+      },
+      "da-19-3-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-be2df1ccf9ac",
+        "sha256": "53e93aed45807e3cb37b93d699dd560f3cbd98b0107d558294d021479b9ba22e"
+      },
+      "da-19-3-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-2e25bcff0d43",
+        "sha256": "c7b9f39150a4d90600884546aab99eeee399df4c5d54712fb0481f265edc19da"
+      },
+      "da-20-1-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-ae62cd064448",
+        "sha256": "4757690712f1284c98eefea788c3acac71b5ac42e84071514d23e84210b85d0d"
+      },
+      "da-20-1-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-c9c9e8e4035b",
+        "sha256": "447ec5f4dec5211de70ac487c5973b22eabe0361ed277a741998a13c8302b050"
+      },
+      "da-20-4-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-e4e732210b12",
+        "sha256": "a736525203293fccac25b72f5e25ef5d7ecca5dd36e8970b04b0a8777b8bc61f"
+      },
+      "da-20-4-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-8bc19ddce2cf",
+        "sha256": "51ff03a88221e4f3446e9c505b2986eea2704333d6b78f2d2711f3b472fe1ae2"
+      },
+      "da-24-3-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-8a9969871de3",
+        "sha256": "d2a801eade3a07260d83a2761411ff53b483204498de1c762e265b6ec54b81a0"
+      },
+      "da-24-3-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-0774275c26ac",
+        "sha256": "22f8f40e1a7e6aedbab22487b6258de8094831742cf6b890d02d3d5f6fb64373"
+      },
+      "da-26-2-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-41044261c51a",
+        "sha256": "8743a7b3d6b6213697add93e1c314a038acccfaa62a7269ccabb0ea1f54b0b18"
+      },
+      "da-26-2-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-c7cb71ea768f",
+        "sha256": "63bebd0e067a280f388f7e571e2a77d40ed88d9af6f2cd1b05b4fe14d633ea04"
+      },
+      "da-26-4-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-3dbc93a8b506",
+        "sha256": "bd0c37ee860bd0796e9058cf247f5202c5294885ed16b8d8f7341c22f2afb476"
+      },
+      "da-26-4-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-bb1c7a7a0079",
+        "sha256": "fe80ad05d791dafb01c19b34a0c9e79e456ac0baccc1d67da43f54701e2ea0a0"
+      },
+      "da-3-5-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-7691d9dc98af",
+        "sha256": "9724276052766e231bfa6f82de6b21e16964e9c0a5d67d26ac649ee71a1bd1d0"
+      },
+      "da-3-5-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-bf5d7e8f3d73",
+        "sha256": "d63c4e4cbbb79f946985490de2ba1ecc9b0c4f5ffc915263aa6cccb37a54fdce"
+      },
+      "da-4-1-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-51fe8d97b593",
+        "sha256": "91888c434d7f8972f3486be4bddd608070eb1ade1bda8df38920a8c46e949597"
+      },
+      "da-4-1-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-3f53deabd2dd",
+        "sha256": "cfa153ddc4f776576944af84d74283f14a14e5dc1410be70687f3e8c5db7cf2d"
+      },
+      "da-4-6-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-9fe263771ced",
+        "sha256": "2c93d2f84118f39a2b34e4d57c77c642f5761d8640f315ee25cf8be508bdba69"
+      },
+      "da-4-6-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-e457a3764784",
+        "sha256": "ad2ab4756698e454469494ea8883fa1f20c7a1e312412ba3407aea6b8a08e46a"
+      },
+      "da-5-1-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-af663a7923ca",
+        "sha256": "a9623ca945323b9fca54edc77bf37eaaf0e83dcb53b8bbf86a7debbae6e7f756"
+      },
+      "da-5-1-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-8763d13de957",
+        "sha256": "c8e089baf7dadfc1153b6c82c97d5fad5b604d3171bd2e592b3896cbbc3cbfd7"
+      },
+      "da-6-5-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-ea0ca275c36e",
+        "sha256": "c13d5a6c1fb2adcc874ff5f72c41a456d8d297e33df2e0afa45b76f4672ee86f"
+      },
+      "da-6-5-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-085de887c2cf",
+        "sha256": "e6069473f3733f826849eaef8f0294416859887286c52bfde9f269c1fe2a70cd"
+      },
+      "da-8-1-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-41f2165cdbd6",
+        "sha256": "dd55ebdd8f55e106da7fec87f75703676ed24b5e0e2c66b721562c051a67b7cb"
+      },
+      "da-8-1-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-95c3c5493a0e",
+        "sha256": "c408041b26ffd7d7862654d599c2c5ee6c3577d0b0ff0bfd46bfe94dfa2e97ce"
+      },
+      "da-8-3-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-92102b6255ac",
+        "sha256": "a9de18e8c509fa48cb28704ef9ecbdf649ca81764d378a7f910ad63fb5e482ec"
+      },
+      "da-8-3-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-a7fd110c4d98",
+        "sha256": "a07cd9a1f4fd95d496bbc6984f889bfe76df5a1c2b51e137b192540689348a4c"
+      },
+      "da-9-1-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-fd1f1267340a",
+        "sha256": "5653c4ef5146363672c9bed0fa897cd3074d1e2c282d87ada143c5adf768a1b6"
+      },
+      "da-9-1-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-814fe6cc5816",
+        "sha256": "7d8f43a452b1faa55e6ad91d0e56e1c03b16e5a10e9a403a914d6e6439ea9930"
+      },
+      "da-9-7-static": {
+        "experiment_id": "biomnibench-da-factorial-r10-de9de1e6b51a",
+        "sha256": "6ab1b72f90ad19d94fc133c1fc6e29bbbff3dd85a8e11b7bf2c7133898b1df4f"
+      },
+      "da-9-7-trace": {
+        "experiment_id": "biomnibench-da-factorial-r10-feca80b170be",
+        "sha256": "fc485162895defa51000ccea695976f419227fe1298a5e172a91ec63a7f85869"
+      }
+    },
+    "finished_at": "2026-09-20T01:16:33.096469+00:00",
+    "job_id": "10506164",
+    "source_commit": "bbefd67f4d39a124c350301e7e05231406800841",
+    "success": true,
+    "tasks": [
+      "da-8-1",
+      "da-26-4",
+      "da-20-4",
+      "da-19-3",
+      "da-4-1",
+      "da-1-3",
+      "da-3-5",
+      "da-4-6",
+      "da-5-1",
+      "da-26-2",
+      "da-9-7",
+      "da-24-3",
+      "da-6-5",
+      "da-17-3",
+      "da-1-4",
+      "da-8-3",
+      "da-17-5",
+      "da-17-1",
+      "da-9-1",
+      "da-20-1"
+    ]
+  },
+  "native_audit_completion": null,
+  "report_completion": {
+    "status": "complete_with_explicit_provider_failure_abstentions",
+    "provider_failure_abstentions": 6,
+    "missing_unaccounted_judgments": 0,
+    "invalid_unaccounted_judgments": 0,
+    "scientific_verdicts_fabricated": false
+  },
+  "semantic_stages": {
+    "rubric_score": {
+      "planned": 8082,
+      "successful": 8082,
+      "failed": 0
+    },
+    "absolute_score": {
+      "planned": 1500,
+      "successful": 1500,
+      "failed": 0
+    },
+    "pairwise_preference": {
+      "planned": 960,
+      "successful": 960,
+      "failed": 0
+    }
+  },
+  "direct_windows": {
+    "full_trajectory": 960,
+    "post_update": 960,
+    "final_artifact": 960,
+    "final_revision": 960
+  },
+  "tasks": {
+    "new20-da-8-1-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-8-1-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 102,
+          "successful": 102,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-26-4-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-26-4-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 108,
+          "successful": 108,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-20-4-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-20-4-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 102,
+          "successful": 102,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-19-3-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-19-3-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 100,
+          "successful": 100,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-4-1-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-4-1-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 112,
+          "successful": 112,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-1-3-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-1-3-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 100,
+          "successful": 100,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-3-5-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-3-5-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 100,
+          "successful": 100,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-4-6-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-4-6-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 112,
+          "successful": 112,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-5-1-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-5-1-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 96,
+          "successful": 96,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-26-2-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-26-2-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 104,
+          "successful": 104,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-9-7-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-9-7-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 108,
+          "successful": 108,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-24-3-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-24-3-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 108,
+          "successful": 108,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-6-5-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-6-5-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 108,
+          "successful": 108,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-17-3-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-17-3-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 110,
+          "successful": 110,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-1-4-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-1-4-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 102,
+          "successful": 102,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-8-3-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-8-3-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 98,
+          "successful": 98,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-17-5-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-17-5-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 96,
+          "successful": 96,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-17-1-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-17-1-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 110,
+          "successful": 110,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-9-1-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-9-1-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 100,
+          "successful": 100,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-20-1-static-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 90,
+          "successful": 90,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-20-1-trace-sol-opus": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 106,
+          "successful": 106,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 18,
+          "successful": 18,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 12,
+          "successful": 12,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 12,
+        "post_update": 12,
+        "final_artifact": 12,
+        "final_revision": 12
+      }
+    },
+    "new20-da-8-1-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-8-1-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 51,
+          "successful": 51,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-26-4-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-26-4-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 54,
+          "successful": 54,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-20-4-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-20-4-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 51,
+          "successful": 51,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-19-3-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-19-3-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 50,
+          "successful": 50,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-4-1-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-4-1-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 56,
+          "successful": 56,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-1-3-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-1-3-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 50,
+          "successful": 50,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-3-5-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-3-5-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 50,
+          "successful": 50,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-4-6-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-4-6-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 56,
+          "successful": 56,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-5-1-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-5-1-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 48,
+          "successful": 48,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-26-2-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-26-2-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 52,
+          "successful": 52,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-9-7-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-9-7-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 54,
+          "successful": 54,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-24-3-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-24-3-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 54,
+          "successful": 54,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-6-5-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-6-5-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 54,
+          "successful": 54,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-17-3-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-17-3-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 55,
+          "successful": 55,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-1-4-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-1-4-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 51,
+          "successful": 51,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-8-3-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-8-3-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 49,
+          "successful": 49,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-17-5-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-17-5-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 48,
+          "successful": 48,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-17-1-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-17-1-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 55,
+          "successful": 55,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-9-1-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-9-1-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 50,
+          "successful": 50,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-20-1-static-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 45,
+          "successful": 45,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "new20-da-20-1-trace-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 53,
+          "successful": 53,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 9,
+          "successful": 9,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 6,
+          "successful": 6,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 6,
+        "post_update": 6,
+        "final_artifact": 6,
+        "final_revision": 6
+      }
+    },
+    "old20-static-full-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 600,
+          "successful": 600,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 120,
+          "successful": 120,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 60,
+          "successful": 60,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 60,
+        "post_update": 60,
+        "final_artifact": 60,
+        "final_revision": 60
+      }
+    },
+    "old20-static-user-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 600,
+          "successful": 600,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 120,
+          "successful": 120,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 60,
+          "successful": 60,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 60,
+        "post_update": 60,
+        "final_artifact": 60,
+        "final_revision": 60
+      }
+    },
+    "old20-current-gemini": {
+      "semantic": {
+        "rubric_score": {
+          "planned": 1059,
+          "successful": 1059,
+          "failed": 0
+        },
+        "absolute_score": {
+          "planned": 180,
+          "successful": 180,
+          "failed": 0
+        },
+        "pairwise_preference": {
+          "planned": 120,
+          "successful": 120,
+          "failed": 0
+        }
+      },
+      "direct": {
+        "full_trajectory": 120,
+        "post_update": 120,
+        "final_artifact": 120,
+        "final_revision": 120
+      }
+    }
+  }
+}

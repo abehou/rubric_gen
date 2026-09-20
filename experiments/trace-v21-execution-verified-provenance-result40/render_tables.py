@@ -15,7 +15,11 @@ PANELS = (
     ("gemini", "Gemini 3.8 Flash"),
     ("sol_opus_gemini", "GPT-5.6 Sol + Claude Opus 5 + Gemini 3.8 Flash"),
 )
-POPULATIONS = (("new20", "Newly added 20"), ("cumulative40", "Cumulative 40"))
+POPULATIONS = (
+    ("old20", "Original 20"),
+    ("new20", "Newly added 20"),
+    ("cumulative40", "Cumulative 40"),
+)
 GAPS = (
     ("W_minus_S", "W−S"),
     ("S_minus_H", "S−H"),

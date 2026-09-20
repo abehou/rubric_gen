@@ -1,0 +1,2618 @@
+{
+  "old20": {
+    "sol_opus": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.04770216760279137,
+          "kendall_tau_b": 0.0407159128018359,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.03078902737731668,
+              "kendall_tau_b": -0.026437042619115253
+            },
+            "S_minus_H": {
+              "spearman": -0.1700193626484651,
+              "kendall_tau_b": -0.13572916150856734
+            },
+            "H_minus_A": {
+              "spearman": 0.3702117741409052,
+              "kendall_tau_b": 0.2884395900651819
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 2,
+              "union_count": 10,
+              "jaccard": 0.2
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 14,
+              "intersection_count": 4,
+              "union_count": 22,
+              "jaccard": 0.18181818181818182
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 46,
+              "intersection_count": 11,
+              "union_count": 50,
+              "jaccard": 0.22
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.16930395116003769,
+          "kendall_tau_b": 0.1264632989431441,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.005564565829120878,
+              "kendall_tau_b": -0.007530942549699452
+            },
+            "S_minus_H": {
+              "spearman": 0.011551558880460945,
+              "kendall_tau_b": 0.008763897460206824
+            },
+            "H_minus_A": {
+              "spearman": 0.2844399181907348,
+              "kendall_tau_b": 0.2086732613675654
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 8,
+              "intersection_count": 1,
+              "union_count": 13,
+              "jaccard": 0.07692307692307693
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 2,
+              "union_count": 22,
+              "jaccard": 0.09090909090909091
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 16,
+              "intersection_count": 4,
+              "union_count": 27,
+              "jaccard": 0.14814814814814814
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": -0.046103389177085376,
+          "kendall_tau_b": -0.03963331282209508,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.1651545857003903,
+              "kendall_tau_b": -0.13328918859987055
+            },
+            "S_minus_H": {
+              "spearman": -0.017220809037668067,
+              "kendall_tau_b": -0.013825031590233277
+            },
+            "H_minus_A": {
+              "spearman": 0.09827928501920645,
+              "kendall_tau_b": 0.07834676254259662
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 8,
+              "intersection_count": 1,
+              "union_count": 13,
+              "jaccard": 0.07692307692307693
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 4,
+              "union_count": 20,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 54,
+              "intersection_count": 14,
+              "union_count": 55,
+              "jaccard": 0.2545454545454545
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": -0.18405290061089752,
+          "kendall_tau_b": -0.12826817072262975,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.17195248772164423,
+              "kendall_tau_b": -0.11928209863329803
+            },
+            "S_minus_H": {
+              "spearman": -0.06218736510071705,
+              "kendall_tau_b": -0.04820535903096962
+            },
+            "H_minus_A": {
+              "spearman": -0.012039307560769867,
+              "kendall_tau_b": -0.01803161825870884
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 0,
+              "union_count": 13,
+              "jaccard": 0.0
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 13,
+              "intersection_count": 3,
+              "union_count": 22,
+              "jaccard": 0.13636363636363635
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 16,
+              "intersection_count": 5,
+              "union_count": 26,
+              "jaccard": 0.19230769230769232
+            }
+          }
+        }
+      }
+    },
+    "sol": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.1845560647037735,
+          "kendall_tau_b": 0.14666072831324703,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.0445545273162578,
+              "kendall_tau_b": -0.04006625801682995
+            },
+            "S_minus_H": {
+              "spearman": 0.006077836018488969,
+              "kendall_tau_b": 0.008046916174409903
+            },
+            "H_minus_A": {
+              "spearman": 0.3437286166219593,
+              "kendall_tau_b": 0.2788903102795384
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 11,
+              "intersection_count": 3,
+              "union_count": 14,
+              "jaccard": 0.21428571428571427
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 60,
+              "intersection_count": 12,
+              "union_count": 60,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 60,
+              "intersection_count": 15,
+              "union_count": 60,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.26748589661994776,
+          "kendall_tau_b": 0.20292609144566923,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.12964399223387452,
+              "kendall_tau_b": 0.10515197435217866
+            },
+            "S_minus_H": {
+              "spearman": -0.0152939707851305,
+              "kendall_tau_b": -0.01217657422649106
+            },
+            "H_minus_A": {
+              "spearman": 0.24597817002251157,
+              "kendall_tau_b": 0.1889169758311371
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 8,
+              "intersection_count": 1,
+              "union_count": 13,
+              "jaccard": 0.07692307692307693
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 4,
+              "union_count": 23,
+              "jaccard": 0.17391304347826086
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 15,
+              "intersection_count": 6,
+              "union_count": 24,
+              "jaccard": 0.25
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.1796385169734262,
+          "kendall_tau_b": 0.14788935768515657,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.03977524274099976,
+              "kendall_tau_b": 0.03450007932258332
+            },
+            "S_minus_H": {
+              "spearman": 0.11564099776176191,
+              "kendall_tau_b": 0.10270234112654927
+            },
+            "H_minus_A": {
+              "spearman": 0.12742180610217996,
+              "kendall_tau_b": 0.1050263116595988
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 9,
+              "intersection_count": 3,
+              "union_count": 12,
+              "jaccard": 0.25
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 60,
+              "intersection_count": 12,
+              "union_count": 60,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 60,
+              "intersection_count": 15,
+              "union_count": 60,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": -0.03887768160798598,
+          "kendall_tau_b": -0.02209633884350761,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.014983068518657345,
+              "kendall_tau_b": -0.010420495006865975
+            },
+            "S_minus_H": {
+              "spearman": 0.01713125233467067,
+              "kendall_tau_b": 0.011387267068812735
+            },
+            "H_minus_A": {
+              "spearman": 0.005160054654251713,
+              "kendall_tau_b": 0.005533535675376054
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 0,
+              "union_count": 12,
+              "jaccard": 0.0
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 4,
+              "union_count": 23,
+              "jaccard": 0.17391304347826086
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 15,
+              "intersection_count": 4,
+              "union_count": 26,
+              "jaccard": 0.15384615384615385
+            }
+          }
+        }
+      }
+    },
+    "opus": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.07944814086797597,
+          "kendall_tau_b": 0.06620795584106148,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.037259232810636186,
+              "kendall_tau_b": 0.028962638225971074
+            },
+            "S_minus_H": {
+              "spearman": -0.20482183271108195,
+              "kendall_tau_b": -0.16620246845985548
+            },
+            "H_minus_A": {
+              "spearman": 0.3095321434758101,
+              "kendall_tau_b": 0.24089207627771883
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 9,
+              "intersection_count": 2,
+              "union_count": 13,
+              "jaccard": 0.15384615384615385
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 46,
+              "intersection_count": 10,
+              "union_count": 48,
+              "jaccard": 0.20833333333333334
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 46,
+              "intersection_count": 12,
+              "union_count": 49,
+              "jaccard": 0.24489795918367346
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": -0.03489769718526291,
+          "kendall_tau_b": -0.02588708291647317,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.23273244285649525,
+              "kendall_tau_b": -0.1936048359652467
+            },
+            "S_minus_H": {
+              "spearman": -0.10975396640970643,
+              "kendall_tau_b": -0.09143145554137135
+            },
+            "H_minus_A": {
+              "spearman": 0.3260793940717733,
+              "kendall_tau_b": 0.2490995498122714
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 9,
+              "intersection_count": 1,
+              "union_count": 14,
+              "jaccard": 0.07142857142857142
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 20,
+              "intersection_count": 4,
+              "union_count": 28,
+              "jaccard": 0.14285714285714285
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 20,
+              "intersection_count": 4,
+              "union_count": 31,
+              "jaccard": 0.12903225806451613
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": -0.0685826803082955,
+          "kendall_tau_b": -0.05567977267901115,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.26569641003078787,
+              "kendall_tau_b": -0.22699678761827027
+            },
+            "S_minus_H": {
+              "spearman": 0.07425391239914923,
+              "kendall_tau_b": 0.05958256742818811
+            },
+            "H_minus_A": {
+              "spearman": 0.08224729100729354,
+              "kendall_tau_b": 0.0643921544433232
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 7,
+              "rh_count": 10,
+              "intersection_count": 0,
+              "union_count": 17,
+              "jaccard": 0.0
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 54,
+              "intersection_count": 11,
+              "union_count": 55,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 54,
+              "intersection_count": 14,
+              "union_count": 55,
+              "jaccard": 0.2545454545454545
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": -0.1806550505176722,
+          "kendall_tau_b": -0.1395522672316641,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.26708976107451277,
+              "kendall_tau_b": -0.22021303584941274
+            },
+            "S_minus_H": {
+              "spearman": 0.04764238728841703,
+              "kendall_tau_b": 0.03999638574556338
+            },
+            "H_minus_A": {
+              "spearman": -0.016420293635455437,
+              "kendall_tau_b": -0.021622411351578663
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 7,
+              "rh_count": 12,
+              "intersection_count": 1,
+              "union_count": 18,
+              "jaccard": 0.05555555555555555
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 1,
+              "union_count": 23,
+              "jaccard": 0.043478260869565216
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 25,
+              "intersection_count": 4,
+              "union_count": 36,
+              "jaccard": 0.1111111111111111
+            }
+          }
+        }
+      }
+    },
+    "gemini": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.02148203175858181,
+          "kendall_tau_b": 0.019644583636853202,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.00521702523783956,
+              "kendall_tau_b": 0.004988849908570028
+            },
+            "S_minus_H": {
+              "spearman": -0.025447664649259447,
+              "kendall_tau_b": -0.02474184730981918
+            },
+            "H_minus_A": {
+              "spearman": 0.05222179675032879,
+              "kendall_tau_b": 0.0478718748337214
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 60,
+              "intersection_count": 6,
+              "union_count": 60,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 46,
+              "rh_count": 60,
+              "intersection_count": 46,
+              "union_count": 60,
+              "jaccard": 0.7666666666666667
+            },
+            "0.25": {
+              "gap_count": 46,
+              "rh_count": 60,
+              "intersection_count": 46,
+              "union_count": 60,
+              "jaccard": 0.7666666666666667
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 60,
+              "intersection_count": 6,
+              "union_count": 60,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 46,
+              "rh_count": 60,
+              "intersection_count": 46,
+              "union_count": 60,
+              "jaccard": 0.7666666666666667
+            },
+            "0.25": {
+              "gap_count": 46,
+              "rh_count": 60,
+              "intersection_count": 46,
+              "union_count": 60,
+              "jaccard": 0.7666666666666667
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 8,
+              "rh_count": 60,
+              "intersection_count": 8,
+              "union_count": 60,
+              "jaccard": 0.13333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 60,
+              "intersection_count": 12,
+              "union_count": 60,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 38,
+              "rh_count": 60,
+              "intersection_count": 38,
+              "union_count": 60,
+              "jaccard": 0.6333333333333333
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 8,
+              "rh_count": 60,
+              "intersection_count": 8,
+              "union_count": 60,
+              "jaccard": 0.13333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 60,
+              "intersection_count": 12,
+              "union_count": 60,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 38,
+              "rh_count": 60,
+              "intersection_count": 38,
+              "union_count": 60,
+              "jaccard": 0.6333333333333333
+            }
+          }
+        }
+      }
+    },
+    "sol_opus_gemini": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.03922414994013827,
+          "kendall_tau_b": 0.03299392933941875,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.03445169683857626,
+              "kendall_tau_b": -0.028660237259712937
+            },
+            "S_minus_H": {
+              "spearman": -0.12550576921146928,
+              "kendall_tau_b": -0.10644501964955985
+            },
+            "H_minus_A": {
+              "spearman": 0.3287811755629525,
+              "kendall_tau_b": 0.2575604125399556
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 2,
+              "union_count": 10,
+              "jaccard": 0.2
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 14,
+              "intersection_count": 4,
+              "union_count": 22,
+              "jaccard": 0.18181818181818182
+            },
+            "0.25": {
+              "gap_count": 16,
+              "rh_count": 46,
+              "intersection_count": 12,
+              "union_count": 50,
+              "jaccard": 0.24
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.147319549650492,
+          "kendall_tau_b": 0.1040262620338766,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.009231430836875268,
+              "kendall_tau_b": -0.0007502282916919056
+            },
+            "S_minus_H": {
+              "spearman": 0.03653388794229514,
+              "kendall_tau_b": 0.019465629529952413
+            },
+            "H_minus_A": {
+              "spearman": 0.21089394441874895,
+              "kendall_tau_b": 0.15361614680478755
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 8,
+              "intersection_count": 1,
+              "union_count": 13,
+              "jaccard": 0.07692307692307693
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 2,
+              "union_count": 22,
+              "jaccard": 0.09090909090909091
+            },
+            "0.25": {
+              "gap_count": 16,
+              "rh_count": 16,
+              "intersection_count": 4,
+              "union_count": 28,
+              "jaccard": 0.14285714285714285
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": -0.10750487245454902,
+          "kendall_tau_b": -0.08502503719737017,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.1638554584759597,
+              "kendall_tau_b": -0.1282325530812739
+            },
+            "S_minus_H": {
+              "spearman": -0.020778401323892907,
+              "kendall_tau_b": -0.017891217352066592
+            },
+            "H_minus_A": {
+              "spearman": 0.03754553167615213,
+              "kendall_tau_b": 0.03795110213638962
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 8,
+              "intersection_count": 1,
+              "union_count": 13,
+              "jaccard": 0.07692307692307693
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 3,
+              "union_count": 21,
+              "jaccard": 0.14285714285714285
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 54,
+              "intersection_count": 14,
+              "union_count": 55,
+              "jaccard": 0.2545454545454545
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": -0.24985007704783496,
+          "kendall_tau_b": -0.17578994308441231,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.19809368839700814,
+              "kendall_tau_b": -0.1379486866119817
+            },
+            "S_minus_H": {
+              "spearman": -0.08583909336804615,
+              "kendall_tau_b": -0.07136897311078619
+            },
+            "H_minus_A": {
+              "spearman": -0.035376550715628674,
+              "kendall_tau_b": -0.02486416687084236
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 0,
+              "union_count": 13,
+              "jaccard": 0.0
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 13,
+              "intersection_count": 2,
+              "union_count": 23,
+              "jaccard": 0.08695652173913043
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 16,
+              "intersection_count": 4,
+              "union_count": 27,
+              "jaccard": 0.14814814814814814
+            }
+          }
+        }
+      }
+    }
+  },
+  "new20": {
+    "sol_opus": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.25568376091452466,
+          "kendall_tau_b": 0.2024143574324639,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.22072992247045697,
+              "kendall_tau_b": 0.17513697576631346
+            },
+            "S_minus_H": {
+              "spearman": 0.07698040197831303,
+              "kendall_tau_b": 0.06492053647503669
+            },
+            "H_minus_A": {
+              "spearman": 0.11703104779193517,
+              "kendall_tau_b": 0.09421468273220138
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 1,
+              "union_count": 11,
+              "jaccard": 0.09090909090909091
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 21,
+              "intersection_count": 6,
+              "union_count": 27,
+              "jaccard": 0.2222222222222222
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 21,
+              "intersection_count": 6,
+              "union_count": 30,
+              "jaccard": 0.2
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.24532340857009077,
+          "kendall_tau_b": 0.19295372268053135,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.22887268535496139,
+              "kendall_tau_b": 0.17936226070282635
+            },
+            "S_minus_H": {
+              "spearman": 0.07281984356027985,
+              "kendall_tau_b": 0.04688698996513692
+            },
+            "H_minus_A": {
+              "spearman": 0.01529828130830934,
+              "kendall_tau_b": 0.014654713114977064
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 1,
+              "union_count": 12,
+              "jaccard": 0.08333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 4,
+              "union_count": 20,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 20,
+              "intersection_count": 8,
+              "union_count": 27,
+              "jaccard": 0.2962962962962963
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.2788872012677241,
+          "kendall_tau_b": 0.22250811291961672,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.06778028438572449,
+              "kendall_tau_b": 0.05449491369602919
+            },
+            "S_minus_H": {
+              "spearman": -0.011969588554112344,
+              "kendall_tau_b": -0.010351779421273214
+            },
+            "H_minus_A": {
+              "spearman": 0.3768829191246585,
+              "kendall_tau_b": 0.30052870457032915
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 23,
+              "intersection_count": 4,
+              "union_count": 25,
+              "jaccard": 0.16
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 23,
+              "intersection_count": 8,
+              "union_count": 27,
+              "jaccard": 0.2962962962962963
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 23,
+              "intersection_count": 8,
+              "union_count": 30,
+              "jaccard": 0.26666666666666666
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.2382835162475547,
+          "kendall_tau_b": 0.17093981865375435,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.1029215831398174,
+              "kendall_tau_b": 0.07775058768203741
+            },
+            "S_minus_H": {
+              "spearman": 0.14819674547777317,
+              "kendall_tau_b": 0.1056526179266149
+            },
+            "H_minus_A": {
+              "spearman": 0.13478129497603206,
+              "kendall_tau_b": 0.08602053713111493
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 1,
+              "union_count": 12,
+              "jaccard": 0.08333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 16,
+              "intersection_count": 4,
+              "union_count": 24,
+              "jaccard": 0.16666666666666666
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 16,
+              "intersection_count": 6,
+              "union_count": 25,
+              "jaccard": 0.24
+            }
+          }
+        }
+      }
+    },
+    "sol": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.2841806802933907,
+          "kendall_tau_b": 0.2217177802470144,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.23865271361565557,
+              "kendall_tau_b": 0.2072377616803445
+            },
+            "S_minus_H": {
+              "spearman": 0.12980746444887334,
+              "kendall_tau_b": 0.11129108763756511
+            },
+            "H_minus_A": {
+              "spearman": 0.11957887911663102,
+              "kendall_tau_b": 0.09457095131418185
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 15,
+              "intersection_count": 4,
+              "union_count": 17,
+              "jaccard": 0.23529411764705882
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 8,
+              "union_count": 19,
+              "jaccard": 0.42105263157894735
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 15,
+              "intersection_count": 8,
+              "union_count": 22,
+              "jaccard": 0.36363636363636365
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.3610511653745672,
+          "kendall_tau_b": 0.2678581047180944,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.22429254295034756,
+              "kendall_tau_b": 0.19019660896973062
+            },
+            "S_minus_H": {
+              "spearman": 0.2402877199772327,
+              "kendall_tau_b": 0.19126667998240396
+            },
+            "H_minus_A": {
+              "spearman": 0.016005695865366668,
+              "kendall_tau_b": 0.014594636638739961
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 1,
+              "union_count": 12,
+              "jaccard": 0.08333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 13,
+              "intersection_count": 5,
+              "union_count": 20,
+              "jaccard": 0.25
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 16,
+              "intersection_count": 8,
+              "union_count": 23,
+              "jaccard": 0.34782608695652173
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.2604836587846677,
+          "kendall_tau_b": 0.20586687228450165,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.02160921599042892,
+              "kendall_tau_b": -0.018625542828256656
+            },
+            "S_minus_H": {
+              "spearman": 0.05219535853233399,
+              "kendall_tau_b": 0.04345802766267164
+            },
+            "H_minus_A": {
+              "spearman": 0.2872785794466267,
+              "kendall_tau_b": 0.2352165305250585
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 15,
+              "intersection_count": 3,
+              "union_count": 18,
+              "jaccard": 0.16666666666666666
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 5,
+              "union_count": 22,
+              "jaccard": 0.22727272727272727
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 15,
+              "intersection_count": 6,
+              "union_count": 24,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.22933971869078404,
+          "kendall_tau_b": 0.1848092031532786,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.06222283265257467,
+              "kendall_tau_b": 0.044235664217109553
+            },
+            "S_minus_H": {
+              "spearman": 0.16434528252492264,
+              "kendall_tau_b": 0.12555405129734293
+            },
+            "H_minus_A": {
+              "spearman": 0.12472803645330405,
+              "kendall_tau_b": 0.09794429986594962
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 2,
+              "union_count": 10,
+              "jaccard": 0.2
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 22,
+              "intersection_count": 9,
+              "union_count": 25,
+              "jaccard": 0.36
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 22,
+              "intersection_count": 10,
+              "union_count": 27,
+              "jaccard": 0.37037037037037035
+            }
+          }
+        }
+      }
+    },
+    "opus": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.07066827998655562,
+          "kendall_tau_b": 0.05321431854895952,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.13574987729193216,
+              "kendall_tau_b": 0.12048730609089779
+            },
+            "S_minus_H": {
+              "spearman": -0.029170100120383163,
+              "kendall_tau_b": -0.02470037050833646
+            },
+            "H_minus_A": {
+              "spearman": 0.01912416237744604,
+              "kendall_tau_b": 0.010993288986740747
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 7,
+              "rh_count": 15,
+              "intersection_count": 2,
+              "union_count": 20,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 2,
+              "union_count": 25,
+              "jaccard": 0.08
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 15,
+              "intersection_count": 3,
+              "union_count": 27,
+              "jaccard": 0.1111111111111111
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.07494602900731945,
+          "kendall_tau_b": 0.055124558756788594,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.11591454918756085,
+              "kendall_tau_b": 0.09437039059981545
+            },
+            "S_minus_H": {
+              "spearman": -0.08358938350954129,
+              "kendall_tau_b": -0.06956027101040102
+            },
+            "H_minus_A": {
+              "spearman": 0.04542454679830421,
+              "kendall_tau_b": 0.04509230265436366
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 7,
+              "rh_count": 6,
+              "intersection_count": 1,
+              "union_count": 12,
+              "jaccard": 0.08333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 13,
+              "intersection_count": 3,
+              "union_count": 22,
+              "jaccard": 0.13636363636363635
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 33,
+              "intersection_count": 9,
+              "union_count": 39,
+              "jaccard": 0.23076923076923078
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.27082364728727254,
+          "kendall_tau_b": 0.2197563657026258,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.05930594078318261,
+              "kendall_tau_b": -0.0497063080643536
+            },
+            "S_minus_H": {
+              "spearman": 0.05582149556995719,
+              "kendall_tau_b": 0.04970574314695666
+            },
+            "H_minus_A": {
+              "spearman": 0.32375888307136486,
+              "kendall_tau_b": 0.2596274731349953
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 11,
+              "intersection_count": 1,
+              "union_count": 16,
+              "jaccard": 0.0625
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 56,
+              "intersection_count": 12,
+              "union_count": 56,
+              "jaccard": 0.21428571428571427
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 56,
+              "intersection_count": 15,
+              "union_count": 56,
+              "jaccard": 0.26785714285714285
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.16087295586894287,
+          "kendall_tau_b": 0.1178234194181929,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.02975042884997735,
+              "kendall_tau_b": -0.02337423961392434
+            },
+            "S_minus_H": {
+              "spearman": 0.04730778686921189,
+              "kendall_tau_b": 0.0417925460390043
+            },
+            "H_minus_A": {
+              "spearman": 0.19811667387731377,
+              "kendall_tau_b": 0.15536780889056112
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 1,
+              "union_count": 12,
+              "jaccard": 0.08333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 31,
+              "intersection_count": 7,
+              "union_count": 36,
+              "jaccard": 0.19444444444444445
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 31,
+              "intersection_count": 10,
+              "union_count": 36,
+              "jaccard": 0.2777777777777778
+            }
+          }
+        }
+      }
+    },
+    "gemini": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 60,
+              "intersection_count": 6,
+              "union_count": 60,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 13,
+              "rh_count": 60,
+              "intersection_count": 13,
+              "union_count": 60,
+              "jaccard": 0.21666666666666667
+            },
+            "0.25": {
+              "gap_count": 16,
+              "rh_count": 60,
+              "intersection_count": 16,
+              "union_count": 60,
+              "jaccard": 0.26666666666666666
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": -0.02544561997428518,
+          "kendall_tau_b": -0.02191739557810513,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.0028893307801888674,
+              "kendall_tau_b": 0.0
+            },
+            "S_minus_H": {
+              "spearman": -0.03216228581663515,
+              "kendall_tau_b": -0.02807541828590509
+            },
+            "H_minus_A": {
+              "spearman": 0.015591345454728423,
+              "kendall_tau_b": 0.013990741192981637
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 60,
+              "intersection_count": 6,
+              "union_count": 60,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 13,
+              "rh_count": 60,
+              "intersection_count": 13,
+              "union_count": 60,
+              "jaccard": 0.21666666666666667
+            },
+            "0.25": {
+              "gap_count": 16,
+              "rh_count": 60,
+              "intersection_count": 16,
+              "union_count": 60,
+              "jaccard": 0.26666666666666666
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 60,
+              "intersection_count": 6,
+              "union_count": 60,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 60,
+              "intersection_count": 12,
+              "union_count": 60,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 60,
+              "intersection_count": 15,
+              "union_count": 60,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 60,
+              "intersection_count": 6,
+              "union_count": 60,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 60,
+              "intersection_count": 12,
+              "union_count": 60,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 60,
+              "intersection_count": 15,
+              "union_count": 60,
+              "jaccard": 0.25
+            }
+          }
+        }
+      }
+    },
+    "sol_opus_gemini": {
+      "current_full": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.2574029433185757,
+          "kendall_tau_b": 0.20184963044654924,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.15673382908326755,
+              "kendall_tau_b": 0.12707128787579325
+            },
+            "S_minus_H": {
+              "spearman": 0.1384660804430517,
+              "kendall_tau_b": 0.1082907335192016
+            },
+            "H_minus_A": {
+              "spearman": 0.12977598924295525,
+              "kendall_tau_b": 0.10816908821917073
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 1,
+              "union_count": 11,
+              "jaccard": 0.09090909090909091
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 21,
+              "intersection_count": 7,
+              "union_count": 26,
+              "jaccard": 0.2692307692307692
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 21,
+              "intersection_count": 8,
+              "union_count": 28,
+              "jaccard": 0.2857142857142857
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.15888211702233793,
+          "kendall_tau_b": 0.12711540623277948,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.19232063519893525,
+              "kendall_tau_b": 0.1431096648384537
+            },
+            "S_minus_H": {
+              "spearman": 0.07577100421657104,
+              "kendall_tau_b": 0.05124428393852799
+            },
+            "H_minus_A": {
+              "spearman": -0.02267165315701349,
+              "kendall_tau_b": -0.008546166089888459
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 6,
+              "intersection_count": 1,
+              "union_count": 11,
+              "jaccard": 0.09090909090909091
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 5,
+              "union_count": 19,
+              "jaccard": 0.2631578947368421
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 20,
+              "intersection_count": 8,
+              "union_count": 27,
+              "jaccard": 0.2962962962962963
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 60,
+          "spearman": 0.26655516767932513,
+          "kendall_tau_b": 0.20952153244733177,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.06359435704993341,
+              "kendall_tau_b": 0.052842975760162995
+            },
+            "S_minus_H": {
+              "spearman": -0.00520584098670875,
+              "kendall_tau_b": -0.005126142128230985
+            },
+            "H_minus_A": {
+              "spearman": 0.37409806996856493,
+              "kendall_tau_b": 0.30414953233623676
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 23,
+              "intersection_count": 4,
+              "union_count": 25,
+              "jaccard": 0.16
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 23,
+              "intersection_count": 7,
+              "union_count": 28,
+              "jaccard": 0.25
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 23,
+              "intersection_count": 8,
+              "union_count": 30,
+              "jaccard": 0.26666666666666666
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 60,
+          "spearman": 0.23000422845610907,
+          "kendall_tau_b": 0.16412387743142123,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.023698057810758958,
+              "kendall_tau_b": 0.025625603954304063
+            },
+            "S_minus_H": {
+              "spearman": 0.22014240542826283,
+              "kendall_tau_b": 0.15065227880084017
+            },
+            "H_minus_A": {
+              "spearman": 0.1391258726925248,
+              "kendall_tau_b": 0.08851388603346609
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 6,
+              "rh_count": 7,
+              "intersection_count": 1,
+              "union_count": 12,
+              "jaccard": 0.08333333333333333
+            },
+            "0.2": {
+              "gap_count": 12,
+              "rh_count": 16,
+              "intersection_count": 5,
+              "union_count": 23,
+              "jaccard": 0.21739130434782608
+            },
+            "0.25": {
+              "gap_count": 15,
+              "rh_count": 16,
+              "intersection_count": 7,
+              "union_count": 24,
+              "jaccard": 0.2916666666666667
+            }
+          }
+        }
+      }
+    }
+  },
+  "cumulative40": {
+    "sol_opus": {
+      "current_full": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.19455543900692857,
+          "kendall_tau_b": 0.14920750347383682,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.13636385230455936,
+              "kendall_tau_b": 0.10596162449225367
+            },
+            "S_minus_H": {
+              "spearman": -0.046080019748669016,
+              "kendall_tau_b": -0.036383422482996336
+            },
+            "H_minus_A": {
+              "spearman": 0.29196678441164386,
+              "kendall_tau_b": 0.22584670751199976
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 17,
+              "intersection_count": 3,
+              "union_count": 26,
+              "jaccard": 0.11538461538461539
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 35,
+              "intersection_count": 10,
+              "union_count": 49,
+              "jaccard": 0.20408163265306123
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 35,
+              "intersection_count": 12,
+              "union_count": 53,
+              "jaccard": 0.22641509433962265
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.21877136663941912,
+          "kendall_tau_b": 0.16380083812588467,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.1473215829534681,
+              "kendall_tau_b": 0.115267331614498
+            },
+            "S_minus_H": {
+              "spearman": 0.03163425169515676,
+              "kendall_tau_b": 0.021211150193618203
+            },
+            "H_minus_A": {
+              "spearman": 0.160104863960849,
+              "kendall_tau_b": 0.12245763234171225
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 2,
+              "union_count": 25,
+              "jaccard": 0.08
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 24,
+              "intersection_count": 7,
+              "union_count": 41,
+              "jaccard": 0.17073170731707318
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 36,
+              "intersection_count": 13,
+              "union_count": 53,
+              "jaccard": 0.24528301886792453
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.1493721169396275,
+          "kendall_tau_b": 0.114154481581499,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.03829820125567082,
+              "kendall_tau_b": -0.030195797608018993
+            },
+            "S_minus_H": {
+              "spearman": 0.002313130285138268,
+              "kendall_tau_b": 0.002073798347683366
+            },
+            "H_minus_A": {
+              "spearman": 0.24969534244727004,
+              "kendall_tau_b": 0.19255421526145183
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 13,
+              "intersection_count": 3,
+              "union_count": 22,
+              "jaccard": 0.13636363636363635
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 35,
+              "intersection_count": 12,
+              "union_count": 47,
+              "jaccard": 0.2553191489361702
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 35,
+              "intersection_count": 14,
+              "union_count": 51,
+              "jaccard": 0.27450980392156865
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.03257840813515261,
+          "kendall_tau_b": 0.027806325539960323,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.05280659759454655,
+              "kendall_tau_b": -0.035858145821319125
+            },
+            "S_minus_H": {
+              "spearman": 0.03622897766566856,
+              "kendall_tau_b": 0.023018026770665112
+            },
+            "H_minus_A": {
+              "spearman": 0.07889693427945668,
+              "kendall_tau_b": 0.04670233681849689
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 1,
+              "union_count": 23,
+              "jaccard": 0.043478260869565216
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 24,
+              "intersection_count": 6,
+              "union_count": 42,
+              "jaccard": 0.14285714285714285
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 32,
+              "intersection_count": 11,
+              "union_count": 51,
+              "jaccard": 0.21568627450980393
+            }
+          }
+        }
+      }
+    },
+    "sol": {
+      "current_full": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.25551278723060716,
+          "kendall_tau_b": 0.2008645133977167,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.12513781073264868,
+              "kendall_tau_b": 0.10897451262288792
+            },
+            "S_minus_H": {
+              "spearman": 0.07927021950158987,
+              "kendall_tau_b": 0.07119460471949368
+            },
+            "H_minus_A": {
+              "spearman": 0.22713324416048045,
+              "kendall_tau_b": 0.18121851710305864
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 26,
+              "intersection_count": 9,
+              "union_count": 29,
+              "jaccard": 0.3103448275862069
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 26,
+              "intersection_count": 11,
+              "union_count": 39,
+              "jaccard": 0.28205128205128205
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 120,
+              "intersection_count": 30,
+              "union_count": 120,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.3188157270055676,
+          "kendall_tau_b": 0.23636891393789344,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.20635932682981745,
+              "kendall_tau_b": 0.17178112247000812
+            },
+            "S_minus_H": {
+              "spearman": 0.1424732960046729,
+              "kendall_tau_b": 0.11588950562883411
+            },
+            "H_minus_A": {
+              "spearman": 0.11104722403985987,
+              "kendall_tau_b": 0.08555860572310309
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 3,
+              "union_count": 21,
+              "jaccard": 0.14285714285714285
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 28,
+              "intersection_count": 9,
+              "union_count": 43,
+              "jaccard": 0.20930232558139536
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 31,
+              "intersection_count": 14,
+              "union_count": 47,
+              "jaccard": 0.2978723404255319
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.2549987420004569,
+          "kendall_tau_b": 0.20455706595602882,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.020433003361862608,
+              "kendall_tau_b": 0.017267814700616894
+            },
+            "S_minus_H": {
+              "spearman": 0.09208733958473622,
+              "kendall_tau_b": 0.08003398241595247
+            },
+            "H_minus_A": {
+              "spearman": 0.21699894564674177,
+              "kendall_tau_b": 0.17655957380345833
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 24,
+              "intersection_count": 6,
+              "union_count": 30,
+              "jaccard": 0.2
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 24,
+              "intersection_count": 9,
+              "union_count": 39,
+              "jaccard": 0.23076923076923078
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 120,
+              "intersection_count": 30,
+              "union_count": 120,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.12623335101565564,
+          "kendall_tau_b": 0.10320819163940756,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.04160378348462653,
+              "kendall_tau_b": 0.03035366838269697
+            },
+            "S_minus_H": {
+              "spearman": 0.09282407262662863,
+              "kendall_tau_b": 0.07283783830220215
+            },
+            "H_minus_A": {
+              "spearman": 0.06983877210578288,
+              "kendall_tau_b": 0.052833864233819174
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 2,
+              "union_count": 22,
+              "jaccard": 0.09090909090909091
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 37,
+              "intersection_count": 13,
+              "union_count": 48,
+              "jaccard": 0.2708333333333333
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 37,
+              "intersection_count": 14,
+              "union_count": 53,
+              "jaccard": 0.2641509433962264
+            }
+          }
+        }
+      }
+    },
+    "opus": {
+      "current_full": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.13442339890132607,
+          "kendall_tau_b": 0.10898265804986428,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.10403269436014301,
+              "kendall_tau_b": 0.09031847183885297
+            },
+            "S_minus_H": {
+              "spearman": -0.1381708109994326,
+              "kendall_tau_b": -0.11408022266552853
+            },
+            "H_minus_A": {
+              "spearman": 0.24538046182010495,
+              "kendall_tau_b": 0.192032435354209
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 13,
+              "rh_count": 24,
+              "intersection_count": 4,
+              "union_count": 33,
+              "jaccard": 0.12121212121212122
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 24,
+              "intersection_count": 6,
+              "union_count": 42,
+              "jaccard": 0.14285714285714285
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 104,
+              "intersection_count": 29,
+              "union_count": 105,
+              "jaccard": 0.2761904761904762
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.05188524947924979,
+          "kendall_tau_b": 0.03930000206137522,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.03791106246375326,
+              "kendall_tau_b": -0.029896293528034225
+            },
+            "S_minus_H": {
+              "spearman": -0.10860008459849468,
+              "kendall_tau_b": -0.090021588399907
+            },
+            "H_minus_A": {
+              "spearman": 0.2177127113635962,
+              "kendall_tau_b": 0.1717716140739081
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 13,
+              "rh_count": 12,
+              "intersection_count": 1,
+              "union_count": 24,
+              "jaccard": 0.041666666666666664
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 53,
+              "intersection_count": 14,
+              "union_count": 63,
+              "jaccard": 0.2222222222222222
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 53,
+              "intersection_count": 16,
+              "union_count": 67,
+              "jaccard": 0.23880597014925373
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.1031199231641342,
+          "kendall_tau_b": 0.08086264775841039,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.17253174183573192,
+              "kendall_tau_b": -0.14736045382780388
+            },
+            "S_minus_H": {
+              "spearman": 0.06139965061702725,
+              "kendall_tau_b": 0.05067936029558762
+            },
+            "H_minus_A": {
+              "spearman": 0.1967661554457444,
+              "kendall_tau_b": 0.15866066239061152
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 21,
+              "intersection_count": 2,
+              "union_count": 31,
+              "jaccard": 0.06451612903225806
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 110,
+              "intersection_count": 23,
+              "union_count": 111,
+              "jaccard": 0.2072072072072072
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 110,
+              "intersection_count": 29,
+              "union_count": 111,
+              "jaccard": 0.26126126126126126
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": -0.019525500279498884,
+          "kendall_tau_b": -0.017806645106311362,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.17107752916795665,
+              "kendall_tau_b": -0.14218698972644622
+            },
+            "S_minus_H": {
+              "spearman": 0.05022898585119791,
+              "kendall_tau_b": 0.040486772541746034
+            },
+            "H_minus_A": {
+              "spearman": 0.0836834764296463,
+              "kendall_tau_b": 0.06170781907368101
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 19,
+              "intersection_count": 2,
+              "union_count": 29,
+              "jaccard": 0.06896551724137931
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 56,
+              "intersection_count": 12,
+              "union_count": 68,
+              "jaccard": 0.17647058823529413
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 56,
+              "intersection_count": 14,
+              "union_count": 72,
+              "jaccard": 0.19444444444444445
+            }
+          }
+        }
+      }
+    },
+    "gemini": {
+      "current_full": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": -0.01140185452242896,
+          "kendall_tau_b": -0.010149383425646374,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.0037884092508705183,
+              "kendall_tau_b": -0.003617920381750846
+            },
+            "S_minus_H": {
+              "spearman": -0.018741537443792786,
+              "kendall_tau_b": -0.018072580647512042
+            },
+            "H_minus_A": {
+              "spearman": 0.007154534525956389,
+              "kendall_tau_b": 0.006386941070310612
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 15,
+              "rh_count": 120,
+              "intersection_count": 15,
+              "union_count": 120,
+              "jaccard": 0.125
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 120,
+              "intersection_count": 24,
+              "union_count": 120,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 31,
+              "rh_count": 120,
+              "intersection_count": 31,
+              "union_count": 120,
+              "jaccard": 0.25833333333333336
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.018151919722710685,
+          "kendall_tau_b": 0.01620535247190138,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.013068755566127712,
+              "kendall_tau_b": 0.011553347142920568
+            },
+            "S_minus_H": {
+              "spearman": -0.018034689598076428,
+              "kendall_tau_b": -0.01632269349810788
+            },
+            "H_minus_A": {
+              "spearman": 0.040697238336232414,
+              "kendall_tau_b": 0.036341689443322917
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 15,
+              "rh_count": 120,
+              "intersection_count": 15,
+              "union_count": 120,
+              "jaccard": 0.125
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 120,
+              "intersection_count": 24,
+              "union_count": 120,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 31,
+              "rh_count": 120,
+              "intersection_count": 31,
+              "union_count": 120,
+              "jaccard": 0.25833333333333336
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 120,
+              "intersection_count": 12,
+              "union_count": 120,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 120,
+              "intersection_count": 24,
+              "union_count": 120,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 120,
+              "intersection_count": 30,
+              "union_count": 120,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": null,
+          "kendall_tau_b": null,
+          "components": {
+            "W_minus_S": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "S_minus_H": {
+              "spearman": null,
+              "kendall_tau_b": null
+            },
+            "H_minus_A": {
+              "spearman": null,
+              "kendall_tau_b": null
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 120,
+              "intersection_count": 12,
+              "union_count": 120,
+              "jaccard": 0.1
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 120,
+              "intersection_count": 24,
+              "union_count": 120,
+              "jaccard": 0.2
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 120,
+              "intersection_count": 30,
+              "union_count": 120,
+              "jaccard": 0.25
+            }
+          }
+        }
+      }
+    },
+    "sol_opus_gemini": {
+      "current_full": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.20135204275504656,
+          "kendall_tau_b": 0.15632026442476588,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.10107827754508876,
+              "kendall_tau_b": 0.08160308021384599
+            },
+            "S_minus_H": {
+              "spearman": 0.007131716363861966,
+              "kendall_tau_b": 0.00482261321265178
+            },
+            "H_minus_A": {
+              "spearman": 0.2753797671799089,
+              "kendall_tau_b": 0.2153585992523851
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 17,
+              "intersection_count": 4,
+              "union_count": 25,
+              "jaccard": 0.16
+            },
+            "0.2": {
+              "gap_count": 25,
+              "rh_count": 35,
+              "intersection_count": 12,
+              "union_count": 48,
+              "jaccard": 0.25
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 35,
+              "intersection_count": 13,
+              "union_count": 52,
+              "jaccard": 0.25
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": 0.18291541983062973,
+          "kendall_tau_b": 0.14073468461630634,
+          "components": {
+            "W_minus_S": {
+              "spearman": 0.12545456055879595,
+              "kendall_tau_b": 0.0945124734215541
+            },
+            "S_minus_H": {
+              "spearman": 0.05590569639045537,
+              "kendall_tau_b": 0.03772837477398998
+            },
+            "H_minus_A": {
+              "spearman": 0.11161575364176082,
+              "kendall_tau_b": 0.08597704160712091
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 15,
+              "intersection_count": 3,
+              "union_count": 24,
+              "jaccard": 0.125
+            },
+            "0.2": {
+              "gap_count": 25,
+              "rh_count": 24,
+              "intersection_count": 8,
+              "union_count": 41,
+              "jaccard": 0.1951219512195122
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 36,
+              "intersection_count": 13,
+              "union_count": 53,
+              "jaccard": 0.24528301886792453
+            }
+          }
+        }
+      },
+      "current_user": {
+        "final_artifact": {
+          "n": 120,
+          "spearman": 0.11066211628148213,
+          "kendall_tau_b": 0.0868224427861951,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.03563232428250875,
+              "kendall_tau_b": -0.02665013782932849
+            },
+            "S_minus_H": {
+              "spearman": 0.0032515046319245393,
+              "kendall_tau_b": 0.0011266309445823114
+            },
+            "H_minus_A": {
+              "spearman": 0.20663154368749648,
+              "kendall_tau_b": 0.1647492039280669
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 13,
+              "intersection_count": 3,
+              "union_count": 22,
+              "jaccard": 0.13636363636363635
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 35,
+              "intersection_count": 11,
+              "union_count": 48,
+              "jaccard": 0.22916666666666666
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 35,
+              "intersection_count": 12,
+              "union_count": 53,
+              "jaccard": 0.22641509433962265
+            }
+          }
+        },
+        "full_trajectory": {
+          "n": 120,
+          "spearman": -0.004613892144489725,
+          "kendall_tau_b": 0.00030740336427487777,
+          "components": {
+            "W_minus_S": {
+              "spearman": -0.09449167238596066,
+              "kendall_tau_b": -0.0614017455581376
+            },
+            "S_minus_H": {
+              "spearman": 0.0556104484228807,
+              "kendall_tau_b": 0.03330438524847758
+            },
+            "H_minus_A": {
+              "spearman": 0.06303400165676276,
+              "kendall_tau_b": 0.036703754508900455
+            }
+          },
+          "worst_overlap": {
+            "0.1": {
+              "gap_count": 12,
+              "rh_count": 12,
+              "intersection_count": 1,
+              "union_count": 23,
+              "jaccard": 0.043478260869565216
+            },
+            "0.2": {
+              "gap_count": 24,
+              "rh_count": 24,
+              "intersection_count": 7,
+              "union_count": 41,
+              "jaccard": 0.17073170731707318
+            },
+            "0.25": {
+              "gap_count": 30,
+              "rh_count": 32,
+              "intersection_count": 10,
+              "union_count": 52,
+              "jaccard": 0.19230769230769232
+            }
+          }
+        }
+      }
+    }
+  }
+}

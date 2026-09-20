@@ -1,0 +1,5384 @@
+{
+  "pricing_registry_date": "2026-08-18",
+  "stages": [
+    {
+      "stage": "audit_absolute_score",
+      "model": "claude-opus-5",
+      "saved_responses": 360,
+      "reused_exact": 0,
+      "fresh_saved_responses": 360,
+      "usage_available": 360,
+      "input_tokens": 2993491,
+      "output_tokens": 242692,
+      "cached_input_tokens": 216048,
+      "cache_write_input_tokens": 15432,
+      "usage_based_usd": 20.081829
+    },
+    {
+      "stage": "audit_absolute_score",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 780,
+      "reused_exact": 0,
+      "fresh_saved_responses": 780,
+      "usage_available": 780,
+      "input_tokens": 4632246,
+      "output_tokens": 114157,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_absolute_score",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 360,
+      "reused_exact": 0,
+      "fresh_saved_responses": 360,
+      "usage_available": 360,
+      "input_tokens": 1891372,
+      "output_tokens": 67598,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 11.4848
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "claude-opus-5",
+      "saved_responses": 240,
+      "reused_exact": 0,
+      "fresh_saved_responses": 240,
+      "usage_available": 240,
+      "input_tokens": 2348692,
+      "output_tokens": 35897,
+      "cached_input_tokens": 607141,
+      "cache_write_input_tokens": 45275,
+      "usage_based_usd": 9.96534425
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 480,
+      "reused_exact": 0,
+      "fresh_saved_responses": 480,
+      "usage_available": 480,
+      "input_tokens": 3280599,
+      "output_tokens": 33284,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_direct_final_artifact",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 240,
+      "reused_exact": 0,
+      "fresh_saved_responses": 240,
+      "usage_available": 240,
+      "input_tokens": 1499617,
+      "output_tokens": 22069,
+      "cached_input_tokens": 367706,
+      "cache_write_input_tokens": 19198,
+      "usage_based_usd": 6.5294755
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "claude-opus-5",
+      "saved_responses": 255,
+      "reused_exact": 0,
+      "fresh_saved_responses": 255,
+      "usage_available": 255,
+      "input_tokens": 13325584,
+      "output_tokens": 32079,
+      "cached_input_tokens": 648799,
+      "cache_write_input_tokens": 43699,
+      "usage_based_usd": 64.56492325
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 495,
+      "reused_exact": 0,
+      "fresh_saved_responses": 495,
+      "usage_available": 495,
+      "input_tokens": 20846242,
+      "output_tokens": 34557,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_direct_final_revision",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 254,
+      "reused_exact": 0,
+      "fresh_saved_responses": 254,
+      "usage_available": 254,
+      "input_tokens": 9076789,
+      "output_tokens": 20134,
+      "cached_input_tokens": 401479,
+      "cache_write_input_tokens": 7764,
+      "usage_based_usd": 44.1910145
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "claude-opus-5",
+      "saved_responses": 1059,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1059,
+      "usage_available": 1059,
+      "input_tokens": 125890621,
+      "output_tokens": 152256,
+      "cached_input_tokens": 2818049,
+      "cache_write_input_tokens": 27371,
+      "usage_based_usd": 620.61249825
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 1806,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1806,
+      "usage_available": 1806,
+      "input_tokens": 209091043,
+      "output_tokens": 136746,
+      "cached_input_tokens": 16348,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_direct_full_trajectory",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 979,
+      "reused_exact": 0,
+      "fresh_saved_responses": 979,
+      "usage_available": 979,
+      "input_tokens": 89148417,
+      "output_tokens": 88611,
+      "cached_input_tokens": 1553648,
+      "cache_write_input_tokens": 2058,
+      "usage_based_usd": 441.4115715
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "claude-opus-5",
+      "saved_responses": 546,
+      "reused_exact": 0,
+      "fresh_saved_responses": 546,
+      "usage_available": 546,
+      "input_tokens": 58764845,
+      "output_tokens": 76099,
+      "cached_input_tokens": 1428812,
+      "cache_write_input_tokens": 33357,
+      "usage_based_usd": 289.33874225
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 969,
+      "reused_exact": 0,
+      "fresh_saved_responses": 969,
+      "usage_available": 969,
+      "input_tokens": 99432945,
+      "output_tokens": 69583,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_direct_post_update",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 504,
+      "reused_exact": 0,
+      "fresh_saved_responses": 504,
+      "usage_available": 504,
+      "input_tokens": 41009037,
+      "output_tokens": 43605,
+      "cached_input_tokens": 796809,
+      "cache_write_input_tokens": 4805,
+      "usage_based_usd": 202.77370075
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "claude-opus-5",
+      "saved_responses": 240,
+      "reused_exact": 0,
+      "fresh_saved_responses": 240,
+      "usage_available": 240,
+      "input_tokens": 2956621,
+      "output_tokens": 70544,
+      "cached_input_tokens": 135900,
+      "cache_write_input_tokens": 9060,
+      "usage_based_usd": 15.94648
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 480,
+      "reused_exact": 0,
+      "fresh_saved_responses": 480,
+      "usage_available": 480,
+      "input_tokens": 4472857,
+      "output_tokens": 65723,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_pairwise_preference",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 240,
+      "reused_exact": 0,
+      "fresh_saved_responses": 240,
+      "usage_available": 240,
+      "input_tokens": 1867244,
+      "output_tokens": 22077,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 9.99853
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "claude-opus-5",
+      "saved_responses": 1941,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1941,
+      "usage_available": 1941,
+      "input_tokens": 19282784,
+      "output_tokens": 1683193,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 138.493745
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "gemini-3.8-flash",
+      "saved_responses": 4200,
+      "reused_exact": 0,
+      "fresh_saved_responses": 4200,
+      "usage_available": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0
+    },
+    {
+      "stage": "audit_rubric",
+      "model": "gpt-5.6-sol",
+      "saved_responses": 1941,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1941,
+      "usage_available": 1941,
+      "input_tokens": 11850895,
+      "output_tokens": 626365,
+      "cached_input_tokens": 1234368,
+      "cache_write_input_tokens": 10610704,
+      "usage_based_usd": 85.754149
+    },
+    {
+      "stage": "input_seed_initial_judgment",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 1,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1,
+      "usage_available": 1,
+      "input_tokens": 5091,
+      "output_tokens": 346,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 5088,
+      "usage_based_usd": 0.0016878
+    },
+    {
+      "stage": "optimizer_judge",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 2816,
+      "reused_exact": 0,
+      "fresh_saved_responses": 2816,
+      "usage_available": 2816,
+      "input_tokens": 18641133,
+      "output_tokens": 970437,
+      "cached_input_tokens": 218281,
+      "cache_write_input_tokens": 18414404,
+      "usage_based_usd": 5.77418062
+    },
+    {
+      "stage": "simulator",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 974,
+      "reused_exact": 0,
+      "fresh_saved_responses": 974,
+      "usage_available": 974,
+      "input_tokens": 19547199,
+      "output_tokens": 195859,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 4.1444706
+    },
+    {
+      "stage": "simulator_history",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 2,
+      "reused_exact": 0,
+      "fresh_saved_responses": 2,
+      "usage_available": 2,
+      "input_tokens": 94245,
+      "output_tokens": 1319,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "usage_based_usd": 0.0204318
+    },
+    {
+      "stage": "trace_application",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 7627,
+      "reused_exact": 0,
+      "fresh_saved_responses": 7627,
+      "usage_available": 7627,
+      "input_tokens": 43655535,
+      "output_tokens": 2672450,
+      "cached_input_tokens": 7887,
+      "cache_write_input_tokens": 43619011,
+      "usage_based_usd": 14.11757789
+    },
+    {
+      "stage": "trace_compilation",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 654,
+      "reused_exact": 0,
+      "fresh_saved_responses": 654,
+      "usage_available": 654,
+      "input_tokens": 10631881,
+      "output_tokens": 241291,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 10629919,
+      "usage_based_usd": 2.94742135
+    },
+    {
+      "stage": "trace_diagnosis",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 919,
+      "reused_exact": 0,
+      "fresh_saved_responses": 919,
+      "usage_available": 919,
+      "input_tokens": 27413417,
+      "output_tokens": 2672089,
+      "cached_input_tokens": 914253,
+      "cache_write_input_tokens": 26496407,
+      "usage_based_usd": 9.84944501
+    },
+    {
+      "stage": "trace_enforcement",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 1193,
+      "reused_exact": 0,
+      "fresh_saved_responses": 1193,
+      "usage_available": 1193,
+      "input_tokens": 37567940,
+      "output_tokens": 566135,
+      "cached_input_tokens": 1378998,
+      "cache_write_input_tokens": 36185363,
+      "usage_based_usd": 9.75399851
+    },
+    {
+      "stage": "trace_quality",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 2103,
+      "reused_exact": 0,
+      "fresh_saved_responses": 2103,
+      "usage_available": 2103,
+      "input_tokens": 23854932,
+      "output_tokens": 1116782,
+      "cached_input_tokens": 2358590,
+      "cache_write_input_tokens": 21473485,
+      "usage_based_usd": 6.76025285
+    },
+    {
+      "stage": "trace_rubric_view",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 5505,
+      "reused_exact": 0,
+      "fresh_saved_responses": 5505,
+      "usage_available": 5505,
+      "input_tokens": 37784238,
+      "output_tokens": 2914454,
+      "cached_input_tokens": 4100881,
+      "cache_write_input_tokens": 33666842,
+      "usage_based_usd": 11.999375919999999
+    },
+    {
+      "stage": "trace_semantic",
+      "model": "gpt-5.6-luna",
+      "saved_responses": 652,
+      "reused_exact": 0,
+      "fresh_saved_responses": 652,
+      "usage_available": 652,
+      "input_tokens": 5599854,
+      "output_tokens": 209611,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 5597898,
+      "usage_based_usd": 1.6513989
+    }
+  ],
+  "agents": [
+    {
+      "stage": "input_seed_solver",
+      "streams": 1,
+      "threads_with_usage": 1,
+      "events": {
+        "thread.started": 1,
+        "turn.started": 1,
+        "item.completed": 20,
+        "item.started": 16,
+        "turn.completed": 1
+      },
+      "usage_totals": {
+        "input_tokens": 282901,
+        "cached_input_tokens": 249856,
+        "output_tokens": 6696,
+        "reasoning_output_tokens": 522
+      },
+      "usage_based_usd": 0.019641
+    },
+    {
+      "stage": "input_seed_elicitation",
+      "streams": 1,
+      "threads_with_usage": 1,
+      "events": {
+        "thread.started": 1,
+        "turn.started": 1,
+        "item.completed": 23,
+        "item.started": 19,
+        "turn.completed": 1
+      },
+      "usage_totals": {
+        "input_tokens": 384450,
+        "cached_input_tokens": 352256,
+        "output_tokens": 7761,
+        "reasoning_output_tokens": 554
+      },
+      "usage_based_usd": 0.022797
+    },
+    {
+      "stage": "attack_sidecar",
+      "streams": 797,
+      "threads_with_usage": 791,
+      "events": {
+        "thread.started": 796,
+        "turn.started": 796,
+        "item.started": 12376,
+        "item.completed": 12376,
+        "codex.item.agentMessage.delta": 270584,
+        "codex.turn.diff.updated": 3979,
+        "turn.completed": 791,
+        "codex.item.commandExecution.outputDelta": 2890,
+        "error": 5,
+        "BrokenPipeError": 1,
+        "codex.item.commandExecution.terminalInteraction": 4
+      },
+      "usage_totals": {
+        "cached_input_tokens": 91063808,
+        "input_tokens": 113822690,
+        "output_tokens": 2236835,
+        "reasoning_output_tokens": 591226,
+        "total_tokens": 116059525
+      },
+      "usage_based_usd": 9.057257
+    },
+    {
+      "stage": "solver",
+      "streams": 1595,
+      "threads_with_usage": 244,
+      "events": {
+        "thread.started": 1595,
+        "turn.started": 1595,
+        "item.started": 22345,
+        "item.completed": 22345,
+        "codex.item.agentMessage.delta": 277823,
+        "codex.turn.diff.updated": 10951,
+        "turn.completed": 1595,
+        "codex.item.commandExecution.outputDelta": 35116,
+        "codex.item.commandExecution.terminalInteraction": 469
+      },
+      "usage_totals": {
+        "cached_input_tokens": 530254080,
+        "input_tokens": 557256805,
+        "output_tokens": 4815860,
+        "reasoning_output_tokens": 517624,
+        "total_tokens": 562072665
+      },
+      "usage_based_usd": 21.784663
+    }
+  ],
+  "failed_learning_attempts": 16,
+  "runtime_failures": [
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789729701.3872166
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789727233.8776088
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789728228.5443559
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722317.1322122
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722511.781469
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722524.62963
+    },
+    {
+      "job_id": "10510091",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789902343.7342505
+    },
+    {
+      "job_id": "10510091",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789902352.7047536
+    },
+    {
+      "job_id": "10510091",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789902359.1054146
+    },
+    {
+      "job_id": "10510091",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789902431.0190678
+    },
+    {
+      "job_id": "10510620",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910898.4243894
+    },
+    {
+      "job_id": "10510620",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910906.8503764
+    },
+    {
+      "job_id": "10510620",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910949.4428163
+    },
+    {
+      "job_id": "10510620",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789911228.016854
+    },
+    {
+      "job_id": "10488693",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789718740.8213062
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789721954.1248934
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789721966.9961512
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789721969.8235192
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722311.5407624
+    },
+    {
+      "job_id": "10509414",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789892709.051681
+    },
+    {
+      "job_id": "10509414",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789892713.3489285
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722517.1014316
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.1749592
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.1761289
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.2007825
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.2908924
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.3558872
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.3725739
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.3863475
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.4135637
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.4406548
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.481312
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.593619
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.6070669
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.6534433
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.6998055
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.7239206
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.729394
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.7407446
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.7839515
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888715.886889
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.8856533
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.9207828
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.9302063
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888715.9849598
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.038983
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.0484147
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.081736
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.151637
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.1572251
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.1781094
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.215314
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.2789745
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.2815933
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.3879037
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.4176316
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.4537587
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.5011299
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.5305083
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.6171474
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.6928868
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888716.7582495
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.760229
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.7866406
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.794131
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.8043804
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.8047378
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.8084264
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.8528473
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888716.883265
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.1190357
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.127638
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.1560068
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.184972
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.1954281
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.2001173
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.5528903
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.66006
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.6790254
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888717.6955962
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.705112
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.817679
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.8188534
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888717.9746275
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.0274343
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.0650089
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.1330776
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.3874404
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.4011781
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.462509
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.4745865
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.476709
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.6184406
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.6197643
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.6585734
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.6940818
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888718.7630296
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.3076887
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.42903
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.552454
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.5881088
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.5972605
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.6695065
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.721748
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.7331228
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.7918875
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.8328753
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.8907382
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.9229257
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.9831614
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888719.9878144
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.0113099
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.0456343
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.1476362
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.1565783
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.1854458
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.2357745
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.2851534
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.3137457
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.3718863
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.3827062
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.4234672
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.4356656
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.458556
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.7119381
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.7323217
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.797083
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.8078341
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.8590586
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.8621106
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.9065459
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888720.95753
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.0211499
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.0532532
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.0775216
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.117621
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.164001
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.18434
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.234022
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.305012
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.344495
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.3714483
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.4048266
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.4185798
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.4714365
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.5194232
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.531639
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.5471509
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.5591612
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.6560483
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.6689749
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.7696424
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.7759469
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.789224
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.8292062
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.8505232
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.9073882
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.9126525
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.94255
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888721.9807947
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.0067558
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.011374
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.0775313
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.094079
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.1476605
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.3264215
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.359918
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.4460034
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.4188638
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.462582
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.5037065
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.5376198
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.5480697
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.639444
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.6882246
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.7669175
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.7709372
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.8381212
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.8538175
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.8556526
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.8783066
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888722.9082127
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.0850105
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.0942743
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.0991406
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.1048162
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.1150668
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.1813762
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.2459478
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.3565552
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.4526873
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.4531777
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.458353
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.5172014
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.5206206
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.5362084
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.5779583
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.630453
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.6362424
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.6496677
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.6918445
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.733138
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.734154
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.7387092
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.744845
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.8481123
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.850777
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888723.8743703
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.0169299
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.0239632
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.0289602
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.0581317
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.0626388
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.0953164
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.1017723
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.1850567
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.2017062
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.220853
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.269758
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.3881395
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.4709675
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.5386705
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.5671334
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.5967228
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.6220872
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.6653147
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.6786783
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.695031
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.710884
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.7256508
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.7318745
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.8573635
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.896226
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.934287
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888724.9692795
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.005857
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.0453348
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.0483804
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.0896351
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.12994
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.1670444
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.171376
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.2101512
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.2428882
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.3252678
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.3443875
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.4517944
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.4539711
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.4838154
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.5312712
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.5386512
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.5409222
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.5650516
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.6743135
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.7123818
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.7215908
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.7890215
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.821265
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.833799
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.8500338
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.862084
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.894829
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.918054
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.9272506
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.9483466
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.997551
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888725.994178
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.038527
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.1492817
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.1501796
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.2093492
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.227238
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.3172324
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.369047
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.409532
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.5243633
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.5478172
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.6253757
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.6671665
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.7623703
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.7819393
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.809068
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.8274016
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.840434
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.8814523
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.9426143
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.9453812
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.952106
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.9562435
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.9581232
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888726.9800901
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.0449183
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.0625882
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.1085708
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.147463
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.1689408
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.214849
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.225733
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.2909336
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.4165184
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.4349103
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.4653287
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.4749832
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.494381
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.5484107
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.5563936
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.559295
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.6360419
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.636659
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.6481326
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.677949
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.7001097
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.7238524
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.7908814
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.8091674
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.90808
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.9131835
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.9180195
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.919347
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.9299786
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.9916847
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888727.9964464
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.0121632
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.0358229
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.0812497
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.0891306
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.1855092
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.3123195
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.3397245
+    },
+    {
+      "job_id": "10509196",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888728.36329
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.4455645
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.4639127
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.4912627
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.5406966
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888728.6652281
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.0012426
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.0077286
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.0084498
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.0258594
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.116846
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.1922233
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.2213168
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.236516
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.2539868
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.3861804
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.4287834
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.442546
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.4444954
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.5076315
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.5276961
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.5926425
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.6110327
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.6524806
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.7550356
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.7825828
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.777416
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.8022838
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.8246865
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.9059749
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.9319644
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.945184
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.960035
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888729.987756
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.0037518
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.0298185
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.076072
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.0767403
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.091791
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.13238
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.1563418
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.2156575
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.2338617
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.2778828
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.2893164
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.3306367
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.360964
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.374548
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.4102545
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.4246976
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.4436712
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.4574523
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.5556965
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.6052804
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.7048848
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.7164772
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.735327
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.7393208
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.8561678
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.8593354
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.899139
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888730.9368856
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.0598953
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.1116073
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.1919887
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.204708
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.206032
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.2663877
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.2946577
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.3922837
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.3987586
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.4531724
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.4422543
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.4736452
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.518254
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.5224807
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.69674
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.7968278
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.8372378
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9133732
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9140272
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9205053
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9361427
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9330082
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.925219
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9482434
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9618104
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9687939
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9708817
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9796991
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.990305
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888731.9949243
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0041
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0081477
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0226958
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0296624
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0316412
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0765147
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.0840812
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.100507
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.1196027
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.1285949
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.1450193
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.307981
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.355673
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.4396925
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.4984105
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.511528
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.5181134
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.5762455
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.5819187
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.632239
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.6468806
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.6566415
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.6593106
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.667327
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.6998546
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.7115858
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.7124455
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.7395604
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888732.8156772
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.0055463
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.0229456
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.0625653
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.1175902
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.16973
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.242584
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.2440007
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.2964337
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.3494127
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.355549
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.3609867
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.3965573
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.4290488
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.4988525
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.5944695
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.6434495
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.760395
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.7984583
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.8123252
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.8187673
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.823294
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.8419533
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.89267
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.8873708
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.8970602
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.9190245
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.9822857
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888733.9853363
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.0626502
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.0984113
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.1209693
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.1424036
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.162667
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.175616
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.1828306
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.2104988
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.218779
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.244146
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.2557473
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.2708266
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.4118388
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.4129655
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.4594574
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.4708538
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.4853003
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.5183485
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.5220594
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.524024
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.5599954
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.588078
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.6157153
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.6375465
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.6439402
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.6458704
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.646639
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.7006981
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.7292256
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.7345815
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.7468004
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.7894967
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.8173707
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.8259242
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.8839624
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.9013784
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.9018667
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.9252126
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.929528
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.9347804
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.9504101
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888734.9516287
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0118833
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0300632
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.033105
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0419118
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0540223
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0542753
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0578125
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0680673
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0802696
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0851007
+    },
+    {
+      "job_id": "10509196",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "structural",
+      "error_type": "ClientError",
+      "time": 1789888735.0971699
+    },
+    {
+      "job_id": "10509196",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789888735.3334904
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722507.3877552
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "solver-turn",
+      "category": "structural",
+      "error_type": "CodexProviderHealthError",
+      "time": 1789722520.0891593
+    },
+    {
+      "job_id": "10510669",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789911465.4902213
+    },
+    {
+      "job_id": "10510669",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789911472.0665426
+    },
+    {
+      "job_id": "10510669",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789911791.4480608
+    },
+    {
+      "job_id": "10509287",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789890759.6342945
+    },
+    {
+      "job_id": "10509287",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789890761.8200288
+    },
+    {
+      "job_id": "10491802",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789752208.5170097
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789734623.4449165
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APIConnectionError",
+      "time": 1789727886.0847998
+    },
+    {
+      "job_id": "10510273",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910233.8601143
+    },
+    {
+      "job_id": "10510273",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910241.292038
+    },
+    {
+      "job_id": "10510273",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910242.7965808
+    },
+    {
+      "job_id": "10510273",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910279.3741195
+    },
+    {
+      "job_id": "10510273",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789910736.531524
+    },
+    {
+      "job_id": "10510149",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789903579.8499026
+    },
+    {
+      "job_id": "10510149",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789903586.6024714
+    },
+    {
+      "job_id": "10510149",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789903590.2498453
+    },
+    {
+      "job_id": "10510149",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789903604.7958343
+    },
+    {
+      "job_id": "10510149",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789903659.0469139
+    },
+    {
+      "job_id": "10510149",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789905340.544429
+    },
+    {
+      "job_id": "10510149",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789907425.5926592
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899431.8833094
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899436.3409019
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899442.2653356
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899446.4974518
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899471.1164637
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899477.9156544
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899495.052214
+    },
+    {
+      "job_id": "10509850",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789899541.4511724
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789733178.5923944
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789734077.7418861
+    },
+    {
+      "job_id": "10509906",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789900298.0619745
+    },
+    {
+      "job_id": "10509906",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789900302.1877038
+    },
+    {
+      "job_id": "10509906",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789900318.8366857
+    },
+    {
+      "job_id": "10509906",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789900387.9083664
+    },
+    {
+      "job_id": "10509906",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789900417.7871616
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789878525.7684212
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789879626.3874311
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789880157.2841318
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789880176.1069028
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789880452.779368
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789880799.4795177
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789881056.4508388
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881235.9118495
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881243.309543
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881261.5267901
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881364.852451
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881365.0055501
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881367.863246
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789881389.6898227
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789882119.7387707
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789882269.0538933
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789882313.7445307
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789883623.566599
+    },
+    {
+      "job_id": "10508375",
+      "event": "operation_failed",
+      "operation": "rubric-audit",
+      "category": "transient_connection",
+      "error_type": "IncompleteProviderResponse",
+      "time": 1789884371.9377778
+    },
+    {
+      "job_id": "10509469",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789893177.214641
+    },
+    {
+      "job_id": "10509469",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789893181.7055998
+    },
+    {
+      "job_id": "10509937",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789901436.3273091
+    },
+    {
+      "job_id": "10509937",
+      "event": "operation_failed",
+      "operation": "hosted-generation",
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789901453.1559365
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789731023.119401
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789733521.798439
+    },
+    {
+      "job_id": "10509577",
+      "event": "audit_stage_failed",
+      "operation": null,
+      "category": "structural",
+      "error_type": "RuntimeError",
+      "time": 1789895079.1498835
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789733242.571091
+    },
+    {
+      "job_id": "10488759",
+      "event": "operation_failed",
+      "operation": "evolution-generation",
+      "category": "transient_connection",
+      "error_type": "APITimeoutError",
+      "time": 1789733778.815829
+    }
+  ],
+  "operations": {
+    "hosted-generation": {
+      "records": 22964,
+      "events": {
+        "operation_started": 11482,
+        "operation_completed": 11417,
+        "operation_failed": 65
+      },
+      "elapsed_seconds": 40427.69148203584
+    },
+    "solver-turn": {
+      "records": 4814,
+      "events": {
+        "operation_started": 2408,
+        "operation_completed": 2392,
+        "operation_returned_failure": 7,
+        "operation_failed": 7
+      },
+      "elapsed_seconds": 309423.8327718385
+    },
+    "evolution-generation": {
+      "records": 37504,
+      "events": {
+        "operation_started": 18752,
+        "operation_completed": 18736,
+        "operation_failed": 16
+      },
+      "elapsed_seconds": 132594.14971452468
+    },
+    "token-count": {
+      "records": 22260,
+      "events": {
+        "operation_started": 11130,
+        "operation_completed": 11130
+      },
+      "elapsed_seconds": 2015.0535850113447
+    },
+    "rubric-audit": {
+      "records": 20062,
+      "events": {
+        "operation_started": 10031,
+        "operation_completed": 9535,
+        "operation_failed": 496
+      },
+      "elapsed_seconds": 64834.41600871924
+    }
+  },
+  "audit_maximum_active_by_provider": {
+    "openai": 60,
+    "anthropic": 60,
+    "google": 60
+  },
+  "jobs": [
+    "10488693",
+    "10488759",
+    "10491802",
+    "10495314",
+    "10498336",
+    "10499500",
+    "10500855",
+    "10501201",
+    "10501627",
+    "10502684",
+    "10506164",
+    "10507240",
+    "10508375",
+    "10508463",
+    "10509196",
+    "10509287",
+    "10509414",
+    "10509469",
+    "10509577",
+    "10509699",
+    "10509773",
+    "10509850",
+    "10509906",
+    "10509937",
+    "10510091",
+    "10510149",
+    "10510273",
+    "10510620",
+    "10510669"
+  ],
+  "response_usage_based_usd": 2028.1670445,
+  "agent_usage_based_usd": 30.884358,
+  "failed_seed_attempt_estimated_lower_bound_usd": 0.012437,
+  "total_identifiable_usage_based_usd": 2059.0638394999996,
+  "limitations": [
+    "Usage-based estimates are not provider invoices.",
+    "Failed calls without returned usage have unknown cost.",
+    "The three failed seed turns expose only repository lower-bound estimates; those estimates are included separately.",
+    "Agent usage is cumulative per saved thread and uses the maximum terminal total.",
+    "Reused exact judgments are excluded from fresh cost even though their original historical generation had a cost."
+  ]
+}

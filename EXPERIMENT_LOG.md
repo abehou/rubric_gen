@@ -1,3 +1,7 @@
+## 2026-09-20 — Results40 final result
+
+- 10:28 EDT: New20 Sol+Opus RTT lowers full-trajectory RH by 19.17 pp Full and 10.00 pp User, but lowers S/H by 8.82/9.44 and 1.94/2.69 points respectively; cumulative40 retains large RH reductions while S/H remain lower, so the promoted method is an anti-RH intervention with a material, population-sensitive task-quality tradeoff rather than a joint Full/User winner. Identifiable saved-usage cost is $2,059.06, dominated by audit ([report](docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40/README.md)).
+
 ## 2026-09-20 — Results40 Opus missing-only recovery
 
 - 01:02 EDT: Results40 audit `10508375` is preserving complete Sol/Opus judgments but some Opus rubric responses exhausted the unchanged three-attempt structured-cardinality contract. Added a provider-free, exact-key recovery that archives all invalid responses before rearming only those absent judgments; request content, judge model, scoring semantics, and successful judgments remain unchanged (20 focused/runtime tests pass).

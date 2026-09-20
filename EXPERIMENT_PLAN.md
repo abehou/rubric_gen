@@ -1,3 +1,7 @@
+## 2026-09-20 — Results40 closed without further tuning
+
+- 10:28 EDT: The precommitted 240-assignment Results40 expansion and three-auditor analysis are complete. Stop after publication: new20 confirms lower RH but shows lower S/H in both Full and User, so do not tune the frozen candidate or launch Results45 from these outcomes.
+
 ## 2026-09-19 — Results40 three-auditor completion
 
 - 04:33 EDT: Preserve the frozen promoted RTT and all completed Results40 trajectories. Complete the pending 240-assignment cohort, then audit with GPT-5.6 Sol, Claude Opus 5, and Gemini 3.8 Flash; report Sol+Opus, Gemini-only, and equal-weight three-model gap/RH tables. Add Gemini judgments to the read-only original20 artifacts for a valid cumulative40 panel, while reusing the published original20 Sol/Opus judgments exactly.

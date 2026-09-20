@@ -1,3 +1,7 @@
+## 2026-09-20 — Results40 complete
+
+- 10:28 EDT: Results40 is complete at 240/240 new assignments under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; audit coverage is 8,082 rubric, 1,500 absolute, 960 pairwise, and 960 rows per RH window before adding the read-only original20 Sol/Opus rows. Jobs `10510803`/`10510804` closed the final Gemini transient failure and provider-free jobs `10510810`/`10510811` rebuilt analysis/cost; six exhausted Opus RH requests are explicit provider-failure abstentions with zero unaccounted missing records ([report](docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40/README.md)).
+
 ## 2026-09-20 — Results40 three-auditor audit recovery
 
 - First-pass owner `10508375` runs from source `6a2ee964b8fd1bde7fa1a40ab0e0cd7fa4d4ccce` on `babel-p5-28`, using one admitted study slot with Sol 60 and Opus 60 concurrent partitions before Gemini 60. Completed judgments are durable under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; after the owner exits, archive only exhausted Opus rubric-cardinality attempts with `experiments/trace-v21-execution-verified-provenance-result40/rearm_audit.sbatch`, then run the ordinary audit owner missing-only.
