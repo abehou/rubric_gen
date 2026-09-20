@@ -76,6 +76,11 @@ provider billing failure, not an experiment, memory, or concurrency failure. The
 saved Sol results must not be repeated; the formal two-model panel remains pending
 only the missing Opus rows.
 
+On 2026-09-21 the user replaced the unavailable Opus half of this bounded diagnostic
+with Gemini 3.8 Flash. The completed Sol records remain read-only; Gemini writes to
+`audit-gemini-authenticated/` at concurrency 12, and no trajectory is rerun. The
+formal comparison below remains labeled Sol-only until the Gemini extension finishes.
+
 The original master rubric is SHA-256 `065255aace91ac7640f11837f8b8a3b269c900fffecf6988f22ba6ce3cdf409e`.
 Using that identity, the Sol-only endpoint values are:
 

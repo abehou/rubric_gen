@@ -1402,6 +1402,14 @@ The 160-GiB chain `10495117/10495209/10495225/10495226` also made no call and wa
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
 
+## 2026-09-21 — Complete-public targeted audit extension
+
+The completed two-assignment study remains at
+`/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/study-authenticated/biomnibench-da-factorial-r10-4636e7e11b1a`.
+Saved Sol and failed Opus records remain under `audit-authenticated/`; the authorized
+Gemini-only extension writes separately under `audit-gemini-authenticated/` at audit
+concurrency 12. It makes no revision call and does not rerun Sol.
+
 Recovery `10499500` ran for 32 seconds on the account-authorized `fnsw` partition and made no provider turn: native resume correctly rejected configs loaded from a different absolute worktree path than the saved studies. The replacement uses the original frozen config files under `trace-result40-20260918` with current recovery code; provider-free compute tests use the submit directory explicitly and an operational path map for preserved old20 static inputs. Audit remains gated on 240/240 plus passing tests.
 
 Recovery `10502684` durably completed the missing `da-17-3` static and trace cells, bringing coverage to 239/240, before it was stopped during a redundant provider-free outer workspace rehash. Conditional recovery `10506164` (4 CPUs, 64 GiB, 24 hours, one shard/assignment worker) will resume only `da-17-1/full-static/rep-001`; provider-free test `10506919` passed 12/12. Audit `10502686` has a 48-hour limit and remains gated behind verified revision completion, followed by report/cost jobs `10502687`/`10502688`.
