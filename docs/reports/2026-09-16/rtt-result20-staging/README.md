@@ -83,10 +83,10 @@ resume and must preserve completed assignments and judgments.
 For new audits after 2026-09-20, the shared owner limit is three concurrent
 studies. Each admitted study receives its own provider partitions: up to 60 Sol
 requests and 60 Opus requests concurrently (120 total for the study). The
-initial Gemini partition was 60, but the original20 Result40 pass exceeded the
-provider's 20M input-token/minute quota. Its missing-only recovery therefore
-uses four independent Gemini slots while retaining the same requests and saved
-successful judgments. The three-study
+Gemini provider partition remains sealed at 60, but the original20 Result40
+pass exceeded the provider's 20M input-token/minute quota. Its missing-only
+recovery therefore uses only four Gemini executor workers within that partition,
+while retaining the same requests and saved successful judgments. The three-study
 lease lets BioMNIBench, PaperBench, and Harvey advance without sharing one audit
 owner slot or consuming one another's provider partitions. Revision and other
 non-audit work remain on the single aggregate-60 pool. Historical Results20 ran

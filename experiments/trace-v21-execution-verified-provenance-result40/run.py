@@ -75,7 +75,7 @@ def runtime(mode: str) -> dict:
     value = policy()
     if value["aggregate_concurrency"] != 60 or value["audit_studies"] != 3:
         raise RuntimeError("Results40 runtime owner capacity changed")
-    expected_audit = {"openai": 60, "anthropic": 60, "google": 4}
+    expected_audit = {"openai": 60, "anthropic": 60, "google": 60}
     if value.get("audit_provider_concurrency") != expected_audit:
         raise RuntimeError("Results40 Sol/Opus/Gemini provider partitions changed")
     return {

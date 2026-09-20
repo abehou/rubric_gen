@@ -1,10 +1,10 @@
-"""Archive only failed Gemini 429 attempts before native missing-only audit.
+"""Archive retryable Gemini operational failures before missing-only audit.
 
 The initial original20 Gemini audit used 60 Google slots and exceeded the
 provider's 20M input-token/minute quota.  This private recovery step preserves
 all completed judgments and every failed response as recovery evidence.  It
-removes only exhausted HTTP-429 state so the unchanged semantic requests can be
-issued again under the lower Google capacity in ``runtime.json``.
+removes only exhausted HTTP-429 or pre-request capacity-seal state so the
+unchanged semantic requests can be issued again with four executor workers.
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ RATE_LIMIT_MARKERS = (
     "HTTP 429",
     "RESOURCE_EXHAUSTED",
     "Quota exceeded",
+    "shared capacity changed; refuse a split budget",
 )
 
 
@@ -34,7 +35,7 @@ def read_object(path: Path) -> dict:
     return value
 
 
-def is_rate_limit_failure(value: dict) -> bool:
+def is_retryable_operational_failure(value: dict) -> bool:
     error = str(value.get("error", ""))
     return any(marker in error for marker in RATE_LIMIT_MARKERS)
 
@@ -65,8 +66,8 @@ def semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                     if not path.name.endswith(".response.json")
                     and not path.name.startswith("failed-attempt-")
                 ]
-                if not states or not all(is_rate_limit_failure(state) for state in states):
-                    raise RuntimeError(f"Gemini failure is not an exhausted HTTP-429 case: {artifact}")
+                if not states or not all(is_retryable_operational_failure(state) for state in states):
+                    raise RuntimeError(f"Gemini failure is not a supported operational case: {artifact}")
                 destination = archive / "semantic" / name / key
                 if destination.exists():
                     raise RuntimeError(f"recovery archive already exists: {destination}")
@@ -101,11 +102,11 @@ def direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                 state = read_object(attempt)
                 if state.get("error") is None:
                     continue
-                if not is_rate_limit_failure(state):
-                    raise RuntimeError(f"Gemini direct failure is not HTTP 429: {attempt}")
+                if not is_retryable_operational_failure(state):
+                    raise RuntimeError(f"Gemini direct failure is not a supported operational case: {attempt}")
                 failed.append(attempt)
             if not failed:
-                raise RuntimeError(f"Gemini direct failure has no saved HTTP-429 attempt: {model_root}")
+                raise RuntimeError(f"Gemini direct failure has no saved supported attempt: {model_root}")
             for attempt in failed:
                 relative = attempt.relative_to(model_root)
                 destination = archive / "direct" / stage.name / case_id / MODEL / relative
@@ -131,7 +132,7 @@ def run(root: Path, receipt: Path) -> dict[str, object]:
     archive = root / "recovery-evidence" / f"gemini-rate-limit-rearm-{stamp}"
     actions = semantic_actions(root, archive) + direct_actions(root, archive)
     if not actions:
-        raise RuntimeError("no exhausted Gemini HTTP-429 failures require rearm")
+        raise RuntimeError("no supported Gemini operational failures require rearm")
     for action in actions:
         source = Path(str(action["source"]))
         destination = Path(str(action["archive"]))
@@ -144,7 +145,8 @@ def run(root: Path, receipt: Path) -> dict[str, object]:
         "provider_calls": 0,
         "request_semantics_changed": False,
         "model": MODEL,
-        "google_provider_concurrency": 4,
+        "google_provider_concurrency": 60,
+        "gemini_executor_workers": 4,
         "actions": actions,
         "rearmed_items": len(actions),
     }

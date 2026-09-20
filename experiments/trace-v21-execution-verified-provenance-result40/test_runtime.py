@@ -191,7 +191,7 @@ def test_audit_partitions_allow_sixty_sol_and_sixty_opus(monkeypatch, tmp_path):
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
-            "google": 4,
+            "google": 60,
         },
         "coordination_dir": str(tmp_path / "runtime"),
     })
@@ -234,7 +234,7 @@ def test_audit_partition_allows_gemini_only_panel(monkeypatch, tmp_path):
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
-            "google": 4,
+            "google": 60,
         },
         "coordination_dir": str(tmp_path / "runtime"),
     })
@@ -276,7 +276,7 @@ def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_p
         "audit_provider_concurrency": {
             "openai": 60,
             "anthropic": 60,
-            "google": 4,
+            "google": 60,
         },
         "coordination_dir": str(tmp_path / "runtime"),
     })
@@ -307,13 +307,13 @@ def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_p
         with AuditExecutor(124, models) as pool:
             futures = [
                 pool.submit(operation, model, model=model)
-                for _ in range(61)
+                for _ in range(60)
                 for model in models
                 if not model.startswith("gemini")
             ]
             futures.extend(
                 pool.submit(operation, "gemini-3.8-flash", model="gemini-3.8-flash")
-                for _ in range(5)
+                for _ in range(4)
             )
             with condition:
                 assert condition.wait_for(
@@ -327,7 +327,7 @@ def test_audit_partitions_include_independent_gemini_capacity(monkeypatch, tmp_p
                 "total": 124,
             }
             release.set()
-            assert len([future.result(10) for future in futures]) == 127
+            assert len([future.result(10) for future in futures]) == 124
 
 
 def test_gemini_scope_preserves_revision_experiment_identity(tmp_path):

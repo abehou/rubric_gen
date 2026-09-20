@@ -55,6 +55,18 @@ def test_rearms_only_failed_rate_limited_state_and_preserves_valid_chunks(tmp_pa
     assert all(Path(action["archive"]).exists() for action in result["actions"])
 
 
+def test_rearms_pre_request_capacity_seal_failure(tmp_path):
+    root, artifact = semantic_fixture(
+        tmp_path, error="shared capacity changed; refuse a split budget"
+    )
+    result = MODULE.run(root, tmp_path / "receipt.json")
+    assert result["provider_calls"] == 0
+    assert result["google_provider_concurrency"] == 60
+    assert result["gemini_executor_workers"] == 4
+    assert result["rearmed_items"] == 1
+    assert not artifact.exists()
+
+
 @pytest.mark.parametrize("fixture", [semantic_fixture, direct_fixture])
 def test_refuses_non_rate_limit_failures(tmp_path, fixture):
     root, *_ = fixture(tmp_path, error="some other provider failure")
