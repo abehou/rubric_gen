@@ -22,18 +22,28 @@ from rubric_gen.runtime.audit_execution import AuditExecutor, audit_output_owner
 from rubric_gen.runtime.capacity import reservation
 from rubric_gen.submission_revision.evaluation import jobs as evaluation_jobs
 from rubric_gen.submission_revision.evaluation import rubric_score
-from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.jobs import (
+    EvaluationConfig,
+    EvaluationTarget,
+    RubricRole,
+    RubricScoreJob,
+)
 from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
-from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
 from rubric_gen.submission_revision.experiment import Experiment, load_experiment
+from rubric_gen.submission_revision.judge import SCORING_IDENTITY_KEYS
 from rubric_gen.submission_revision.paraphrases import (
     ParaphraseRunConfig,
     ParaphraseRunner,
 )
 from rubric_gen.submission_revision.paraphrase_protocol import UNIFORM_NEUTRAL
 from rubric_gen.submission_revision.paraphrase_validation import (
-    ParaphraseSelection,
+    resolve_paraphrase_selection,
     validate_paraphrase_run,
+)
+from rubric_gen.submission_revision.rubric_generation import RubricPolicy
+from rubric_gen.submission_revision.rubric_generation_store import (
+    load_rubric_generation,
+    rubric_generation_directory,
 )
 from rubric_gen.submission_revision.source_resolution import resolve_study_sources
 
@@ -123,42 +133,81 @@ def source_targets(
 ) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
     study_dir = Path(str(configured.dag["revise"]["output_dir"]))
     producer = recorded_experiment(study_dir)
-    config = EvaluationConfig(
-        experiment=producer,
-        study_dir=study_dir,
-        paraphrase_dir=Path(str(producer.dag["paraphrase"]["output_dir"])),
-        output_dir=RUN / "target-loading-unused",
-        max_concurrency=4,
-        resume=True,
-    )
     sources = resolve_study_sources(study_dir, producer)
-    if replicate is not None:
-        sources = replace(
-            sources,
-            revisions=tuple(
-                source
-                for source in sources.revisions
-                if source.assignment.replicate == replicate
-            ),
+    selected_sources = tuple(
+        source
+        for source in sources.revisions
+        if replicate is None or source.assignment.replicate == replicate
+    )
+    targets = []
+    for source in selected_sources:
+        assignment = source.assignment
+        source_experiment = source.producer
+        state = source.state
+        submission_ids = state.get("submission_ids")
+        scores = state.get("scores")
+        fixed_scores = state.get("fixed_original_scores")
+        if (
+            state.get("phase") != "completed"
+            or not isinstance(submission_ids, list)
+            or not submission_ids
+            or not isinstance(scores, list)
+            or not isinstance(fixed_scores, list)
+            or len(scores) != len(submission_ids)
+            or len(fixed_scores) != len(submission_ids)
+        ):
+            raise RuntimeError(f"saved source state is incomplete: {source.directory}")
+        final_submission = (
+            source.directory / "submissions" / str(submission_ids[-1])
+        ).resolve()
+        initial_submission = (
+            source.directory / "submissions" / str(submission_ids[0])
+        ).resolve()
+        if not final_submission.is_dir() or not initial_submission.is_dir():
+            raise RuntimeError(f"saved source submission is missing: {source.directory}")
+        rubric_policy = RubricPolicy(
+            str(source_experiment.condition(assignment.condition_id)["rubric_policy"])
         )
-    return load_evaluation_targets(
-        config,
-        sources,
-    )
-
-
-def neutral_selection(
-    source: ParaphraseSelection,
-) -> ParaphraseSelection:
-    paths = tuple(
-        NEUTRAL_POOL / "tasks/da-26-4" / f"variant-{index:03d}.txt"
-        for index in range(5)
-    )
-    return replace(
-        source,
-        holdout_paths=paths,
-        holdout_sha256s=tuple(sha256_file(path) for path in paths),
-    )
+        generation = load_rubric_generation(
+            source.directory,
+            0,
+            expected_policy=rubric_policy,
+        )
+        generation_manifest = (
+            rubric_generation_directory(source.directory, 0) / "manifest.json"
+        ).resolve()
+        selection = resolve_paraphrase_selection(
+            Path(str(source_experiment.dag["paraphrase"]["output_dir"])),
+            source_experiment,
+            assignment.task_id,
+        )
+        targets.append(EvaluationTarget(
+            study_experiment_id=sources.experiment.experiment_id,
+            assignment_id=assignment.assignment_id,
+            task_id=assignment.task_id,
+            replicate=assignment.replicate,
+            solver_id=assignment.solver_id,
+            condition_id=assignment.condition_id,
+            rubric_policy=rubric_policy,
+            benchmark=source_experiment.benchmark,
+            experiment_dir=source.directory.resolve(),
+            task_dir=source_experiment.task_dir(assignment.task_id).resolve(),
+            review=str(source_experiment.protocol["review"]),
+            max_review_chars=source_experiment.protocol["max_review_chars"],
+            initial_submission=initial_submission,
+            final_submission=final_submission,
+            submission_ids=tuple(str(value) for value in submission_ids),
+            active_scores=tuple(float(value) for value in scores),
+            fixed_original_scores=tuple(float(value) for value in fixed_scores),
+            initial_generation=generation,
+            final_generation=generation,
+            initial_manifest_path=generation_manifest,
+            final_manifest_path=generation_manifest,
+            initial_manifest_sha256=sha256_file(generation_manifest),
+            final_manifest_sha256=sha256_file(generation_manifest),
+            selection=selection,
+        ))
+    return tuple(targets)
 
 
 def load_four_source_targets(
@@ -179,33 +228,45 @@ def load_four_source_targets(
     return targets
 
 
-def attach_neutral_selection(
-    targets: tuple[evaluation_jobs.EvaluationTarget, ...],
-) -> tuple[evaluation_jobs.EvaluationTarget, ...]:
-    return tuple(
-        replace(target, selection=neutral_selection(target.selection))
-        for target in targets
-    )
-
-
 def neutral_jobs(
     stage: RubricScoreStage,
     targets: tuple[evaluation_jobs.EvaluationTarget, ...],
 ) -> tuple[evaluation_jobs.RubricScoreJob, ...]:
     implementation = rubric_score._evaluation_implementation_sha256()
-    request_hashes: dict[tuple[str, str], tuple[str, str]] = {}
-    jobs = tuple(
-        job
-        for target in targets
-        for job in stage._artifact_jobs(
-            target,
-            "final",
-            MODELS,
-            implementation,
-            request_hashes,
-        )
-        if any(role.name == "holdout" for role in job.roles)
+    paths = tuple(
+        NEUTRAL_POOL / "tasks/da-26-4" / f"variant-{index:03d}.txt"
+        for index in range(5)
     )
+    jobs_list: list[RubricScoreJob] = []
+    for target in targets:
+        for variant_index, path in enumerate(paths):
+            for model in MODELS:
+                judge = stage._new_judge(
+                    target=target,
+                    model=model,
+                    rubric_path=path,
+                    artifact_key="predispatch-identity",
+                )
+                grading_identity = judge.scoring_identity()
+                if set(grading_identity) != set(SCORING_IDENTITY_KEYS):
+                    raise RuntimeError("neutral-heldout grading identity changed")
+                review_sha256, answer_sha256 = stage._request_hashes(
+                    judge,
+                    target.final_submission,
+                )
+                jobs_list.append(RubricScoreJob(
+                    target=target,
+                    model=model,
+                    artifact="final",
+                    rubric_path=path,
+                    roles=(RubricRole("holdout", variant_index),),
+                    generation_bindings=(),
+                    grading_identity=grading_identity,
+                    review_input_sha256=review_sha256,
+                    answer_input_sha256=answer_sha256,
+                    evaluation_implementation_sha256=implementation,
+                ))
+    jobs = tuple(jobs_list)
     if len(jobs) != 40:
         raise RuntimeError(f"expected 40 neutral-heldout judgments, found {len(jobs)}")
     if any(
@@ -296,13 +357,12 @@ def main() -> int:
     neutral = neutral_scope(repaired)
     source_targets = load_four_source_targets(original, repaired)
     pool = prepare_neutral_pool(neutral)
-    targets = attach_neutral_selection(source_targets)
-    summary = run_scores(neutral, targets)
+    summary = run_scores(neutral, source_targets)
     completion = {
         "kind": "neutral-heldout5-da-26-4-rep002-completion",
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "pool": pool,
-        "target_assignment_ids": [target.assignment_id for target in targets],
+        "target_assignment_ids": [target.assignment_id for target in source_targets],
         "audit_status": summary["status"],
         "successful_judgments": summary["successful_judgments"],
     }
