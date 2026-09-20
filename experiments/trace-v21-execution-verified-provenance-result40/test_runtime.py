@@ -372,6 +372,15 @@ def test_old20_gemini_scopes_keep_exact_completed_studies():
 
 def test_three_model_analysis_uses_equal_artifact_weights():
     analysis = _module("trace_result40_three_model_analysis_test", "analyze.py")
+    assert analysis.PANELS == {
+        "sol_opus": ("gpt-5.6-sol", "claude-opus-5"),
+        "sol": ("gpt-5.6-sol",),
+        "opus": ("claude-opus-5",),
+        "gemini": ("gemini-3.8-flash",),
+        "sol_opus_gemini": (
+            "gpt-5.6-sol", "claude-opus-5", "gemini-3.8-flash"
+        ),
+    }
     rows = []
     for index, model in enumerate(analysis.THREE_MODEL_PANEL, start=1):
         row = {

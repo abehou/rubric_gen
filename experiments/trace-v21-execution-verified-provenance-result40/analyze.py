@@ -35,6 +35,8 @@ CONDITIONS = {
 }
 PANELS = {
     "sol_opus": SOL_OPUS_PANEL,
+    "sol": ("gpt-5.6-sol",),
+    "opus": ("claude-opus-5",),
     "gemini": GEMINI_PANEL,
     "sol_opus_gemini": THREE_MODEL_PANEL,
 }
@@ -472,6 +474,8 @@ def main() -> None:
             "heldout_boundary": "old20 historical producer prompt differs from new20 rigorous-V2 prompt source commit 47463ca",
             "panels": {
                 "sol_opus": "equal-weight GPT-5.6 Sol plus Claude Opus 5",
+                "sol": "GPT-5.6 Sol alone",
+                "opus": "Claude Opus 5 alone",
                 "gemini": "Gemini 3.8 Flash alone",
                 "sol_opus_gemini": "equal-weight GPT-5.6 Sol, Claude Opus 5, and Gemini 3.8 Flash",
             },

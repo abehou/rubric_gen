@@ -10,6 +10,8 @@ from make_configs import ROOT
 REPORT = ROOT / "docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40"
 PANELS = (
     ("sol_opus", "GPT-5.6 Sol + Claude Opus 5"),
+    ("sol", "GPT-5.6 Sol"),
+    ("opus", "Claude Opus 5"),
     ("gemini", "Gemini 3.8 Flash"),
     ("sol_opus_gemini", "GPT-5.6 Sol + Claude Opus 5 + Gemini 3.8 Flash"),
 )
