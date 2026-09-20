@@ -10,7 +10,11 @@ import tarfile
 import tempfile
 
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
+from rubric_gen.submission_revision.evaluation.jobs import (
+    EvaluationConfig,
+    EvaluationTarget,
+    _submission_content_sha256,
+)
 from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
 from rubric_gen.submission_revision.experiment import load_experiment
 
@@ -93,6 +97,7 @@ def saved_endpoint(
     audit: Path,
     assignment_id: str,
     model: str,
+    target: EvaluationTarget,
 ) -> dict[str, float]:
     assignment = _assignment_record(study, assignment_id)
     experiment_dir = study / str(assignment["experiment_dir"])
@@ -101,20 +106,47 @@ def saved_endpoint(
     composition = read(
         experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
     )
-    references = [
-        reference
-        for reference in read(audit / "rubric_score/summary.json")["records"]
-        if reference["assignment_id"] == assignment_id
-        and reference["model"] == model
-        and reference["artifact"] == "final"
-    ]
     role_scores: dict[tuple[str, int | None], float] = {}
-    for reference in references:
-        for role in reference["rubric_roles"]:
-            key = (str(role["name"]), role["variant_index"])
-            if key in role_scores:
-                raise RuntimeError(f"duplicate saved role: {assignment_id} {key}")
-            role_scores[key] = float(reference["score"])
+    rubric_summary = audit / "rubric_score/summary.json"
+    if rubric_summary.is_file():
+        references = [
+            reference
+            for reference in read(rubric_summary)["records"]
+            if reference["assignment_id"] == assignment_id
+            and reference["model"] == model
+            and reference["artifact"] == "final"
+        ]
+        for reference in references:
+            for role in reference["rubric_roles"]:
+                key = (str(role["name"]), role["variant_index"])
+                if key in role_scores:
+                    raise RuntimeError(f"duplicate saved role: {assignment_id} {key}")
+                role_scores[key] = float(reference["score"])
+    else:
+        submission_sha256 = _submission_content_sha256(target.final_submission)
+        hashes = {
+            target.selection.optimizer_sha256: ("selected", 0),
+            **{
+                digest: ("holdout", index)
+                for index, digest in zip(
+                    (2, 3, 4),
+                    target.selection.holdout_sha256s,
+                    strict=True,
+                )
+            },
+        }
+        for path in sorted((audit / "rubric_score/records").glob("*.json")):
+            record = read(path)
+            role = hashes.get(record.get("rubric_sha256"))
+            if (
+                role is None
+                or record.get("model") != model
+                or record.get("submission_content_sha256") != submission_sha256
+            ):
+                continue
+            if role in role_scores:
+                raise RuntimeError(f"duplicate archived role: {assignment_id} {role}")
+            role_scores[role] = float(record["score"])
     selected = role_scores.get(("selected", 0))
     heldouts = [
         score
@@ -123,16 +155,31 @@ def saved_endpoint(
     ]
     if selected is None or len(heldouts) != 3:
         raise RuntimeError(f"saved rigorous panel is incomplete: {assignment_id} {model}")
-    absolute_refs = [
-        reference
-        for reference in read(audit / "absolute_score/summary.json")["records"]
-        if reference["assignment_id"] == assignment_id
-        and reference["model"] == model
-        and reference["artifact"] == "final"
-    ]
-    if len(absolute_refs) != 1:
-        raise RuntimeError(f"saved absolute score is incomplete: {assignment_id} {model}")
-    absolute = _saved_record(audit, "absolute_score", absolute_refs[0])
+    absolute_summary = audit / "absolute_score/summary.json"
+    if absolute_summary.is_file():
+        absolute_refs = [
+            reference
+            for reference in read(absolute_summary)["records"]
+            if reference["assignment_id"] == assignment_id
+            and reference["model"] == model
+            and reference["artifact"] == "final"
+        ]
+        if len(absolute_refs) != 1:
+            raise RuntimeError(f"saved absolute score is incomplete: {assignment_id} {model}")
+        absolute = _saved_record(audit, "absolute_score", absolute_refs[0])
+    else:
+        submission_sha256 = _submission_content_sha256(target.final_submission)
+        absolute_matches = []
+        for path in sorted((audit / "absolute_score/records").glob("*.json")):
+            record = read(path)
+            if (
+                record.get("model") == model
+                and record.get("submission_content_sha256") == submission_sha256
+            ):
+                absolute_matches.append(record)
+        if len(absolute_matches) != 1:
+            raise RuntimeError(f"archived absolute score is incomplete: {assignment_id} {model}")
+        absolute = absolute_matches[0]
     return {
         "W": float(composition["reference_score"]),
         "S": selected,
@@ -144,6 +191,11 @@ def saved_endpoint(
 def analyze_with_roots(roots: dict[str, dict[str, Path]]) -> dict[str, object]:
     assignment_ids = _assignment_ids()
     neutral = neutral_scores()
+    targets = load_four_source_targets(
+        load_experiment(ORIGINAL_CONFIG),
+        load_experiment(REPAIRED_CONFIG),
+    )
+    targets_by_id = {target.assignment_id: target for target in targets}
     rows: list[dict[str, object]] = []
     for version in ("original", "repaired"):
         for arm in ("Full", "User"):
@@ -154,6 +206,7 @@ def analyze_with_roots(roots: dict[str, dict[str, Path]]) -> dict[str, object]:
                     audit=roots[version][model],
                     assignment_id=assignment_id,
                     model=model,
+                    target=targets_by_id[assignment_id],
                 )
                 scores = neutral[(assignment_id, model)]
                 h_neutral = fmean(scores.values())
