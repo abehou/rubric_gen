@@ -74,8 +74,8 @@ def test_refuses_non_rate_limit_failures(tmp_path, fixture):
         MODULE.run(root, tmp_path / "receipt.json")
 
 
-def test_refuses_completed_direct_judgment(tmp_path):
+def test_preserves_completed_direct_judgment_from_stale_failure_summary(tmp_path):
     root, good, _ = direct_fixture(tmp_path)
     (good.parents[1] / "score.json").write_text("{}")
-    with pytest.raises(RuntimeError):
-        MODULE.run(root, tmp_path / "receipt.json")
+    assert MODULE.direct_actions(root, tmp_path / "archive") == []
+    assert (good.parents[1] / "score.json").exists()

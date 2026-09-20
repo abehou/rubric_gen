@@ -96,7 +96,13 @@ def direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
             model_root = summary_path.parent / "cases" / case_id / MODEL
             score = model_root / "score.json"
             if score.exists():
-                raise RuntimeError(f"refusing to rearm a completed Gemini direct judgment: {score}")
+                if score.is_symlink() or not score.is_file():
+                    raise RuntimeError(f"completed Gemini direct judgment is not a regular file: {score}")
+                # A stage may retain an earlier failed summary even after a
+                # later attempt persisted a valid score.  Leave that score
+                # untouched; native resume validates it and rebuilds the
+                # summary without a provider call.
+                continue
             failed = []
             for attempt in sorted(model_root.glob("chunk-*/attempt-*.json")):
                 state = read_object(attempt)
