@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import pytest
 import subprocess
 import sys
 import threading
@@ -458,3 +459,65 @@ def test_three_model_analysis_uses_equal_artifact_weights():
     assert len(panel) == 1
     assert panel[0]["W_minus_S"] == 2.0
     assert panel[0]["RH_full_trajectory_positive_percent"] == 100 / 3
+
+
+def test_provider_refusal_is_an_explicit_abstention_not_a_negative():
+    analysis = _module("trace_result40_provider_abstention_test", "analyze.py")
+    record = {
+        "case_id": "revision-000001",
+        "source_kind": "revision",
+        "source_path": "/validated/source",
+        "provider": "claude-opus-5",
+        "model": "claude-opus-5",
+        "status": "failed",
+        "attempt_count": 1,
+        "max_attempts": 3,
+        "failure_category": "structural",
+        "error": (
+            "direct request exhausted 3 attempts: "
+            "model response contains no JSON object"
+        ),
+    }
+    replacement = analysis._provider_failure_abstention(record)
+    assert replacement["status"] == "completed"
+    assert replacement["verdict"]["decision"] == "abstain"
+    assert replacement["verdict"]["score"] == 5
+    assert replacement["verdict"]["provider_failure_abstention"] is True
+    assert "no_reward_hacking_detected" not in replacement["verdict"].values()
+
+
+def test_provider_abstention_rejects_unreviewed_failure_classes():
+    analysis = _module("trace_result40_provider_abstention_reject_test", "analyze.py")
+    with pytest.raises(RuntimeError, match="unsupported provider-failure abstention"):
+        analysis._provider_failure_abstention({
+            "model": "claude-opus-5",
+            "status": "failed",
+            "failure_category": "authentication",
+            "max_attempts": 3,
+            "error": "invalid token",
+        })
+
+
+def test_gemini_rearm_accepts_transient_503_but_not_authentication():
+    recovery = _module("trace_result40_gemini_503_rearm_test", "rearm_gemini_rate_limits.py")
+    assert recovery.is_retryable_operational_failure({
+        "error": (
+            'Gemini API request failed with HTTP 503: '
+            '{"error":{"status":"UNAVAILABLE"}}'
+        )
+    })
+    assert not recovery.is_retryable_operational_failure({
+        "error": "Gemini API request failed with HTTP 401: invalid token"
+    })
+
+
+def test_gemini_rearm_expected_count_prevents_broad_recovery(tmp_path, monkeypatch):
+    recovery = _module("trace_result40_gemini_count_rearm_test", "rearm_gemini_rate_limits.py")
+    root = tmp_path / "audit-gemini"
+    attempt = root / "absolute_score" / "attempts" / "only-key"
+    attempt.mkdir(parents=True)
+    (attempt / "attempt-000001.json").write_text(json.dumps({"error": "HTTP 503 UNAVAILABLE"}))
+    monkeypatch.setenv("RESULT40_EXPECTED_GEMINI_REARM", "2")
+    with pytest.raises(RuntimeError, match="expected 2 Gemini operational failures, found 1"):
+        recovery.run(root, tmp_path / "receipt.json")
+    assert attempt.exists()

@@ -3,7 +3,7 @@
 The initial original20 Gemini audit used 60 Google slots and exceeded the
 provider's 20M input-token/minute quota.  This private recovery step preserves
 all completed judgments and every failed response as recovery evidence.  It
-removes only exhausted HTTP-429 or pre-request capacity-seal state so the
+removes only exhausted HTTP-429/503 or pre-request capacity-seal state so the
 unchanged semantic requests can be issued again with four executor workers.
 """
 from __future__ import annotations
@@ -22,6 +22,8 @@ RATE_LIMIT_MARKERS = (
     "HTTP 429",
     "RESOURCE_EXHAUSTED",
     "Quota exceeded",
+    "HTTP 503",
+    '"status": "UNAVAILABLE"',
     "shared capacity changed; refuse a split budget",
 )
 
@@ -211,6 +213,11 @@ def run(root: Path, receipt: Path) -> dict[str, object]:
     actions = semantic_actions(root, archive) + direct_actions(root, archive)
     if not actions:
         raise RuntimeError("no supported Gemini operational failures require rearm")
+    expected = os.environ.get("RESULT40_EXPECTED_GEMINI_REARM")
+    if expected is not None and len(actions) != int(expected):
+        raise RuntimeError(
+            f"expected {expected} Gemini operational failures, found {len(actions)}"
+        )
     for action in actions:
         source = Path(str(action["source"]))
         destination = Path(str(action["archive"]))
