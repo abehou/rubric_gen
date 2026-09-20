@@ -1,3 +1,7 @@
+## 2026-09-20 — Semi/Score-only Results20 prepared
+
+- 11:07 EDT: The new four-cell bundle is `experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml`, with 240 assignments and persistent root `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/`. It reuses canonical Results20 seeds/paraphrases/g1 and the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` recipe; provider-free compute validation precedes launch at revision concurrency 60 and Sol/Opus/Gemini partitions 60 each.
+
 ## 2026-09-20 — Results40 complete
 
 - 10:28 EDT: Results40 is complete at 240/240 new assignments under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/`; audit coverage is 8,082 rubric, 1,500 absolute, 960 pairwise, and 960 rows per RH window before adding the read-only original20 Sol/Opus rows. Jobs `10510803`/`10510804` closed the final Gemini transient failure and provider-free jobs `10510810`/`10510811` rebuilt analysis/cost; six exhausted Opus RH requests are explicit provider-failure abstentions with zero unaccounted missing records ([report](docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40/README.md)).

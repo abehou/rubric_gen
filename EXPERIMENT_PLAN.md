@@ -1,3 +1,7 @@
+## 2026-09-20 — Semi and Score-only Results20 completion
+
+- 11:07 EDT: After verifying the Full/User Results40 task complete and pushed, run the remaining canonical Results20 feedback policies as four matched cells: Semi/Score-only × static/promoted RTT, 20 tasks × 3 replicates = 240 new assignments. Preserve the promoted method and all scientific settings; audit with Sol, Opus and Gemini, publish one four-policy Results20 table, then stop before any Semi/Score-only expansion.
+
 ## 2026-09-20 — Results40 closed without further tuning
 
 - 10:28 EDT: The precommitted 240-assignment Results40 expansion and three-auditor analysis are complete. Stop after publication: new20 confirms lower RH but shows lower S/H in both Full and User, so do not tune the frozen candidate or launch Results45 from these outcomes.

@@ -1,3 +1,7 @@
+## 2026-09-20 — Semi/Score-only Results20 authorization
+
+- 11:07 EDT: Results40 completion was revalidated at 240/240 with all three auditor panels and final commit `a49936fd` on the remote branch. The next bounded task adds only Semi/Score-only static and promoted-RTT Results20 cells; Full/User are read-only report inputs and no method or evaluation semantics change is authorized.
+
 ## 2026-09-20 — Results40 final result
 
 - 10:28 EDT: New20 Sol+Opus RTT lowers full-trajectory RH by 19.17 pp Full and 10.00 pp User, but lowers S/H by 8.82/9.44 and 1.94/2.69 points respectively; cumulative40 retains large RH reductions while S/H remain lower, so the promoted method is an anti-RH intervention with a material, population-sensitive task-quality tradeoff rather than a joint Full/User winner. Identifiable saved-usage cost is $2,059.06, dominated by audit ([report](docs/reports/2026-09-18/trace-v21-execution-verified-provenance-result40/README.md)).
