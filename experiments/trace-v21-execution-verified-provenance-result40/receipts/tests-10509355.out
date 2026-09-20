@@ -1,0 +1,24 @@
+.........F..                                                             [100%]
+=================================== FAILURES ===================================
+______________ test_execution_configs_match_saved_study_identity _______________
+
+    def test_execution_configs_match_saved_study_identity():
+        scope = _module("trace_result40_saved_identity_test", "audit_scope.py")
+        for task, kind in scope.SHARDS:
+            source = scope.config_path(task, kind)
+            experiment = scope.load_experiment(source)
+            study = Path(experiment.dag["revise"]["output_dir"])
+            ledger = json.loads((study / "study.json").read_text())
+>           assert ledger["experiment_path"] == str(source)
+E           AssertionError: assert '/home/aydanh...1-static.yaml' == '/home/aydanh...1-static.yaml'
+E             
+E             Skipping 51 identical leading characters in diff, use -v to show
+E             - -result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40/configs/da-8-1-static.yaml
+E             ?           -------       ^
+E             + -result40-20260918/experiments/trace-v21-execution-verified-provenance-result40/configs/da-8-1-static.yaml
+E             ?                  ^
+
+experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py:355: AssertionError
+=========================== short test summary info ============================
+FAILED experiments/trace-v21-execution-verified-provenance-result40/test_runtime.py::test_execution_configs_match_saved_study_identity
+1 failed, 11 passed in 3.62s
