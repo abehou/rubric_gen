@@ -23,6 +23,7 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
     NEUTRAL_PARAPHRASE_INSTRUCTIONS,
     PARAPHRASE_INSTRUCTIONS,
     SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+    UNIFORM_NEUTRAL,
     wording_template,
 )
 
@@ -219,6 +220,7 @@ def _experiment(
     ({"count": 5, "prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS}, {0, 1}),
     ({"count": 5, "prompt_policy": SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
       "selected_variant": 3, "development_variant": 4}, {3, 4}),
+    ({"count": 5, "prompt_policy": UNIFORM_NEUTRAL}, {0, 1, 2, 3, 4}),
 ])
 def test_paraphrase_stage_seals_variants_and_selection(
     tmp_path: Path,

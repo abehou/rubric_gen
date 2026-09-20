@@ -125,3 +125,22 @@ incomplete task whose supplied identifiers cannot support the requested join. Fi
 the missing-only Opus rows after Anthropic billing is restored, then use the paired
 two-model result to decide whether this repair merits a broader regression. No other
 assignment has been rerun.
+
+## Neutral-heldout policy test
+
+The remaining S-H hypothesis is now isolated as a measurement-policy test.  The
+historical selected and development variants used a neutral wording-only prompt,
+whereas the New20 heldouts used a prompt that preferred a stricter and more
+rigorous formulation.  That asymmetry can change task-completion interpretation
+rather than merely paraphrase wording.
+
+The bounded test keeps the four saved `da-26-4` rep-002 final artifacts, selected
+rubric, S, A, RH, and trajectories unchanged.  It generates five fresh heldouts
+with the same neutral wording-only instruction used by selected, then scores only
+those heldouts with Sol and Gemini.  The paired primary comparison is
+`H_rigorous-3` versus `H_neutral-5`; the incomplete rigorous-5 attempt is retained
+only as secondary stress-test evidence.  The new policy is `uniform_neutral`, and
+163 relevant provider-free experiment/paraphrase/evaluation tests pass before
+dispatch.  The run uses a general-partition A6000 reservation for scheduling only,
+8 CPUs / 32 GiB, paraphrase concurrency 2, audit workers 12, and aggregate provider
+concurrency 6.  No revision or solver call is included.

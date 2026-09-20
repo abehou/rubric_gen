@@ -32,6 +32,7 @@ from rubric_gen.submission_revision.paraphrase_protocol import (
     PARAPHRASE_RUN_KIND,
     PARAPHRASE_VARIANT_KIND,
     SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+    UNIFORM_NEUTRAL,
     WordingRequestGroup,
     duplicate_title_collisions,
     wording_template,
@@ -519,8 +520,9 @@ class ParaphraseRunner:
         attempt_offset: int = 0,
     ) -> _GroupGeneration:
         instructions = PARAPHRASE_INSTRUCTIONS
-        if (
-            self.spec.get("prompt_policy") == SELECTED_NEUTRAL_HELDOUT_RIGOROUS
+        prompt_policy = self.spec.get("prompt_policy")
+        if prompt_policy == UNIFORM_NEUTRAL or (
+            prompt_policy == SELECTED_NEUTRAL_HELDOUT_RIGOROUS
             and variant_index in {
                 self.spec["selected_variant"], self.spec["development_variant"],
             }

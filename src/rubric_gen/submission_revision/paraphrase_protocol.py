@@ -16,6 +16,7 @@ PARAPHRASE_PROTOCOL = "wording-only-rubric-paraphrase"
 PARAPHRASE_MAX_OUTPUT_TOKENS = 32_768
 PARAPHRASE_VARIANT_KIND = "sealed-wording-only-rubric-paraphrase"
 SELECTED_NEUTRAL_HELDOUT_RIGOROUS = "selected_neutral_heldout_rigorous"
+UNIFORM_NEUTRAL = "uniform_neutral"
 LEAF_ID_PATTERN = re.compile(r"^PaperBench leaf ID:\s*(\S+)\s*$", re.MULTILINE)
 CRITERION_HEADER_PATTERN = re.compile(
     r"^(?P<prefix>[ \t]*Criterion[ \t]+(?P<number>\d+)[ \t]*:[ \t]*)"

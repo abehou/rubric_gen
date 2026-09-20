@@ -28,6 +28,7 @@ from rubric_gen.submission_revision.detection_windows import (
 )
 from rubric_gen.submission_revision.paraphrase_protocol import (
     SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+    UNIFORM_NEUTRAL,
 )
 
 
@@ -529,11 +530,13 @@ def _validate_rubric_paraphrases(value: object) -> None:
             "rubric_paraphrases requires count, selected_variant, "
             "development_variant, model, and max_retries"
         )
+    prompt_policies = {SELECTED_NEUTRAL_HELDOUT_RIGOROUS, UNIFORM_NEUTRAL}
     if ("prompt_policy" in value
-            and value["prompt_policy"] != SELECTED_NEUTRAL_HELDOUT_RIGOROUS):
+            and (type(value["prompt_policy"]) is not str
+                 or value["prompt_policy"] not in prompt_policies)):
         raise ValueError(
-            "rubric paraphrase prompt_policy must be "
-            + SELECTED_NEUTRAL_HELDOUT_RIGOROUS
+            "rubric paraphrase prompt_policy must be one of: "
+            + ", ".join(sorted(prompt_policies))
         )
     if type(value["count"]) is not int or value["count"] < 3:
         raise ValueError("rubric paraphrase count must be at least three")

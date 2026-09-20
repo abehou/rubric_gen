@@ -223,7 +223,10 @@ def validate_task_record(
             variant_index,
             model,
         )
-        if experiment.rubric_paraphrases.get("prompt_policy") == "selected_neutral_heldout_rigorous":
+        if experiment.rubric_paraphrases.get("prompt_policy") in {
+            "selected_neutral_heldout_rigorous",
+            "uniform_neutral",
+        }:
             validate_request_policy(metadata_path, master, experiment.rubric_paraphrases)
         digest = sha256_file(rubric_path)
         if digest in seen:
@@ -310,12 +313,15 @@ def validate_request_policy(metadata_path: Path, master: str, spec: dict) -> Non
     from rubric_gen.submission_revision.paraphrase_protocol import (
         NEUTRAL_PARAPHRASE_INSTRUCTIONS, PARAPHRASE_INSTRUCTIONS,
         SELECTED_NEUTRAL_HELDOUT_RIGOROUS,
+        UNIFORM_NEUTRAL,
     )
     metadata = read_json_object(metadata_path, 'paraphrase request provenance')
     index, task = metadata['variant_index'], metadata['task_id']
     instructions = PARAPHRASE_INSTRUCTIONS
-    if (spec.get('prompt_policy') == SELECTED_NEUTRAL_HELDOUT_RIGOROUS
-            and index in {spec['selected_variant'], spec['development_variant']}):
+    prompt_policy = spec.get('prompt_policy')
+    if (prompt_policy == UNIFORM_NEUTRAL
+            or (prompt_policy == SELECTED_NEUTRAL_HELDOUT_RIGOROUS
+                and index in {spec['selected_variant'], spec['development_variant']})):
         instructions = NEUTRAL_PARAPHRASE_INSTRUCTIONS
     requests = metadata['generation'].get('requests')
     groups = wording_template(master).groups

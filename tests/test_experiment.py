@@ -843,6 +843,15 @@ def test_paraphrase_prompt_policy_is_optional_and_changes_experiment_identity(
     assert opted_in.experiment_id != default.experiment_id
     assert opted_in.rubric_paraphrases == payload["rubric_paraphrases"]
 
+    payload["rubric_paraphrases"]["prompt_policy"] = "uniform_neutral"
+    path.write_text(yaml.safe_dump(payload))
+    uniform_neutral = load_experiment(path)
+    assert uniform_neutral.experiment_id not in {
+        default.experiment_id,
+        opted_in.experiment_id,
+    }
+    assert uniform_neutral.rubric_paraphrases == payload["rubric_paraphrases"]
+
 
 @pytest.mark.parametrize("policy", [None, "neutral", "uniform", "", True, [], {}])
 def test_experiment_rejects_invalid_paraphrase_prompt_policy(
