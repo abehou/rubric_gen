@@ -696,3 +696,7 @@
 ## 2026-09-21 — Execution reviewer issue continuity
 
 - 02:20 JST: Exact-string equality for an unresolved issue caused valid reviewer paraphrases to consume repair calls; the saved host issue now remains authoritative while unresolved, and current public evidence/references remain model-produced. The complete-public candidate also provides a derived locator containing exact current/fresh execution-status lines so resolution considers the whole public submission rather than one favorable excerpt.
+
+## 2026-09-21 — Heldout prompt-policy symmetry
+
+- 08:52 JST: The `selected_neutral_heldout_rigorous` policy mixes wording generalization with a systematically stricter task-completion interpretation; bounded paired scoring confirms this can materially depress H. Added explicit `uniform_neutral` generation for equal-semantics primary measurement while retaining rigorous wording as a separately named stress test; rubric structure, levels, weights, and saved artifacts remain unchanged.
