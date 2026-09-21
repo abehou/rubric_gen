@@ -26,6 +26,14 @@ def failure_category(error: BaseException) -> str:
                                      'ConnectError', 'ReadTimeout', 'ConnectionError', 'TimeoutError',
                                      'IncompleteProviderResponse', 'IncompleteRead', 'RemoteDisconnected'}:
             return 'transient_connection'
+        # Stage owners intentionally collapse their exhausted retry budget into
+        # RubricProposerProviderError.  The explicit wording distinguishes a
+        # response-free final transport attempt from contract exhaustion, but
+        # there is no live exception left to chain once the saved attempt is
+        # replayed on resume.
+        if (type(current).__name__ == 'RubricProposerProviderError'
+                and 'attempt allowance exhausted by transport at ' in str(current)):
+            return 'transient_connection'
         current = current.__cause__
     return 'structural'
 

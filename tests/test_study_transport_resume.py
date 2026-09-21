@@ -51,6 +51,38 @@ def test_explicit_resume_archives_transport_only_and_preserves_success(tmp_path)
     assert len(list((tmp_path / "execution-attempts/a").glob("transport-*"))) == 1
 
 
+def test_explicit_resume_preserves_contract_repairs_before_trailing_transport(tmp_path):
+    runner, assignment, record, directory = fixture(tmp_path)
+    first = directory / "attempt-001.json"
+    returned = json.loads(first.read_text()) | {
+        "status": "contract_invalid", "output": {"response_text": "returned"}
+    }
+    returned.pop("error_type")
+    returned.pop("permanent")
+    first.write_text(json.dumps(returned))
+    runner._rearm_transport_failures({"records": [record]}, [assignment])
+    assert record["automatic_recovery_exhausted"] is False
+    assert directory.is_dir()
+    assert sorted(path.name for path in directory.iterdir()) == ["attempt-001.json"]
+    archived = list((tmp_path / "execution-attempts/a").glob("transport-*/request-key"))
+    assert len(archived) == 1
+    assert sorted(path.name for path in archived[0].iterdir()) == [
+        "attempt-002.json", "attempt-003.json", "attempt-004.json"
+    ]
+
+
+def test_explicit_resume_recognizes_saved_wrapped_transport_from_older_classifier(tmp_path):
+    runner, assignment, record, directory = fixture(tmp_path, category="structural")
+    record.update(
+        error_type="RubricProposerProviderError",
+        error=f"enforcement: attempt allowance exhausted by transport at {directory}",
+    )
+    runner._rearm_transport_failures({"records": [record]}, [assignment])
+    assert record["automatic_recovery_exhausted"] is False
+    assert record["failure_category"] == "transient_connection"
+    assert not directory.exists()
+
+
 @pytest.mark.parametrize("overrides", [
     {"category": "authentication"}, {"category": "billing"},
     {"category": "configuration"}, {"category": "structural"},
@@ -65,7 +97,7 @@ def test_resume_does_not_rearm_other_failures_or_completed(tmp_path, overrides):
 
 
 @pytest.mark.parametrize("change", [
-    {"status": "contract_invalid"}, {"status": "valid_result"},
+    {"status": "valid_result"},
     {"permanent": True}, {"output": {"response_text": "returned response"}},
     {"error_type": "AuthenticationError"},
 ])
@@ -77,6 +109,16 @@ def test_resume_never_discards_returned_or_nontransport_attempts(tmp_path, chang
     runner._rearm_transport_failures({"records": [record]}, [assignment])
     assert record == before
     assert directory.exists()
+
+
+def test_wrapped_transport_exhaustion_is_classified_for_explicit_resume():
+    from rubric_gen.runtime.failures import failure_category
+    from rubric_gen.submission_revision.evolution_provider import RubricProposerProviderError
+
+    error = RubricProposerProviderError(
+        "enforcement: attempt allowance exhausted by transport at /saved/request"
+    )
+    assert failure_category(error) == "transient_connection"
 
 
 def test_resume_honors_explicit_assignment_scope(tmp_path):

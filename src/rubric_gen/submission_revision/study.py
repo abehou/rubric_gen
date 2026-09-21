@@ -292,19 +292,26 @@ class StudyRunner:
         """Give an explicit resume a fresh budget for response-free transport work.
 
         A live invocation still stops at its existing retry limit. Preserve
-        every old attempt before retrying the same request; never clear a
-        scientific response, schema failure, or permanent provider failure.
+        every old attempt before retrying the same request. A trailing suffix
+        of response-free transport failures may be archived while preceding
+        contract-invalid responses remain in place; never clear a scientific
+        response, schema failure, or permanent provider failure.
         """
         if not self.config.resume:
             return
         transport_errors = {"APIConnectionError", "APITimeoutError", "ConnectError", "ReadTimeout"}
         for assignment in self._pending_assignments(manifest, assignments):
             record = _record_for(manifest, assignment.assignment_id)
+            wrapped_transport = (
+                record.get("error_type") == "RubricProposerProviderError"
+                and "attempt allowance exhausted by transport at " in str(record.get("error", ""))
+            )
             if (record.get("status") != "failed"
                     or not record.get("automatic_recovery_exhausted")
-                    or record.get("failure_category") != "transient_connection"):
+                    or (record.get("failure_category") != "transient_connection"
+                        and not wrapped_transport)):
                 continue
-            requests = []
+            requests: list[tuple[Path, list[Path]]] = []
             request_root = self._experiment_dir(assignment) / "trace-defense-v2-requests"
             if request_root.is_symlink():
                 raise RuntimeError("transport recovery request root is a symlink")
@@ -317,25 +324,45 @@ class StudyRunner:
                 if not paths:
                     continue
                 attempts = [read_json_object(p, "retained transport attempt") for p in paths]
-                if not all(a.get("status") == "provider_failure" and not a.get("permanent")
-                           and "output" not in a and a.get("error_type") in transport_errors
-                           for a in attempts):
+                trailing = 0
+                for attempt in reversed(attempts):
+                    if (attempt.get("status") == "provider_failure"
+                            and not attempt.get("permanent")
+                            and "output" not in attempt
+                            and attempt.get("error_type") in transport_errors):
+                        trailing += 1
+                    else:
+                        break
+                prefix = attempts[:-trailing] if trailing else attempts
+                # Only contract-invalid returned responses may precede the
+                # response-free suffix. They remain part of the scientific
+                # attempt history and retain their original sequence numbers.
+                if (not trailing
+                        or any(a.get("status") != "contract_invalid" for a in prefix)):
                     requests = []
                     break
-                requests.append(directory)
+                requests.append((directory, paths[-trailing:]))
             if not requests:
                 continue
             self._archive_assignment_failure(record)
             archive = (self.root / "execution-attempts" / assignment.assignment_id
                        / f"transport-{time.time_ns()}")
             archive.mkdir()
-            for directory in requests:
-                directory.rename(archive / directory.name)
+            for directory, paths in requests:
+                destination = archive / directory.name
+                if len(paths) == len(list(directory.glob("attempt-*.json"))):
+                    directory.rename(destination)
+                else:
+                    destination.mkdir()
+                    for path in paths:
+                        path.rename(destination / path.name)
             record.update(automatic_recovery_exhausted=False, automatic_attempt_count=0,
+                          failure_category="transient_connection",
                           next_automatic_action="explicit resume after archived transport failure",
                           transport_recovery_archive=str(archive))
             emit("assignment_transport_resume", assignment_id=assignment.assignment_id,
-                 archived_requests=len(requests), archive=str(archive))
+                 archived_requests=len(requests),
+                 archived_attempts=sum(len(paths) for _, paths in requests), archive=str(archive))
 
     def _pending_assignments(
         self,
