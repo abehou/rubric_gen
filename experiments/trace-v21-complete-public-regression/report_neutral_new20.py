@@ -356,6 +356,30 @@ def markdown(report: dict[str, object]) -> str:
     lines.extend(
         [
             "",
+            "## Task-level uncertainty",
+            "",
+            "SD and SE use the 20 matched task-level RTT-minus-static contrasts; "
+            "the three replicates and two models are averaged within each task.",
+            "",
+            "| Arm | Rigorous contrast mean ± SD (SE) | Neutral contrast mean ± SD (SE) | Paired change mean ± SD (SE) |",
+            "| --- | ---: | ---: | ---: |",
+        ]
+    )
+    for arm in ("Full", "User"):
+        uncertainty_rows = report["paired_task_uncertainty"][arm]
+        rigorous = uncertainty_rows["rigorous_RTT_minus_static"]
+        neutral = uncertainty_rows["neutral_RTT_minus_static"]
+        change = uncertainty_rows["paired_change"]
+        lines.append(
+            f"| {arm} | {rigorous['mean']:+.2f} ± {rigorous['sample_sd']:.2f} "
+            f"({rigorous['se']:.2f}) | {neutral['mean']:+.2f} ± "
+            f"{neutral['sample_sd']:.2f} ({neutral['se']:.2f}) | "
+            f"{change['mean']:+.2f} ± {change['sample_sd']:.2f} "
+            f"({change['se']:.2f}) |"
+        )
+    lines.extend(
+        [
+            "",
             "## Per model",
             "",
             "| Model | Arm | Static rigorous | RTT rigorous | RTT-static rigorous | Static neutral | RTT neutral | RTT-static neutral | Contrast change |",

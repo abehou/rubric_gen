@@ -1,6 +1,7 @@
 ## 2026-09-21 — New20 uniform-neutral heldout evaluation
 
 - Four completed tasks contribute 480 reusable Sol/Gemini judgments. The missing-only owner adds five neutral paraphrases and 120 final-rubric judgments for each of the remaining 16 New20 tasks under `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/neutral-new20/`, with audit workers 12, aggregate provider concurrency 6, and no revision calls.
+- Babel job `10515909` completed at source `28498b4cd6119517f082b0d1cd19e343df34b326`: 80 new paraphrases, 1,920 new judgments, and all 480 planned reused judgments are complete. The provider-free report is `docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-new20.{md,json}`.
 
 ## 2026-09-20 — Semi/Score-only Results20 prepared
 

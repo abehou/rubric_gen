@@ -183,4 +183,20 @@ also changes, RTT-minus-static improves from `+2.46` to `+1.53` Full and from
 complete [four-task table](neutral-outlier-panel.md) therefore supports neutral
 heldouts as the cleaner wording-only construct but rejects them as a complete
 explanation or reliable metric-only cure for the Result40 S-H issue.  No full-40
-rescore is launched from this evidence.
+rescore was launched from that intermediate evidence alone.
+
+At the user's direction, the same saved-artifact measurement was then extended
+to all New20 tasks to test the evaluation-policy hypothesis directly. Babel job
+`10515909` completed 1,920 new judgments and reused all 480 four-task judgments,
+for 2,400/2,400 Sol+Gemini scores. The complete [New20 comparison](neutral-new20.md)
+shows that RTT S-H changes from `0.54` to `-0.23` Full and from `1.29` to `0.35`
+User. The matched RTT-minus-static contrast changes from `+0.64/+0.66` to
+`+0.09/+0.08`. Both corrected RTT S-H values therefore meet the intended near-zero
+criterion without changing any artifact, S, A, RH, or revision trajectory.
+
+The dominant effect is prompt-policy symmetry, not merely using more paraphrases.
+With the same neutral prompt, three versus five heldouts changes RTT S-H only from
+`-0.13` to `-0.23` Full and from `0.38` to `0.35` User. The supported primary H
+definition is consequently the equal-semantics neutral wording-only pool; the old
+rigorous pool should be labeled a separate strictness stress test rather than mixed
+into the primary selected-to-heldout generalization gap.
