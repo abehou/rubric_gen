@@ -1,6 +1,7 @@
 ## 2026-09-21 — Result40 S-H gap-improvement pilot
 
 - 17:44 JST: Froze the combined five-task intervention: Luna-high `rubric_view`/`diagnosis`/`semantic`, development-resolved selected-gap induction priority, unseen violated-criterion delivery before repeats, and use of remaining baseline turns when corrective work remains queued. Solver/red-team reasoning, maximum turns, inputs, and Sol+Gemini outcomes remain controlled; focused experiment/config tests pass 99/99 before Babel preflight.
+- 17:53 JST: Pushed clean source `80072570`, created a detached Babel worktree without touching the dirty shared checkout, and queued zero-call preflight `10518518` followed by counted `da-26-2` smoke `10518523` and audit `10518524` under `afterok`; no paid request can start before preflight success.
 
 ## 2026-09-20 — Semi/Score-only Results40 gate
 
