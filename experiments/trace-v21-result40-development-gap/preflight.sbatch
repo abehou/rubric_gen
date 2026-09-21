@@ -3,9 +3,9 @@
 #SBATCH --qos=preempt_cpu_qos
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=8G
-#SBATCH --time=00:20:00
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=4G
+#SBATCH --time=00:10:00
 #SBATCH --no-requeue
 #SBATCH --account=dfried
 #SBATCH --job-name=r40-dev-preflight
