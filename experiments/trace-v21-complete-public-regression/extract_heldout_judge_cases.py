@@ -28,9 +28,16 @@ CASES = (
     ("da-5-1", "trace", "User", 3),
     ("da-26-4", "static", "User", 2),
     ("da-26-4", "trace", "User", 2),
+    ("da-24-3", "static", "Full", 1),
     ("da-24-3", "trace", "Full", 1),
+    ("da-26-2", "static", "User", 3),
     ("da-26-2", "trace", "User", 3),
+    ("da-17-1", "static", "Full", 1),
     ("da-17-1", "trace", "Full", 1),
+    ("da-17-5", "static", "User", 2),
+    ("da-17-5", "trace", "User", 2),
+    ("da-9-7", "static", "User", 1),
+    ("da-9-7", "trace", "User", 1),
 )
 
 
