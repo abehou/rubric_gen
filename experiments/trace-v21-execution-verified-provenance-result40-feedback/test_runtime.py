@@ -168,3 +168,71 @@ def test_quota_recovery_accepts_exact_response_free_missing_key(monkeypatch) -> 
     assert recovery._recoverable_operational_failure(attempt)
     attempt["error"] = "some other runtime failure"
     assert not recovery._recoverable_operational_failure(attempt)
+
+
+def test_runtime_recovery_is_limited_to_pre_turn_startup_failure(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import reconcile_runtime_failures as recovery
+
+    record = {
+        "status": "failed",
+        "automatic_recovery_exhausted": True,
+        "error_type": "CodexProviderHealthError",
+        "error": (
+            "Codex app-server start failed after 2 attempts: "
+            "TransportClosedError: Codex process closed stdout"
+        ),
+    }
+    assert recovery._response_free_startup_failure(record)
+    record["error"] = "Codex transport closed during an active turn"
+    assert not recovery._response_free_startup_failure(record)
+
+
+def test_runtime_recovery_restores_only_stale_owned_cli_tmp(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import reconcile_runtime_failures as recovery
+
+    with tempfile.TemporaryDirectory() as raw:
+        workspace = Path(raw) / "workspace"
+        temporary = workspace.parent / ".agent-state/codex/tmp"
+        temporary.parent.mkdir(parents=True)
+        backup = temporary.parent / ".tmp-preserved-test"
+        backup.mkdir()
+        temporary.symlink_to(Path(raw) / "missing-cli-tmp", target_is_directory=True)
+        action = recovery._reconcile_cli_tmp(
+            "assignment", workspace, apply=True
+        )
+        assert action is not None
+        assert action["action"] == "restore_backup"
+        assert temporary.is_dir() and not temporary.is_symlink()
+        assert not backup.exists()
+
+
+def test_runtime_recovery_archives_reconstructible_workspace_restore(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import reconcile_runtime_failures as recovery
+
+    with tempfile.TemporaryDirectory() as raw:
+        root = Path(raw)
+        recovery.LIVE = root
+        experiment = root / "experiment"
+        experiment.mkdir()
+        workspace = root / "live" / "workspace"
+        restored = workspace.parent / "workspace-restore"
+        restored.mkdir(parents=True)
+        (restored / "partial").write_text("preserved")
+        record = {
+            "assignment_id": "assignment",
+            "error_type": "RuntimeError",
+            "error": recovery.RESTORE_ERROR + str(restored),
+        }
+        action = recovery._archive_stale_restore(
+            record, experiment, workspace, "stamp", apply=True
+        )
+        assert action is not None
+        assert not restored.exists()
+        archive = Path(str(action["archive"]))
+        assert (archive / "partial").read_text() == "preserved"

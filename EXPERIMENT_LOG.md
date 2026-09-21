@@ -1,3 +1,7 @@
+## 2026-09-21 — Semi/Score-only Results40 runtime recovery
+
+- 10:18 EDT: Revision owner `10517651` preserved 208/240 assignments before exiting with 28 response-free Codex app-server startup residues, three preemption-era `workspace-restore` directories, and one native solver-turn timeout. A fail-closed experiment-private reconcile restores/archives only those exact runtime paths and rearms only the 28 pre-turn failures; 10 focused tests pass, with candidate/config/input/judge semantics unchanged.
+
 ## 2026-09-20 — Semi/Score-only Results40 gate
 
 - 21:45 EDT: Provider-free job `10516052` validated the precommitted new20 scope (240 Semi/Score-only static/promoted-RTT assignments), all frozen inputs, 20/20 single-layer pretreatment sources, diagnosis-only high proposer reasoning, and the requested Sol+Gemini panel with zero provider calls. Revision uses four six-assignment shards at once (maximum 24 assignment workers) under the shared aggregate-60 cap and internal fanout four.

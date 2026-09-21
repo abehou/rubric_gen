@@ -1,3 +1,7 @@
+## 2026-09-21 — Semi/Score-only Results40 missing-only recovery
+
+Job `10517651` ran the frozen 3×6 assignment-worker profile on 16 CPUs/256 GiB and left 208/240 valid completed records under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`. The next provider-free owner runs `experiments/trace-v21-execution-verified-provenance-result40-feedback/reconcile.sbatch`; after its exact receipt, the same revision launcher resumes only 32 noncompleted records and the Sol+Gemini audit remains gated on 240/240.
+
 ## 2026-09-20 — Semi/Score-only Results40 validation
 
 Provider-free input and runtime validation completed in job `10516052` from source `603b49e8` with zero model calls. The exact 240-assignment scope and input hashes are tracked at `experiments/trace-v21-execution-verified-provenance-result40-feedback/receipts/input-validation.json`; persistent execution uses `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`.
