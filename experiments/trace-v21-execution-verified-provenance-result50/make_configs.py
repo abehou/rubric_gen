@@ -44,7 +44,7 @@ RESULT45_TASKS = TASKS[:5]
 GENERATED_INPUT_TASKS = TASKS[5:]
 CONDITIONS = tuple(MEMBERSHIP["conditions"])
 SHARDS = tuple((task, kind) for task in TASKS for kind in ("static", "trace"))
-PANEL = ("gpt-5.6-sol", "claude-opus-5")
+PANEL = ("gpt-5.6-sol", "gemini-3.8-flash")
 CANDIDATE = "attack_defense_v2.1_execution_verified_proactive_provenance"
 
 
@@ -129,6 +129,8 @@ def main() -> None:
         conditions = static_conditions if kind == "static" else trace_conditions
         data["conditions"] = conditions
         data["execution_conditions"] = [row["condition_id"] for row in conditions]
+        data["outcome_audit"]["models"] = list(PANEL)
+        data["execution_audit_models"] = list(PANEL)
         if kind == "static":
             data["protocol"].pop("red_team_trace_version", None)
             data["protocol"].pop("rubric_proposer_reasoning_effort_by_stage", None)

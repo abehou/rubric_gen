@@ -58,14 +58,14 @@ def test_result50_keeps_result40_models_recipe_and_rigorous_heldouts():
     assert module.CANDIDATE == (
         "attack_defense_v2.1_execution_verified_proactive_provenance"
     )
-    assert module.PANEL == ("gpt-5.6-sol", "claude-opus-5")
+    assert module.PANEL == ("gpt-5.6-sol", "gemini-3.8-flash")
     assert module.TASKS == tuple(membership["added10"])
     assert module.RESULT45_TASKS == module.TASKS[:5]
     assert module.GENERATED_INPUT_TASKS == module.TASKS[5:]
     assert runtime["aggregate_concurrency"] == 60
     assert runtime["audit_provider_concurrency"] == {
         "openai": 60,
-        "anthropic": 60,
+        "google": 60,
     }
     assert "prefer the stricter" in PARAPHRASE_INSTRUCTIONS
     assert "strengthen, clarify, or repair" in NEUTRAL_PARAPHRASE_INSTRUCTIONS

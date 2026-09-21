@@ -4,7 +4,7 @@
   "audit_studies": 1,
   "audit_provider_concurrency": {
     "openai": 60,
-    "anthropic": 60
+    "google": 60
   },
   "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel"
 }

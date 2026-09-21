@@ -1398,5 +1398,7 @@ Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worke
   `/data/user_data/aydanh/rubric_gen/live/rtt-result50-extension-20260921/`
 - Runtime/cache:
   `/data/user_data/aydanh/rubric_gen/cache/rtt-result50-extension-20260921/`
-- Slurm chain: setup → revise → audit, submitted after the existing Result40
-  feedback-policy audit dependency completes successfully.
+- Slurm chain: setup → revise → audit, with independent outputs and shared provider
+  admission so it may run concurrently with the Result40 feedback-policy study.
+  The audit panel is Sol + Gemini 3.8 Flash because Anthropic currently rejects
+  calls for insufficient credit.

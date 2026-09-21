@@ -1470,5 +1470,7 @@ Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_re
   `attack_defense_v2.1_execution_verified_proactive_provenance` recipe with only
   diagnosis/proposer at Luna high, and use the Result40 five-paraphrase policy:
   selected/development neutral and heldouts rigorous-V2.
-- Run Sol+Opus outcome audit after all 120 revisions complete. Do not run another
-  RTT candidate or modify revision behavior in this extension.
+- Run Sol+Gemini 3.8 Flash outcome audit after all 120 revisions complete;
+  Anthropic is excluded because its account currently returns insufficient-credit
+  HTTP 400 responses. Do not run another RTT candidate or modify revision behavior
+  in this extension.

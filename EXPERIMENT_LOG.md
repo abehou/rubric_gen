@@ -2546,3 +2546,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
   from Result40, using the unchanged Result40 scientific recipe and rigorous-V2
   heldouts; the existing forty tasks remain read-only and only 120 missing
   Static/RTT × Full/User assignments will run.
+- 22:14 JST — Replaced only the not-yet-started Result50 audit panel with Sol plus
+  Gemini 3.8 Flash after Anthropic returned insufficient-credit HTTP 400; revision
+  behavior and three rigorous heldouts are unchanged, and the independent Result50
+  chain may run concurrently under the shared provider-60 admission policy.

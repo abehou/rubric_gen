@@ -17,6 +17,7 @@ import threading
 from dotenv import dotenv_values
 
 from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.runtime.audit_execution import provider_for
 from rubric_gen.runtime.capacity import policy
 from rubric_gen.submission_revision.execution_scope import terminal_records
 from rubric_gen.submission_revision.experiment import load_experiment
@@ -36,7 +37,12 @@ def now() -> str:
 
 def credentials() -> None:
     values = dotenv_values("/home/aydanh/repos/rubric_gen/.env.local")
-    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+    provider_keys = {
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "google": "GEMINI_API_KEY",
+    }
+    for key in {provider_keys[provider_for(model)] for model in PANEL}:
         if not values.get(key):
             raise RuntimeError(f"configured credential unavailable: {key}")
         os.environ[key] = str(values[key])
@@ -62,8 +68,9 @@ def runtime(mode: str) -> dict:
     value = policy()
     if value["aggregate_concurrency"] != 60 or value["audit_studies"] != 1:
         raise RuntimeError("Results40 runtime owner capacity changed")
-    if value.get("audit_provider_concurrency") != {"openai": 60, "anthropic": 60}:
-        raise RuntimeError("Results40 Sol/Opus provider partitions changed")
+    expected_providers = {provider_for(model): 60 for model in PANEL}
+    if value.get("audit_provider_concurrency") != expected_providers:
+        raise RuntimeError("audit provider partitions differ from the configured panel")
     return {
         **value,
         "stage_workers": revision_shard_workers() * revision_assignment_workers() if mode == "execute" else 120,
