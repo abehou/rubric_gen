@@ -1,3 +1,7 @@
+## 2026-09-22 — Original20 evidence-aware heldout completion
+
+- 09:00 JST: User adopts the condition-blind `obligation-neutral-evidence-rigorous-v2` heldout policy and authorizes evaluation-only completion on Original20. Reuse all 240 completed static/RTT Full/User artifacts; generate five fresh `uniform_neutral` rubrics for each of the 20 tasks, add exactly 2,400 Sol+Gemini heldout judgments, then combine them with the completed New20 panel for an updated Result40. Do not rerun revisions, solvers, A, or RH.
+
 ## 2026-09-21 — New20 uniform-neutral heldout evaluation
 
 - 22:01 JST: User authorizes extending the condition-blind evidence-aware heldout judge from the completed four-task panel to the remaining 16 New20 tasks. Reuse all five existing neutral paraphrases and saved static/RTT artifacts; add only 1,920 Sol+Gemini heldout judgments, then combine them with the 480 completed rows without any paraphrase, revision, solver, A, or RH call.

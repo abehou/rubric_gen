@@ -1,3 +1,8 @@
+## 2026-09-22 — Original20 evidence-aware heldout completion
+
+- Original20 reuses 240 completed final artifacts from the authoritative historical Full-static, User-static, and promoted-RTT studies. Pool job generates 100 fresh `uniform_neutral` paraphrases under `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/evidence-calibrated-original20-v2/`; a two-shard scoring array writes 2,400 condition-blind Sol+Gemini judgments under `.../evidence-calibrated-panel-original20-v2/`.
+- Pool resources are 4 CPU/32 GiB with paraphrase concurrency 2. Each scoring shard uses 4 CPU/64 GiB and provider concurrency 6, for aggregate scoring concurrency 12. All source revisions, selected scores, holistic A, and RH remain read-only.
+
 ## 2026-09-21 — New20 uniform-neutral heldout evaluation
 
 - Evidence-aware heldout extension: provider-free extraction `10519740` feeds missing-16-task scoring `10519741` and export `10519742` from detached source `6858016cee19d04c46d4662e9f23e606fc574897` plus the recorded judge-only diff. The run uses the existing five neutral paraphrases, 192 saved artifacts, Sol+Gemini, workers 6, 8 CPU/32 GiB, and writes missing-only judgments under `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/evidence-calibrated-panel-new20_remaining16-v2/`; the completed four-task 480-row panel remains reusable.

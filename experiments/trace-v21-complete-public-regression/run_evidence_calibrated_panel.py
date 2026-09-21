@@ -42,6 +42,10 @@ REPLICATE_FILTER = (
 EVIDENCE_NAME = (
     "outlier4-evidence.json"
     if CASE_SCOPE == "outlier4"
+    else f"original20-{TASK_FILTER}-rep{REPLICATE_FILTER:03d}-evidence.json"
+    if CASE_SCOPE == "original20"
+    and TASK_FILTER
+    and REPLICATE_FILTER is not None
     else f"new20-remaining16-{TASK_FILTER}-rep{REPLICATE_FILTER:03d}-evidence.json"
     if CASE_SCOPE == "new20_remaining16"
     and TASK_FILTER
@@ -52,11 +56,9 @@ EVIDENCE_NAME = (
     if CASE_SCOPE == "new20_remaining16"
     else "saved-case-evidence.json"
 )
-EVIDENCE = (
-    ROOT
-    / "diagnostics/heldout-judge-failure-analysis"
-    / EVIDENCE_NAME
-)
+EVIDENCE = Path(os.environ["EVIDENCE_INPUT_PATH"]) if os.environ.get(
+    "EVIDENCE_INPUT_PATH"
+) else ROOT / "diagnostics/heldout-judge-failure-analysis" / EVIDENCE_NAME
 POLICY_VERSION = os.environ.get("EVIDENCE_POLICY_VERSION", "v1")
 if POLICY_VERSION == "v1":
     POLICY_ID = EVIDENCE_CALIBRATED_POLICY_ID
@@ -126,7 +128,7 @@ def jobs(evidence: dict) -> tuple[dict[str, object], ...]:
         answer_text = str(artifact_evidence["final_answer"])
         variants = (
             range(5)
-            if CASE_SCOPE in {"outlier4", "new20_remaining16"}
+            if CASE_SCOPE in {"outlier4", "new20_remaining16", "original20"}
             else (0,)
         )
         for variant in variants:
@@ -136,10 +138,10 @@ def jobs(evidence: dict) -> tuple[dict[str, object], ...]:
             for model in MODELS:
                 control = [
                     row
-                    for row in case["uniform_neutral"]
+                    for row in case.get("uniform_neutral", ())
                     if row["variant"] == variant and row["model"] == model
                 ]
-                if len(control) != 1:
+                if CASE_SCOPE != "original20" and len(control) != 1:
                     raise RuntimeError(
                         "expected one saved neutral control for "
                         f"{case['assignment_id']} variant {variant} {model}"
@@ -158,7 +160,9 @@ def jobs(evidence: dict) -> tuple[dict[str, object], ...]:
                     "rubric_sha256": sha256_text(rubric_text),
                     "review_sha256": sha256_text(review_text),
                     "answer_sha256": sha256_text(answer_text),
-                    "control_score": control[0]["score"],
+                    "control_score": (
+                        control[0]["score"] if control else None
+                    ),
                 }
                 rows.append(
                     {
@@ -277,12 +281,13 @@ def summarize(records: list[dict[str, object]]) -> dict[str, object]:
     for record in records:
         identity = record["identity"]
         score = float(record["records"]["score"])
-        control = float(identity["control_score"])
+        control_value = identity["control_score"]
+        control = float(control_value) if control_value is not None else None
         rows.append(
             {
                 **identity,
                 "evidence_calibrated_score": score,
-                "score_change": score - control,
+                "score_change": score - control if control is not None else None,
                 "elapsed_seconds": record["elapsed_seconds"],
                 "attempt": record["attempt"],
                 "criteria": record["records"]["evaluation"]["criteria"],
@@ -313,7 +318,9 @@ def main() -> int:
     evidence = read(EVIDENCE)
     planned = jobs(evidence)
     variants_per_case = (
-        5 if CASE_SCOPE in {"outlier4", "new20_remaining16"} else 1
+        5
+        if CASE_SCOPE in {"outlier4", "new20_remaining16", "original20"}
+        else 1
     )
     if len(planned) != len(evidence["cases"]) * len(MODELS) * variants_per_case:
         raise RuntimeError("evidence-calibrated panel scope changed")

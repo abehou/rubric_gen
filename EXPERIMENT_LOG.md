@@ -2586,6 +2586,10 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 - 10:32 JST: User explicitly authorizes extending the corrected `uniform_neutral` heldout definition to all New20 tasks to measure its complete S-H effect. The run reuses 480 four-task judgments, adds 1,920 judgments and 80 paraphrases for the remaining 16 tasks, and leaves all revisions, S, A and RH unchanged.
 - 11:08 JST: Babel job `10515909` completed the New20 uniform-neutral measurement at 2,400/2,400 Sol+Gemini judgments (1,920 new, 480 reused; 610 MiB peak RSS). RTT S-H changed from 0.54/1.29 to -0.23/0.35 for Full/User, while matched RTT-minus-static changed from +0.64/+0.66 to +0.09/+0.08; neutral-3 to neutral-5 contributes only -0.10/-0.03 to RTT S-H, so prompt-policy symmetry is the main effect.
 
+## 2026-09-22 — Evidence-aware Original20 heldout completion
+
+- 09:00 JST: User adopts the evidence-aware heldout policy after complete New20 scoring and authorizes the same evaluation-only protocol on Original20. The run reuses 240 completed artifacts, generates 100 fresh neutral paraphrases, and adds 2,400 Sol+Gemini judgments; it does not rerun revision, solver, A, or RH.
+
 ## 2026-09-22 — Evidence-calibrated New20 heldout test
 
 - 01:01 JST: Babel job `10520389` completed the final missing-only evidence-calibrated panel at 1,920/1,920 remaining-task judgments (2,400/2,400 including the reused four-task panel), using 4 CPUs/64 GiB/provider 6 and peaking at 51,369,692 KiB; no revision, artifact, S, A, or RH call changed. Sol+Gemini New20 RTT-minus-static S-H is -10.81 Full but +0.47 User, so the condition-blind public-evidence policy exposes Full static unsupported completion but does not generalize as a two-arm metric cure.
