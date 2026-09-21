@@ -62,7 +62,7 @@ def test_result50_keeps_result40_models_recipe_and_rigorous_heldouts():
     assert module.TASKS == tuple(membership["added10"])
     assert module.RESULT45_TASKS == module.TASKS[:5]
     assert module.GENERATED_INPUT_TASKS == module.TASKS[5:]
-    assert set(module.pretreatment_sources()) == {"da-3-4", "da-11-1", "da-18-1"}
+    assert module.pretreatment_sources() == {}
     assert runtime["aggregate_concurrency"] == 60
     assert runtime["audit_provider_concurrency"] == {
         "openai": 60,

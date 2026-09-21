@@ -62,20 +62,11 @@ def config_path(task: str, kind: str) -> Path:
     return EXECUTION_BUNDLE / "configs" / f"{task}-{kind}.yaml"
 
 
-def _dev3_pretreatment_source(task: str) -> dict[str, str]:
-    path = BUNDLE.parent / "trace-task-paraphrase-required/canonical" / f"{task}.yaml"
-    payload = yaml.safe_load(path.read_text())
-    source = payload.get("pretreatment_source")
-    if not isinstance(source, dict):
-        raise RuntimeError(f"missing canonical pretreatment source for {task}")
-    return {key: str(source[key]) for key in ("experiment", "experiment_id", "study_dir")}
-
-
 def pretreatment_sources() -> dict[str, dict[str, str]]:
-    result = {}
-    for task in ("da-3-4", "da-11-1", "da-18-1"):
-        result[task] = _dev3_pretreatment_source(task)
-    return result
+    # No prior study used the Result50 seed/input identity. The three Dev3
+    # studies used seed 20260806, so their generation-1 artifacts are not a
+    # compatible source for the required Result50 seed 20260820.
+    return {}
 
 
 def main() -> None:

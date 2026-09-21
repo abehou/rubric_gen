@@ -2555,3 +2555,8 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
   Result45-only tasks never had source studies to reuse; their invalid source
   references are removed so native revision creates generation-1, while the three
   real Dev3 source studies remain reused and no successful input is regenerated.
+- 17:08 JST — Final input validation showed the three Dev3 studies use seed
+  20260806 rather than Result50 seed 20260820, so their generation-1 artifacts are
+  also not compatible sources. All ten added tasks will create generation-1
+  natively from their exact Result50 seeds; all 15 successful new seeds and five
+  paraphrase pools remain reused.
