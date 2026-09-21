@@ -2550,3 +2550,8 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
   Gemini 3.8 Flash after Anthropic returned insufficient-credit HTTP 400; revision
   behavior and three rigorous heldouts are unchanged, and the independent Result50
   chain may run concurrently under the shared provider-60 admission policy.
+- 16:56 JST — Result50 input generation completed all 15 new seeds and five
+  five-variant paraphrase pools, then provider-free validation showed the five
+  Result45-only tasks never had source studies to reuse; their invalid source
+  references are removed so native revision creates generation-1, while the three
+  real Dev3 source studies remain reused and no successful input is regenerated.

@@ -9,8 +9,6 @@ from pathlib import Path
 
 import yaml
 
-from rubric_gen.submission_revision.experiment import load_experiment
-
 
 BUNDLE = Path(__file__).resolve().parent
 ROOT = BUNDLE.parents[1]
@@ -64,16 +62,6 @@ def config_path(task: str, kind: str) -> Path:
     return EXECUTION_BUNDLE / "configs" / f"{task}-{kind}.yaml"
 
 
-def _result45_pretreatment_source(task: str) -> dict[str, str]:
-    path = ROOT / "experiments/biomnibench-v21-to45/queue7/configs" / f"{task}.yaml"
-    source = load_experiment(path)
-    return {
-        "experiment": str(path),
-        "experiment_id": source.experiment_id,
-        "study_dir": str(Path(source.dag["revise"]["output_dir"])),
-    }
-
-
 def _dev3_pretreatment_source(task: str) -> dict[str, str]:
     path = BUNDLE.parent / "trace-task-paraphrase-required/canonical" / f"{task}.yaml"
     payload = yaml.safe_load(path.read_text())
@@ -84,10 +72,7 @@ def _dev3_pretreatment_source(task: str) -> dict[str, str]:
 
 
 def pretreatment_sources() -> dict[str, dict[str, str]]:
-    result = {
-        task: _result45_pretreatment_source(task)
-        for task in RESULT45_TASKS
-    }
+    result = {}
     for task in ("da-3-4", "da-11-1", "da-18-1"):
         result[task] = _dev3_pretreatment_source(task)
     return result
