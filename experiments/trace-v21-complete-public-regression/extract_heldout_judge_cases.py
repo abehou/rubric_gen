@@ -20,7 +20,8 @@ OUTPUT = (
     ROOT
     / "diagnostics/heldout-judge-failure-analysis/saved-case-evidence.json"
 )
-MODEL = "gpt-5.6-sol"
+MODELS = ("gpt-5.6-sol", "gemini-3.8-flash")
+REVIEW_MODEL = MODELS[0]
 CASES = (
     ("da-20-4", "static", "Full", 1),
     ("da-20-4", "trace", "Full", 1),
@@ -88,7 +89,7 @@ def old_judgments(experiment, target) -> list[dict[str, object]]:
         reference
         for reference in summary["records"]
         if reference["assignment_id"] == target.assignment_id
-        and reference["model"] == MODEL
+        and reference["model"] in MODELS
         and reference["artifact"] == "final"
         and any(
             role["name"] in {"selected", "holdout"}
@@ -105,6 +106,7 @@ def old_judgments(experiment, target) -> list[dict[str, object]]:
         rows.append(
             {
                 "score": reference["score"],
+                "model": reference["model"],
                 "rubric_roles": reference["rubric_roles"],
                 "rubric_sha256": record["rubric_sha256"],
                 "evaluation": evaluation(Path(str(record["evaluation_path"]))),
@@ -145,12 +147,13 @@ def neutral_judgments(task_id: str, role: str, experiment, target):
     root = neutral_audit_root(task_id, role, target.replicate)
     rows = []
     for job in neutral_jobs(stage, (target,), paraphrase_dir=pool):
-        if job.model != MODEL:
+        if job.model not in MODELS:
             continue
         record = read(root / "records" / f"{job.key}.json")
         rows.append(
             {
                 "variant": job.roles[0].variant_index,
+                "model": job.model,
                 "score": record["score"],
                 "rubric_sha256": record["rubric_sha256"],
                 "evaluation": evaluation(Path(str(record["evaluation_path"]))),
@@ -181,7 +184,7 @@ def artifact_evidence(task_id: str, role: str, experiment, target) -> dict[str, 
     rubric_path = pool / "tasks" / task_id / "variant-000.txt"
     judge = stage._new_judge(
         target=target,
-        model=MODEL,
+        model=REVIEW_MODEL,
         rubric_path=rubric_path,
         artifact_key="extract-read-only-evidence",
     )
@@ -246,7 +249,7 @@ def main() -> int:
         OUTPUT,
         {
             "kind": "heldout-judge-failure-saved-case-evidence",
-            "model": MODEL,
+            "models": list(MODELS),
             "cases": rows,
             "rubrics": rubrics,
         },
