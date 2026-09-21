@@ -407,6 +407,10 @@ class RevisionRecovery:
             and manifest.get("effective_solver_model") is None
         ):
             return False
+        if self._recover_interrupted_partial_identity_before_publish(
+            state, workspace, manifest, checkpoint
+        ):
+            return True
         self._validate_turn_artifacts(checkpoint)
         status = _read_json_object(
             checkpoint.status_path, "partial-identity solver status"
@@ -436,6 +440,66 @@ class RevisionRecovery:
             manifest,
             checkpoint,
             "solver transport failed after session creation",
+        )
+        return True
+
+    def _recover_interrupted_partial_identity_before_publish(
+        self,
+        state: _RevisionState,
+        workspace: Path,
+        manifest: dict[str, object],
+        checkpoint: _FailedTurnCheckpoint,
+    ) -> bool:
+        """Reset an exact syscall interruption before turn publication.
+
+        The app-server attempt may durably record its private trajectory before
+        the wrapper publishes the top-level trajectory and effective model.  No
+        such attempt is accepted as a solver turn: archive it, restore the last
+        scored workspace, discard the uncertain session, and retry normally.
+        """
+
+        turn = checkpoint.turn_dir
+        attempts = turn / "attempts"
+        expected_attempt_files = {
+            "attempt-001.prompt.txt",
+            "attempt-001.trajectory.stream.jsonl",
+        }
+        if (
+            os.path.lexists(checkpoint.trajectory_path)
+            or checkpoint.status_path.is_symlink()
+            or not checkpoint.status_path.is_file()
+            or attempts.is_symlink()
+            or not attempts.is_dir()
+            or {path.name for path in attempts.iterdir()} != expected_attempt_files
+        ):
+            return False
+        status = _read_json_object(
+            checkpoint.status_path,
+            "interrupted partial-identity solver status",
+        )
+        attempt_prompt = attempts / "attempt-001.prompt.txt"
+        attempt_trajectory = attempts / "attempt-001.trajectory.stream.jsonl"
+        if (
+            status != {
+                "status": "failed",
+                "exit_code": 1,
+                "provider_exit_code": None,
+                "validation_errors": ["[Errno 4] Interrupted system call"],
+            }
+            or attempt_prompt.is_symlink()
+            or not attempt_prompt.is_file()
+            or attempt_prompt.read_text() != state.next_prompt
+            or attempt_trajectory.is_symlink()
+            or not attempt_trajectory.is_file()
+            or attempt_trajectory.stat().st_size == 0
+        ):
+            return False
+        self._restore_reset_and_discard(
+            state,
+            workspace,
+            manifest,
+            checkpoint,
+            "solver interrupted before publishing turn artifacts",
         )
         return True
 
@@ -514,6 +578,7 @@ class RevisionRecovery:
             ("controlled Codex configuration changed",),
             ("codex did not report a session ID during resume",),
             ("[Errno 32] Broken pipe",),
+            ("[Errno 4] Interrupted system call",),
         }
         if (
             status.get("status") != "failed"

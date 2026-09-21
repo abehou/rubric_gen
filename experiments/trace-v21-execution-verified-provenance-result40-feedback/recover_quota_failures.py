@@ -1,4 +1,4 @@
-"""Rearm only response-free RTT requests from the 2026-09-20 home quota incident."""
+"""Rearm only evidenced response-free operational RTT requests."""
 from __future__ import annotations
 
 import argparse
@@ -27,6 +27,7 @@ def _recoverable_operational_failure(attempt: dict) -> bool:
         attempt.get("status") != "provider_failure"
         or attempt.get("permanent")
         or "output" in attempt
+        or "result" in attempt
     ):
         return False
     error_type = attempt.get("error_type")
@@ -36,11 +37,16 @@ def _recoverable_operational_failure(attempt: dict) -> bool:
     ) or (
         error_type == "RuntimeError"
         and error.startswith("OPENAI_API_KEY must be set for the ")
+    ) or (
+        error_type == "RateLimitError"
+        and "You have no credits remaining." in error
+        and "'type': 'insufficient_quota'" in error
+        and "'code': 'credit_balance_exhausted'" in error
     )
 
 
 def response_free_quota_requests(experiment_dir: Path) -> list[Path]:
-    """Return response-free requests from either observed operational failure."""
+    """Return requests containing only observed response-free failures."""
 
     root = experiment_dir / "trace-defense-v2-requests"
     if not root.exists():
@@ -59,7 +65,7 @@ def response_free_quota_requests(experiment_dir: Path) -> list[Path]:
         attempts = [_read(path) for path in attempt_paths]
         if not all(_recoverable_operational_failure(attempt) for attempt in attempts):
             raise RuntimeError(
-                f"request is not an exact response-free quota failure: {directory}"
+                f"request is not an exact response-free operational failure: {directory}"
             )
         failed.append(directory)
     return failed
@@ -81,7 +87,7 @@ def plan(run: Path = RUN) -> list[dict]:
                 requests = response_free_quota_requests(experiment_dir)
                 if not requests:
                     raise RuntimeError(
-                        "exhausted proposer failure has no response-free quota request: "
+                        "exhausted proposer failure has no response-free operational request: "
                         f"{record['assignment_id']}"
                     )
                 recovery.append(
@@ -96,7 +102,7 @@ def plan(run: Path = RUN) -> list[dict]:
 
 def apply_recovery(run: Path, recovery: list[dict]) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    archive = run / "recovery-evidence" / f"home-quota-{stamp}"
+    archive = run / "recovery-evidence" / f"response-free-operational-{stamp}"
     by_ledger: dict[Path, list[dict]] = {}
     for row in recovery:
         by_ledger.setdefault(Path(row["ledger"]), []).append(row)
@@ -115,9 +121,9 @@ def apply_recovery(run: Path, recovery: list[dict]) -> Path:
                 automatic_recovery_exhausted=False,
                 automatic_attempt_count=0,
                 next_automatic_action=(
-                    "explicit resume after archived response-free home quota failure"
+                    "explicit resume after archived response-free operational failure"
                 ),
-                quota_recovery_archive=str(destination),
+                operational_recovery_archive=str(destination),
             )
         write_json_atomic(ledger_path, ledger)
     receipt = run / "receipts" / f"quota-failure-recovery-{stamp}.json"
@@ -126,8 +132,8 @@ def apply_recovery(run: Path, recovery: list[dict]) -> Path:
         {
             "applied_at": stamp,
             "reason": (
-                "response-free missing credential and NAS1 runtime-journal quota "
-                "failures"
+                "response-free missing credential, NAS1 runtime-journal quota, "
+                "or confirmed external credit-exhaustion failures"
             ),
             "response_free_assignments": len(recovery),
             "archive": str(archive),

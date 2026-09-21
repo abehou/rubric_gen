@@ -116,6 +116,9 @@ def test_revision_recovery_is_bounded_and_uses_local_codex_cache(monkeypatch) ->
 
     assert "export RUBRIC_GEN_CODEX_LOCAL_CACHE=1" in (BUNDLE / "common.sbatch").read_text()
     assert "#SBATCH --mem=512G" in (BUNDLE / "revise.sbatch").read_text()
+    rearm = (BUNDLE / "rearm_operational.sbatch").read_text()
+    assert "recover_quota_failures.py" in rearm
+    assert "--apply" in rearm
 
 
 def test_quota_recovery_only_rearms_response_free_requests(monkeypatch) -> None:
@@ -171,7 +174,7 @@ def test_quota_recovery_rejects_saved_provider_output(monkeypatch) -> None:
         try:
             recovery.response_free_quota_requests(Path(raw))
         except RuntimeError as error:
-            assert "not an exact response-free quota failure" in str(error)
+            assert "not an exact response-free operational failure" in str(error)
         else:
             raise AssertionError("saved provider output was accepted as response-free")
 
@@ -193,6 +196,32 @@ def test_quota_recovery_accepts_exact_response_free_missing_key(monkeypatch) -> 
     assert recovery._recoverable_operational_failure(attempt)
     attempt["error"] = "some other runtime failure"
     assert not recovery._recoverable_operational_failure(attempt)
+
+
+def test_quota_recovery_accepts_only_exact_response_free_credit_exhaustion(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import recover_quota_failures as recovery
+
+    attempt = {
+        "status": "provider_failure",
+        "permanent": False,
+        "error_type": "RateLimitError",
+        "error": (
+            "Error code: 429 - {'error': {'message': 'You have no credits remaining. "
+            "Add credits to continue using the API.', 'type': 'insufficient_quota', "
+            "'param': None, 'code': 'credit_balance_exhausted'}}"
+        ),
+    }
+    assert recovery._recoverable_operational_failure(attempt)
+    assert not recovery._recoverable_operational_failure({
+        **attempt,
+        "error": attempt["error"].replace("credit_balance_exhausted", "rate_limit_exceeded"),
+    })
+    assert not recovery._recoverable_operational_failure({
+        **attempt,
+        "result": {"response_text": "must remain preserved"},
+    })
 
 
 def test_runtime_recovery_is_limited_to_pre_turn_startup_failure(monkeypatch) -> None:

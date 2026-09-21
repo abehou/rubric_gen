@@ -3392,6 +3392,47 @@ def test_response_free_broken_pipe_resumes_from_sealed_checkpoint(
     ).is_file()
 
 
+def test_interrupted_syscall_resumes_from_sealed_checkpoint(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=2)
+
+    class InterruptedSession(FakeSession):
+        fail_once = True
+
+        def resume(
+            self,
+            workspace: Path,
+            prompt: str,
+            turn_dir: Path,
+            session_id: str,
+        ) -> SessionTurnResult:
+            if self.fail_once:
+                self.fail_once = False
+                raise InterruptedError(4, "Interrupted system call")
+            return super().resume(workspace, prompt, turn_dir, session_id)
+
+    session = InterruptedSession()
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    with pytest.raises(InterruptedError, match="Interrupted system call"):
+        SubmissionRevisionController(config, dependencies).run()
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90, 95)
+    assert (
+        config.experiment_dir
+        / "interrupted-turns"
+        / "turn-002"
+        / "status.json"
+    ).is_file()
+
+
 def test_failed_transport_with_partial_identity_discards_uncertain_session(
     tmp_path: Path,
 ) -> None:
@@ -3462,6 +3503,75 @@ def test_failed_transport_with_partial_identity_discards_uncertain_session(
     assert any(
         event["event"] == "solver_session_discarded"
         and event["reason"] == "solver transport failed after session creation"
+        for event in events
+    )
+
+
+def test_interrupted_partial_identity_before_publication_retries_from_checkpoint(
+    tmp_path: Path,
+) -> None:
+    task = _write_task(tmp_path)
+    config = _config(tmp_path, task, rounds=2)
+    session = FakeSession()
+    judge = FakeJudge(task, (80, 90, 95), tmp_path / "judge")
+    dependencies = RevisionDependencies(session=session, judge=judge)
+
+    interrupted = SubmissionRevisionController(config, dependencies)
+    append_event = interrupted.store.append_event
+
+    def interrupt_after_first_revision(payload: dict[str, object]) -> None:
+        append_event(payload)
+        if payload.get("event") == "submission_judged" and payload.get(
+            "submission_id"
+        ) == "s001":
+            raise KeyboardInterrupt
+
+    interrupted.store.append_event = interrupt_after_first_revision
+    with pytest.raises(KeyboardInterrupt):
+        interrupted.run()
+
+    state_path = config.experiment_dir / "state.json"
+    manifest_path = config.experiment_dir / "manifest.json"
+    state = json.loads(state_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    state["phase"] = "failed_turn"
+    state["effective_solver_model"] = None
+    manifest["effective_solver_model"] = None
+    state_path.write_text(json.dumps(state))
+    manifest_path.write_text(json.dumps(manifest))
+
+    turn = config.experiment_dir / "turns" / "turn-002"
+    turn.mkdir(parents=True)
+    (turn / "prompt.txt").write_text(state["next_prompt"])
+    attempts = turn / "attempts"
+    attempts.mkdir()
+    (attempts / "attempt-001.prompt.txt").write_text(state["next_prompt"])
+    (attempts / "attempt-001.trajectory.stream.jsonl").write_text(
+        '{"type":"turn.started"}\n'
+    )
+    (turn / "status.json").write_text(json.dumps({
+        "status": "failed",
+        "exit_code": 1,
+        "provider_exit_code": None,
+        "validation_errors": ["[Errno 4] Interrupted system call"],
+    }))
+    workspace = Path(manifest["live_workspace_dir"])
+    (workspace / "answer.txt").write_text("uncertain unpublished output\n")
+
+    result = SubmissionRevisionController(
+        replace(config, resume=True), dependencies
+    ).run()
+
+    assert result.scores == (80, 90, 95)
+    archive = config.experiment_dir / "interrupted-turns" / "turn-002"
+    assert (archive / "attempts/attempt-001.trajectory.stream.jsonl").is_file()
+    events = [
+        json.loads(line)
+        for line in (config.experiment_dir / "events.jsonl").read_text().splitlines()
+    ]
+    assert any(
+        event["event"] == "solver_session_discarded"
+        and event["reason"] == "solver interrupted before publishing turn artifacts"
         for event in events
     )
 

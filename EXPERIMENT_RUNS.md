@@ -1460,6 +1460,13 @@ the same NAS8 studies and aggregate provider cap, runs one shard at a time with
 512 GiB, and performs no more than three passes in one owner. Sol+Gemini audit
 remains gated on 240/240 validated assignments.
 
+High-memory owner `10522419` confirmed adequate headroom (117.8-GiB peak) but
+then received fresh `insufficient_quota` / `credit_balance_exhausted` responses
+from the unchanged OpenAI route. It was stopped at 232/240 rather than repeating
+the permanent denial; dependent audit `10522421` never started. Exact rearm is
+prepared for the three response-free proposer failures, and native resume will
+recover the other five cells after external credits return.
+
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.

@@ -1,6 +1,6 @@
 # BioMNIBench Results40 Semi/Score-only expansion
 
-Status: **232/240 revisions preserved; bounded high-memory missing-only recovery ready**.
+Status: **232/240 revisions preserved; execution blocked by confirmed external OpenAI credit exhaustion**.
 
 This run extends the completed Results20 Semi/Score-only comparison to the same precommitted additional twenty tasks used by the completed Full/User Results40 experiment. It preserves the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` treatment and matched static definitions. The user selected GPT-5.6 Sol and Gemini 3.8 Flash for this expansion audit; the separate incomplete Results20 Opus recovery is not part of the completion gate.
 
@@ -29,3 +29,18 @@ Recovery owner `10516159` then reached the native studies but NAS1 home was at i
 Missing-only owners subsequently brought the durable cohort to **208/240**. Job `10517651` completed every long-running tail it could and exited with 32 runtime failures: 28 app-server startup failures before any model turn, three reconstructible `workspace-restore` directories left by preemption, and one ordinary timed-out solver turn retained for the existing native failed-turn recovery. The scoped reconciliation restores only dead job-local Codex `tmp` links, archives only the three named restore directories, and rearms only the 28 exact pre-turn failures. It does not clear any provider response, trajectory, completed assignment, or scientific artifact; 10 focused tests pass.
 
 Recovery `10520270` preserved those 208 assignments and completed 24 more. Before its final OOM, the remaining tail comprised three Codex app-server startup failures before a model turn, one native timeout, two transient NAS8 reads, one transient malformed-reminder read, and the then-running heavy cell. The malformed reminder file was subsequently readable as valid JSON, so it was not rewritten. The execution-only tail fix reconciles only a dead link made by this exclusive Codex home, relocates reconstructible Codex cache writes to node-local storage, performs at most three native missing-only passes, and raises the one-shard allocation to 512 GiB. Twenty-four focused tests pass; prompts, models, condition identity, retries, and all completed artifacts remain unchanged.
+
+High-memory owner `10522419` confirmed that the resource change works: the allocation received 512 GiB and peaked at 117.8 GiB before it was deliberately canceled, rather than being OOM-killed. Its first `da-20-4` trace pass then returned three byte-preserved `RateLimitError` receipts with `insufficient_quota` / `credit_balance_exhausted`; all three have no output or result. The same external blocker appears in the pending `da-20-1` static optimizer-judge receipt. Repeating the remaining recovery passes could not succeed and was stopped; dependent audit `10522421` never started and made no judgment call.
+
+The exact durable revision state is 232 completed, six failed, and two interrupted-running records that native resume will reclaim. The eight missing assignments occupy four shards: `da-20-1/static`, `da-20-4/static`, `da-20-4/trace`, and `da-4-1/trace`. Two failed solver checkpoints record the exact `[Errno 4] Interrupted system call` boundary before top-level trajectory publication. The tested recovery archives the private attempt evidence, restores the last scored workspace, discards the uncertain session, and retries only that assignment. Three exhausted response-free proposer requests can be rearmed by `rearm_operational.sbatch` only after the existing OpenAI route has credits again.
+
+Resume after credit restoration:
+
+```bash
+sbatch experiments/trace-v21-execution-verified-provenance-result40-feedback/rearm_operational.sbatch
+sbatch --cpus-per-task=16 --mem=512G \
+  --export=ALL,RESULT40_EXPECTED_CPUS=16,RESULT40_SHARD_WORKERS=1,RESULT40_ASSIGNMENT_WORKERS=6,RESULT40_RECOVERY_PASSES=3 \
+  experiments/trace-v21-execution-verified-provenance-result40-feedback/revise.sbatch
+```
+
+After revision reaches 240/240, submit the existing audit launcher with 16 CPUs and `RESULT40_EXPECTED_CPUS=16`. It runs the requested Sol and Gemini tracks missing-only; no Opus work is part of this completion gate.
