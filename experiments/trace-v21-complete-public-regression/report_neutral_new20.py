@@ -101,6 +101,7 @@ def collect_rows() -> list[dict[str, object]]:
                         target=target,
                     )
                     scores = neutral[(target.assignment_id, model)]
+                    h_neutral3 = fmean(scores[index] for index in range(3))
                     h_neutral = fmean(scores.values())
                     rows.append(
                         {
@@ -114,6 +115,8 @@ def collect_rows() -> list[dict[str, object]]:
                             "H_rigorous3": old["H3"],
                             "S_minus_H_rigorous3": old["S"] - old["H3"],
                             "neutral_scores": scores,
+                            "H_neutral3": h_neutral3,
+                            "S_minus_H_neutral3": old["S"] - h_neutral3,
                             "H_neutral5": h_neutral,
                             "S_minus_H_neutral5": old["S"] - h_neutral,
                             "H_change_neutral_minus_rigorous": h_neutral - old["H3"],
@@ -155,6 +158,10 @@ def task_contrasts(rows: list[dict[str, object]]) -> list[dict[str, object]]:
                 role: mean(group, "S_minus_H_neutral5")
                 for role, group in groups.items()
             }
+            neutral3 = {
+                role: mean(group, "S_minus_H_neutral3")
+                for role, group in groups.items()
+            }
             rigorous_contrast = rigorous["trace"] - rigorous["static"]
             neutral_contrast = neutral["trace"] - neutral["static"]
             result.append(
@@ -164,6 +171,11 @@ def task_contrasts(rows: list[dict[str, object]]) -> list[dict[str, object]]:
                     "static_S_minus_H_rigorous3": rigorous["static"],
                     "trace_S_minus_H_rigorous3": rigorous["trace"],
                     "RTT_minus_static_rigorous3": rigorous_contrast,
+                    "static_S_minus_H_neutral3": neutral3["static"],
+                    "trace_S_minus_H_neutral3": neutral3["trace"],
+                    "RTT_minus_static_neutral3": (
+                        neutral3["trace"] - neutral3["static"]
+                    ),
                     "static_S_minus_H_neutral5": neutral["static"],
                     "trace_S_minus_H_neutral5": neutral["trace"],
                     "RTT_minus_static_neutral5": neutral_contrast,
@@ -209,6 +221,10 @@ def analyze() -> dict[str, object]:
                 role: mean(group, "S_minus_H_neutral5")
                 for role, group in groups.items()
             }
+            neutral3 = {
+                role: mean(group, "S_minus_H_neutral3")
+                for role, group in groups.items()
+            }
             aggregate.append(
                 {
                     "model": model,
@@ -219,6 +235,11 @@ def analyze() -> dict[str, object]:
                     "RTT_minus_static_rigorous3": (
                         rigorous["trace"] - rigorous["static"]
                     ),
+                    "static_S_minus_H_neutral3": neutral3["static"],
+                    "trace_S_minus_H_neutral3": neutral3["trace"],
+                    "RTT_minus_static_neutral3": (
+                        neutral3["trace"] - neutral3["static"]
+                    ),
                     "static_S_minus_H_neutral5": neutral["static"],
                     "trace_S_minus_H_neutral5": neutral["trace"],
                     "RTT_minus_static_neutral5": (
@@ -226,6 +247,15 @@ def analyze() -> dict[str, object]:
                     ),
                     "trace_S_minus_H_change": (
                         neutral["trace"] - rigorous["trace"]
+                    ),
+                    "trace_count_effect_neutral5_minus_neutral3": (
+                        neutral["trace"] - neutral3["trace"]
+                    ),
+                    "contrast_count_effect_neutral5_minus_neutral3": (
+                        neutral["trace"]
+                        - neutral["static"]
+                        - neutral3["trace"]
+                        + neutral3["static"]
                     ),
                     "contrast_change_neutral_minus_rigorous": (
                         neutral["trace"]
@@ -301,6 +331,27 @@ def markdown(report: dict[str, object]) -> str:
             f"{row['RTT_minus_static_neutral5']:+.2f} | "
             f"{row['trace_S_minus_H_change']:+.2f} | "
             f"{row['contrast_change_neutral_minus_rigorous']:+.2f} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Neutral prompt: three versus five heldouts",
+            "",
+            "This isolates the effect of averaging two additional neutral paraphrases; "
+            "both columns already use the corrected neutral prompt policy.",
+            "",
+            "| Arm | RTT S-H neutral-3 | RTT S-H neutral-5 | Count effect | RTT-static neutral-3 | RTT-static neutral-5 | Contrast count effect |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for row in combined:
+        lines.append(
+            f"| {row['arm']} | {row['trace_S_minus_H_neutral3']:.2f} | "
+            f"{row['trace_S_minus_H_neutral5']:.2f} | "
+            f"{row['trace_count_effect_neutral5_minus_neutral3']:+.2f} | "
+            f"{row['RTT_minus_static_neutral3']:+.2f} | "
+            f"{row['RTT_minus_static_neutral5']:+.2f} | "
+            f"{row['contrast_count_effect_neutral5_minus_neutral3']:+.2f} |"
         )
     lines.extend(
         [
