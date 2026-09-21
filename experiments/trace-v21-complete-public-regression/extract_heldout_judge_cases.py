@@ -152,13 +152,37 @@ def neutral_judgments(task_id: str, role: str, experiment, target):
     return rows
 
 
-def artifact_files(target) -> dict[str, str]:
-    result = {}
-    for name in ("answer.txt", "trace.md"):
-        path = target.final_submission / name
-        if path.is_file():
-            result[name] = path.read_text(encoding="utf-8")
-    return result
+def artifact_evidence(task_id: str, role: str, experiment, target) -> dict[str, str]:
+    """Render the exact review inputs used by the saved rubric-score jobs."""
+
+    pool = neutral_pool(task_id)
+    neutral = neutral_scope(
+        load_experiment(config(task_id, "trace")),
+        output_dir=pool,
+    )
+    stage = RubricScoreStage(
+        EvaluationConfig(
+            experiment=neutral,
+            study_dir=RUN / "extract-read-only-source-study" / task_id / role,
+            paraphrase_dir=pool,
+            output_dir=RUN / "extract-read-only-audit" / task_id / role,
+            max_concurrency=1,
+            resume=True,
+        ),
+        (target,),
+    )
+    rubric_path = pool / "tasks" / task_id / "variant-000.txt"
+    judge = stage._new_judge(
+        target=target,
+        model=MODEL,
+        rubric_path=rubric_path,
+        artifact_key="extract-read-only-evidence",
+    )
+    review_text, answer_text = judge.review_inputs(target.final_submission)
+    return {
+        "workspace_review": review_text,
+        "final_answer": answer_text,
+    }
 
 
 def rubric_texts(task_id: str, experiment) -> dict[str, object]:
@@ -199,7 +223,9 @@ def main() -> int:
                 "arm": arm,
                 "replicate": replicate,
                 "assignment_id": target.assignment_id,
-                "artifact_files": artifact_files(target),
+                "artifact_evidence": artifact_evidence(
+                    task_id, role, experiment, target
+                ),
                 "historical_selected_and_rigorous": old_judgments(
                     experiment, target
                 ),
