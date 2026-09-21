@@ -104,9 +104,10 @@ def prepare_neutral_pool(
         raise RuntimeError("neutral heldout paraphrase generation failed")
     validate_paraphrase_run(output_dir, experiment)
 
-    if len(experiment.tasks) != 1:
+    task_ids = tuple(str(value) for value in experiment.payload["tasks"])
+    if len(task_ids) != 1:
         raise RuntimeError("neutral heldout pool requires one task")
-    task_id = experiment.tasks[0]
+    task_id = task_ids[0]
     task_root = output_dir / "tasks" / task_id
     paths = tuple(task_root / f"variant-{index:03d}.txt" for index in range(5))
     hashes = tuple(sha256_file(path) for path in paths)
