@@ -161,3 +161,15 @@ wording-generalization measurement and retain rigorous heldouts as a separately
 named stress test, not to make heldouts generically more lenient. A broader saved-
 artifact measurement should remain matched across static/RTT and both arms; it
 requires no trajectory rerun.
+
+The matched static `da-26-4` rep-002 check completed as Babel job `10515226`
+with 20/20 Sol/Gemini judgments in 25 seconds and 208 MiB peak RSS.  For the
+complete-public repair, switching from rigorous-3 to neutral-5 changes the
+RTT-minus-static S-H contrast from `+13.33` to `+10.00` Full and from `+9.83`
+to `+2.00` User.  For the saved Result40 RTT artifact, the same contrast changes
+from `+14.67` to `+12.60` Full and from `+2.00` to `+2.10` User.  The policy
+mismatch is therefore real for some honestly incomplete artifacts but is not yet
+a uniform explanation of the New20 S-H shift.  The next bounded measurement is
+the same saved-artifact comparison on the four preidentified outlier tasks
+(`da-26-4`, `da-26-2`, `da-17-1`, `da-17-5`); it reuses the 40 completed
+`da-26-4` judgments and adds 440 missing judgments without any revision call.

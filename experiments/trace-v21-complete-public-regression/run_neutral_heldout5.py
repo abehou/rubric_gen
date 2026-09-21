@@ -67,7 +67,11 @@ def read(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def neutral_scope(original: Experiment) -> Experiment:
+def neutral_scope(
+    original: Experiment,
+    *,
+    output_dir: Path = NEUTRAL_POOL,
+) -> Experiment:
     """Create a five-paraphrase pool with one prompt policy for every variant."""
 
     payload = deepcopy(original.payload)
@@ -80,33 +84,40 @@ def neutral_scope(original: Experiment) -> Experiment:
     }
     payload["outcome_audit"]["models"] = list(MODELS)
     payload["execution_audit_models"] = list(MODELS)
-    payload["dag"]["paraphrase"]["output_dir"] = str(NEUTRAL_POOL)
+    payload["dag"]["paraphrase"]["output_dir"] = str(output_dir)
     return replace(original, payload=payload)
 
 
-def prepare_neutral_pool(experiment: Experiment) -> dict[str, object]:
+def prepare_neutral_pool(
+    experiment: Experiment,
+    *,
+    output_dir: Path = NEUTRAL_POOL,
+) -> dict[str, object]:
     runner = ParaphraseRunner(
         ParaphraseRunConfig(
             experiment=experiment,
-            output_dir=NEUTRAL_POOL,
+            output_dir=output_dir,
             max_concurrency=2,
         )
     )
     if runner.run() != 0:
         raise RuntimeError("neutral heldout paraphrase generation failed")
-    validate_paraphrase_run(NEUTRAL_POOL, experiment)
+    validate_paraphrase_run(output_dir, experiment)
 
-    task_root = NEUTRAL_POOL / "tasks/da-26-4"
+    if len(experiment.tasks) != 1:
+        raise RuntimeError("neutral heldout pool requires one task")
+    task_id = experiment.tasks[0]
+    task_root = output_dir / "tasks" / task_id
     paths = tuple(task_root / f"variant-{index:03d}.txt" for index in range(5))
     hashes = tuple(sha256_file(path) for path in paths)
-    master = experiment.task_dir("da-26-4") / "tests" / str(
+    master = experiment.task_dir(task_id) / "tests" / str(
         experiment.protocol["rubric_name"]
     )
     if len(set(hashes) | {sha256_file(master)}) != 6:
         raise RuntimeError("neutral heldout pool contains a duplicate rubric")
     return {
         "prompt_policy": UNIFORM_NEUTRAL,
-        "pool": str(NEUTRAL_POOL),
+        "pool": str(output_dir),
         "variant_sha256s": {
             str(index): digest for index, digest in enumerate(hashes)
         },
@@ -231,10 +242,16 @@ def load_four_source_targets(
 def neutral_jobs(
     stage: RubricScoreStage,
     targets: tuple[evaluation_jobs.EvaluationTarget, ...],
+    *,
+    paraphrase_dir: Path = NEUTRAL_POOL,
 ) -> tuple[evaluation_jobs.RubricScoreJob, ...]:
     implementation = rubric_score._evaluation_implementation_sha256()
+    task_ids = {target.task_id for target in targets}
+    if len(task_ids) != 1:
+        raise RuntimeError("neutral-heldout scoring requires one task at a time")
+    task_id = next(iter(task_ids))
     paths = tuple(
-        NEUTRAL_POOL / "tasks/da-26-4" / f"variant-{index:03d}.txt"
+        paraphrase_dir / "tasks" / task_id / f"variant-{index:03d}.txt"
         for index in range(5)
     )
     jobs_list: list[RubricScoreJob] = []
@@ -290,18 +307,20 @@ def run_scores(
     targets: tuple[evaluation_jobs.EvaluationTarget, ...],
     *,
     audit_root: Path = AUDIT_ROOT,
+    paraphrase_dir: Path = NEUTRAL_POOL,
+    study_dir: Path | None = None,
     run_kind: str = "neutral-heldout5-final-rubric-score-only",
 ) -> dict[str, object]:
     config = EvaluationConfig(
         experiment=experiment,
-        study_dir=RUN / "four-read-only-source-studies",
-        paraphrase_dir=NEUTRAL_POOL,
+        study_dir=study_dir or RUN / "four-read-only-source-studies",
+        paraphrase_dir=paraphrase_dir,
         output_dir=audit_root,
         max_concurrency=WORKERS,
         resume=True,
     )
     stage = RubricScoreStage(config, targets)
-    jobs = neutral_jobs(stage, targets)
+    jobs = neutral_jobs(stage, targets, paraphrase_dir=paraphrase_dir)
     plan = stage._predispatch_plan(jobs)
     stage._prepared = evaluation_jobs.PreparedRubricScoreEvaluation(
         targets=targets,
