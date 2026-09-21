@@ -25,9 +25,9 @@ FULL_USER_RUN = Path(
     "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918"
 )
 CONDITIONS = (
-    "semi-static-execution-provenance-high-proposer",
+    "semi-static",
     "semi-red-team-trace-execution-provenance-high-proposer",
-    "score-only-static-execution-provenance-high-proposer",
+    "score-only-static",
     "score-only-red-team-trace-execution-provenance-high-proposer",
 )
 SHARDS = tuple((task, kind) for task in TASKS for kind in ("static", "trace"))
@@ -63,17 +63,21 @@ def main() -> None:
     base = yaml.safe_load((
         ROOT / "experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml"
     ).read_text())
-    sources = {task: completed_trace_source(task) for task in TASKS}
+    historical_sources = json.loads((BUNDLE / "pretreatment-sources.json").read_text())
+    sources = {
+        task: historical_sources.get(task) or completed_trace_source(task)
+        for task in TASKS
+    }
     configs = BUNDLE / "configs"
     configs.mkdir(exist_ok=True)
     static_conditions = [
         {
-            "condition_id": "semi-static-execution-provenance-high-proposer",
+            "condition_id": "semi-static",
             "feedback_policy": "semi",
             "rubric_policy": "fixed",
         },
         {
-            "condition_id": "score-only-static-execution-provenance-high-proposer",
+            "condition_id": "score-only-static",
             "feedback_policy": "score_only",
             "rubric_policy": "fixed",
         },

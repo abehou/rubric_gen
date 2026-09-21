@@ -105,6 +105,6 @@ execution_audit_models:
 - gpt-5.6-sol
 - gemini-3.8-flash
 pretreatment_source:
-  experiment: /home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/trace-v21-execution-verified-provenance-result40/configs/da-20-4-trace.yaml
-  experiment_id: biomnibench-da-factorial-r10-8bc19ddce2cf
-  study_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-20-4/trace/biomnibench-da-factorial-r10-8bc19ddce2cf
+  experiment: /home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/biomnibench-v21-to45/queue6/configs/da-20-4.yaml
+  experiment_id: biomnibench-da-factorial-r10-8bfe4828ce05
+  study_dir: /data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/study/biomnibench-da-factorial-r10-8bfe4828ce05

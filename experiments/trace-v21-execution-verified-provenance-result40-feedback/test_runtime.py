@@ -37,17 +37,19 @@ def test_scientific_conditions_and_inputs() -> None:
         assert static["dag"]["seed"]["output_dir"] == trace["dag"]["seed"]["output_dir"]
         assert static["dag"]["paraphrase"]["output_dir"] == trace["dag"]["paraphrase"]["output_dir"]
         assert static["execution_conditions"] == [
-            "semi-static-execution-provenance-high-proposer",
-            "score-only-static-execution-provenance-high-proposer",
+            "semi-static",
+            "score-only-static",
         ]
         assert trace["execution_conditions"] == [
             "semi-red-team-trace-execution-provenance-high-proposer",
             "score-only-red-team-trace-execution-provenance-high-proposer",
         ]
         assert "pretreatment_source" not in static
-        assert trace["pretreatment_source"]["study_dir"].startswith(
-            "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/"
-        )
+        source = trace["pretreatment_source"]["study_dir"]
+        assert source.startswith((
+            "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/",
+            "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/",
+        ))
         assert trace["protocol"]["red_team_trace_version"] == CANDIDATE
         assert trace["protocol"]["rubric_proposer_reasoning_effort_by_stage"] == {
             "diagnosis": "high"

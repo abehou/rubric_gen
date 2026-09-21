@@ -50,9 +50,9 @@
     "da-20-1"
   ],
   "conditions": [
-    "semi-static-execution-provenance-high-proposer",
+    "semi-static",
     "semi-red-team-trace-execution-provenance-high-proposer",
-    "score-only-static-execution-provenance-high-proposer",
+    "score-only-static",
     "score-only-red-team-trace-execution-provenance-high-proposer"
   ],
   "assignments_per_task": 12,

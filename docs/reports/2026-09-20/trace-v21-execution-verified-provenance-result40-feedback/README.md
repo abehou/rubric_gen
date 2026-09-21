@@ -10,7 +10,7 @@ This run extends the completed Results20 Semi/Score-only comparison to the same 
 - Conditions: Semi static/RTT and Score-only static/RTT.
 - Native layout: one static and one trace shard per task, six assignments per shard.
 - Frozen inputs: the exact Results40 new20 seeds and five paraphrase variants.
-- Trace pretreatment: native reuse from each completed Full/User Results40 trace study; no g1 regeneration.
+- Trace pretreatment: single-layer native reuse from the nine original compatible producers where recorded, and from the completed Full/User Results40 trace studies for the other eleven tasks; no g1 regeneration.
 - Revision profile: four shards × six assignment workers = at most 24 assignment workers, aggregate provider cap 60, internal RTT fanout 4.
 - Audit: Sol and Gemini run concurrently as independent provider tracks; Sol uses at most 60 workers and Gemini uses three workers under their existing provider partitions.
 - Persistent root: `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`.

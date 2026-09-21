@@ -25,6 +25,12 @@ OLD20 = (
     "da-14-8", "da-15-1", "da-15-2", "da-15-7", "da-15-8",
     "da-16-1", "da-18-5", "da-18-7", "da-19-1", "da-19-6",
 )
+OLD20_FEEDBACK_CONDITIONS = (
+    "semi-static-execution-provenance-high-proposer",
+    "semi-red-team-trace-execution-provenance-high-proposer",
+    "score-only-static-execution-provenance-high-proposer",
+    "score-only-red-team-trace-execution-provenance-high-proposer",
+)
 
 
 def sha(path: Path) -> str:
@@ -40,15 +46,16 @@ def _validate_config(
     experiment = load_experiment(config)
     assert experiment.task_ids == (task,)
     assert experiment.replicates == 3
-    expected_conditions = (
+    configured_conditions = (
         (
-            "semi-static-execution-provenance-high-proposer",
-            "score-only-static-execution-provenance-high-proposer",
+            "semi-static",
+            "score-only-static",
         ) if kind == "static" else (
             "semi-red-team-trace-execution-provenance-high-proposer",
             "score-only-red-team-trace-execution-provenance-high-proposer",
         )
     )
+    expected_conditions = tuple(sorted(configured_conditions))
     assert tuple(experiment.execution_conditions) == expected_conditions
     assert len(experiment.execution_assignments) == 6
     assert tuple(experiment.outcome_audit["models"]) == PANEL
@@ -70,16 +77,16 @@ def _validate_config(
     assert all("dropout" not in a.condition_id for a in experiment.execution_assignments)
     condition_rows = {row["condition_id"]: row for row in experiment.payload["conditions"]}
     all_condition_rows = {
-        "semi-static-execution-provenance-high-proposer": {
-            "condition_id": "semi-static-execution-provenance-high-proposer",
+        "semi-static": {
+            "condition_id": "semi-static",
             "feedback_policy": "semi", "rubric_policy": "fixed",
         },
         "semi-red-team-trace-execution-provenance-high-proposer": {
             "condition_id": "semi-red-team-trace-execution-provenance-high-proposer",
             "feedback_policy": "semi", "rubric_policy": "red_team_trace",
         },
-        "score-only-static-execution-provenance-high-proposer": {
-            "condition_id": "score-only-static-execution-provenance-high-proposer",
+        "score-only-static": {
+            "condition_id": "score-only-static",
             "feedback_policy": "score_only", "rubric_policy": "fixed",
         },
         "score-only-red-team-trace-execution-provenance-high-proposer": {
@@ -146,13 +153,19 @@ def _validate_old20_feedback_source() -> dict:
     experiment = load_experiment(source)
     run = Path("/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920")
     receipt = json.loads((run / "revision-completion.json").read_text())
+    observed = {
+        "receipt_success": receipt.get("success"),
+        "receipt_assignment_count": receipt.get("assignment_count"),
+        "task_ids": list(experiment.task_ids),
+        "execution_conditions": list(experiment.execution_conditions),
+    }
     if (
         receipt.get("success") is not True
         or receipt.get("assignment_count") != 240
         or tuple(experiment.task_ids) != OLD20
-        or tuple(experiment.execution_conditions) != CONDITIONS
+        or tuple(experiment.execution_conditions) != tuple(sorted(OLD20_FEEDBACK_CONDITIONS))
     ):
-        raise RuntimeError("completed Results20 Semi/Score-only source changed")
+        raise RuntimeError(f"completed Results20 Semi/Score-only source changed: {observed}")
     return {
         "config": str(source),
         "config_sha256": sha(source),
@@ -179,9 +192,31 @@ def main() -> None:
     }
     assert INTERNAL_STAGE_FANOUT == 4
     old20_source = _validate_old20_feedback_source()
+    prior_receipt_path = (
+        ROOT / "experiments/trace-v21-execution-verified-provenance-result40/"
+        "receipts/input-validation.json"
+    )
+    prior_receipt = json.loads(prior_receipt_path.read_text())
+    if (
+        prior_receipt.get("success") is not True
+        or tuple(prior_receipt.get("tasks", ())) != TASKS
+        or prior_receipt.get("assignment_count") != 240
+        or prior_receipt.get("provider_calls") != 0
+    ):
+        raise RuntimeError("authoritative Results40 input receipt changed")
+    prior_static = {
+        row["task_id"]: row
+        for row in prior_receipt["input_rows"]
+        if row["shard"] == "static"
+    }
+    if set(prior_static) != set(TASKS):
+        raise RuntimeError("authoritative Results40 receipt lacks a task input row")
     static_shards = tuple((task, "static") for task in TASKS)
     with ThreadPoolExecutor(max_workers=4) as workers:
-        static_rows = list(workers.map(_validate_config, static_shards))
+        static_rows = list(workers.map(
+            lambda shard: _validate_config(shard, prior_static[shard[0]]),
+            static_shards,
+        ))
     static_by_task = {row["task_id"]: row for row in static_rows}
     trace_rows = [
         _validate_config((task, "trace"), static_by_task[task])
@@ -202,8 +237,8 @@ def main() -> None:
         raise RuntimeError("Results40 new assignment scope is not 240")
     for root in (
         RUN,
-        Path("/data/user_data/aydanh/rubric_gen/live/rtt-result40-expansion-20260918"),
-        Path("/data/user_data/aydanh/rubric_gen/cache/rtt-result40-expansion-20260918"),
+        Path("/data/user_data/aydanh/rubric_gen/live/rtt-result40-feedback-policies-20260920"),
+        Path("/data/user_data/aydanh/rubric_gen/cache/rtt-result40-feedback-policies-20260920"),
     ):
         root.mkdir(parents=True, exist_ok=True)
         probe = root / f".write-probe-{os.environ['SLURM_JOB_ID']}"
@@ -221,12 +256,23 @@ def main() -> None:
         "randomization_seed": 20260820,
         "input_rows": rows,
         "old20_source": old20_source,
+        "reused_input_receipt": {
+            "path": str(prior_receipt_path),
+            "sha256": sha(prior_receipt_path),
+            "job_id": prior_receipt["job_id"],
+        },
         "heldout_generation": {
             "new20": "rigorous-V2 prompt source commit 47463ca",
             "old20": "historical original-20 producer prompt; full text unrecovered",
         },
         "runtime": runtime,
-        "revision": {"assignment_workers": 60, "aggregate_provider_concurrency": 60, "internal_fanout": 4},
+        "revision": {
+            "shard_workers": 4,
+            "assignment_workers_per_shard": 6,
+            "maximum_assignment_workers": 24,
+            "aggregate_provider_concurrency": 60,
+            "internal_fanout": 4,
+        },
         "audit": {
             "sol_workers": 60,
             "gemini_workers": 3,

@@ -33,10 +33,10 @@ solvers:
   timeout_seconds: 7200
 assignment_selection: all
 conditions:
-- condition_id: semi-static-execution-provenance-high-proposer
+- condition_id: semi-static
   feedback_policy: semi
   rubric_policy: fixed
-- condition_id: score-only-static-execution-provenance-high-proposer
+- condition_id: score-only-static
   feedback_policy: score_only
   rubric_policy: fixed
 protocol:
@@ -96,8 +96,8 @@ dag:
     - paraphrase
     output_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920/audit/da-26-4/static/{experiment_id}
 execution_conditions:
-- semi-static-execution-provenance-high-proposer
-- score-only-static-execution-provenance-high-proposer
+- semi-static
+- score-only-static
 execution_audit_models:
 - gpt-5.6-sol
 - gemini-3.8-flash
