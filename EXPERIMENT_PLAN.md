@@ -1,3 +1,7 @@
+## 2026-09-21 — New20 uniform-neutral heldout evaluation
+
+- 10:32 JST: User authorizes a measurement-only rescore of all newly added 20 BioMNIBench tasks with five `uniform_neutral` heldouts and Sol+Gemini, reusing every saved static/RTT final artifact and the completed four-task neutral panel. Selected S, A, RH, trajectories, models, task membership and revision behavior remain unchanged; compare complete New20 neutral S-H directly with the historical rigorous-3 S-H and do not launch revision work.
+
 ## 2026-09-20 — Semi and Score-only Results20 completion
 
 - 11:07 EDT: After verifying the Full/User Results40 task complete and pushed, run the remaining canonical Results20 feedback policies as four matched cells: Semi/Score-only × static/promoted RTT, 20 tasks × 3 replicates = 240 new assignments. Preserve the promoted method and all scientific settings; audit with Sol, Opus and Gemini, publish one four-policy Results20 table, then stop before any Semi/Score-only expansion.
