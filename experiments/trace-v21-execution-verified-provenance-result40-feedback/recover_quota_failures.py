@@ -22,8 +22,25 @@ def _read(path: Path) -> dict:
     return value
 
 
+def _recoverable_operational_failure(attempt: dict) -> bool:
+    if (
+        attempt.get("status") != "provider_failure"
+        or attempt.get("permanent")
+        or "output" in attempt
+    ):
+        return False
+    error_type = attempt.get("error_type")
+    error = str(attempt.get("error", ""))
+    return (
+        error_type == "OSError" and "Disk quota exceeded" in error
+    ) or (
+        error_type == "RuntimeError"
+        and error.startswith("OPENAI_API_KEY must be set for the ")
+    )
+
+
 def response_free_quota_requests(experiment_dir: Path) -> list[Path]:
-    """Return failed request directories that prove no provider output was saved."""
+    """Return response-free requests from either observed operational failure."""
 
     root = experiment_dir / "trace-defense-v2-requests"
     if not root.exists():
@@ -40,14 +57,7 @@ def response_free_quota_requests(experiment_dir: Path) -> list[Path]:
         if not attempt_paths:
             continue
         attempts = [_read(path) for path in attempt_paths]
-        if not all(
-            attempt.get("status") == "provider_failure"
-            and not attempt.get("permanent")
-            and "output" not in attempt
-            and attempt.get("error_type") == "OSError"
-            and "Disk quota exceeded" in str(attempt.get("error", ""))
-            for attempt in attempts
-        ):
+        if not all(_recoverable_operational_failure(attempt) for attempt in attempts):
             raise RuntimeError(
                 f"request is not an exact response-free quota failure: {directory}"
             )
@@ -115,7 +125,10 @@ def apply_recovery(run: Path, recovery: list[dict]) -> Path:
         receipt,
         {
             "applied_at": stamp,
-            "reason": "NAS1 home quota prevented runtime event persistence",
+            "reason": (
+                "response-free missing credential and NAS1 runtime-journal quota "
+                "failures"
+            ),
             "response_free_assignments": len(recovery),
             "archive": str(archive),
             "recovery": recovery,

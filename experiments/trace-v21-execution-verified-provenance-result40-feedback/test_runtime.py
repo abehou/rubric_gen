@@ -149,3 +149,22 @@ def test_quota_recovery_rejects_saved_provider_output(monkeypatch) -> None:
             assert "not an exact response-free quota failure" in str(error)
         else:
             raise AssertionError("saved provider output was accepted as response-free")
+
+
+def test_quota_recovery_accepts_exact_response_free_missing_key(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import recover_quota_failures as recovery
+
+    attempt = {
+        "status": "provider_failure",
+        "permanent": False,
+        "error_type": "RuntimeError",
+        "error": (
+            "OPENAI_API_KEY must be set for the "
+            "attack_defense_v2.1_execution_verified_proactive_provenance"
+        ),
+    }
+    assert recovery._recoverable_operational_failure(attempt)
+    attempt["error"] = "some other runtime failure"
+    assert not recovery._recoverable_operational_failure(attempt)
