@@ -14,6 +14,10 @@ export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
+# The Codex plugin catalog and other cache entries are reconstructible. Keep
+# their high-churn writes on node-local scratch while durable session state and
+# scientific artifacts remain on NAS8.
+export RUBRIC_GEN_CODEX_LOCAL_CACHE=1
 export BIOMNIBENCH_LIVE_ROOT=/data/user_data/aydanh/rubric_gen/live/rtt-result40-feedback-policies-20260920
 export XDG_CACHE_HOME=/data/user_data/aydanh/rubric_gen/cache/rtt-result40-feedback-policies-20260920
 export UV_CACHE_DIR=/data/user_data/aydanh/rubric_gen/cache/rtt-result40-feedback-policies-20260920/uv

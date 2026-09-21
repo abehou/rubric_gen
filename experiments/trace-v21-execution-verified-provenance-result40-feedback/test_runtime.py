@@ -93,6 +93,31 @@ def test_execution_and_audit_credentials_are_scoped(monkeypatch) -> None:
     assert module.credential_keys("audit") == ("OPENAI_API_KEY", "GEMINI_API_KEY")
 
 
+def test_revision_recovery_is_bounded_and_uses_local_codex_cache(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    spec = importlib.util.spec_from_file_location("result40_feedback_recovery", BUNDLE / "run.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    monkeypatch.delenv("RESULT40_RECOVERY_PASSES", raising=False)
+    assert module.revision_recovery_passes() == 3
+    monkeypatch.setenv("RESULT40_RECOVERY_PASSES", "1")
+    assert module.revision_recovery_passes() == 1
+    monkeypatch.setenv("RESULT40_RECOVERY_PASSES", "4")
+    try:
+        module.revision_recovery_passes()
+    except RuntimeError as error:
+        assert "between 1 and 3" in str(error)
+    else:
+        raise AssertionError("unbounded recovery passes were accepted")
+
+    assert "export RUBRIC_GEN_CODEX_LOCAL_CACHE=1" in (BUNDLE / "common.sbatch").read_text()
+    assert "#SBATCH --mem=512G" in (BUNDLE / "revise.sbatch").read_text()
+
+
 def test_quota_recovery_only_rearms_response_free_requests(monkeypatch) -> None:
     monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
     monkeypatch.syspath_prepend(str(BUNDLE))

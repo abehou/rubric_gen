@@ -112,6 +112,13 @@ def revision_assignment_workers() -> int:
     return workers
 
 
+def revision_recovery_passes() -> int:
+    passes = int(os.environ.get("RESULT40_RECOVERY_PASSES", "3"))
+    if not 1 <= passes <= 3:
+        raise RuntimeError("RESULT40_RECOVERY_PASSES must be between 1 and 3")
+    return passes
+
+
 def scoped_experiment(source: Path, models: tuple[str, ...], output_dir: Path):
     original = load_experiment(source)
     payload = deepcopy(original.payload)
@@ -256,6 +263,38 @@ def validate_task_match(task: str) -> None:
         raise RuntimeError(f"{task} four conditions do not share matched initial submissions")
 
 
+def incomplete_shards() -> tuple[tuple[str, str], ...]:
+    pending = []
+    for task, kind in SHARDS:
+        exp = experiment(task, kind)
+        study = Path(exp.dag["revise"]["output_dir"])
+        if not (study / "study.json").exists():
+            pending.append((task, kind))
+            continue
+        ledger = json.loads((study / "study.json").read_text())
+        rows = terminal_records(exp, ledger)
+        if len(rows) != 6 or any(row.get("status") != "completed" for row in rows):
+            pending.append((task, kind))
+    return tuple(pending)
+
+
+def reconcile_incomplete_shards(shards: tuple[tuple[str, str], ...], pass_index: int) -> list[dict]:
+    """Rearm only exact response-free startup residue between bounded passes."""
+
+    from reconcile_runtime_failures import reconcile_study
+
+    stamp = datetime.now(timezone.utc).strftime(f"%Y%m%dT%H%M%SZ-pass{pass_index}")
+    results = []
+    for task, kind in shards:
+        exp = experiment(task, kind)
+        results.append(reconcile_study(
+            Path(exp.dag["revise"]["output_dir"]),
+            stamp=stamp,
+            apply=True,
+        ))
+    return results
+
+
 def execute(path: Path) -> None:
     status_path = RUN / "revision-status.json"
     if status_path.exists():
@@ -267,13 +306,22 @@ def execute(path: Path) -> None:
         "started_at": now(),
         "shard_workers": workers,
         "maximum_assignment_workers": workers * assignment_workers,
+        "maximum_recovery_passes": revision_recovery_passes(),
         "tasks": {},
+        "passes": [],
     }
     state_lock = threading.Lock()
     write_json_atomic(status_path, state)
-    def one(shard: tuple[str, str]) -> dict:
+    def one(shard: tuple[str, str], pass_index: int) -> dict:
         task, kind = shard
-        result = uv_stage(task, kind, "revise", assignment_workers, path / f"revise-{task}-{kind}.log")
+        result = uv_stage(
+            task,
+            kind,
+            "revise",
+            assignment_workers,
+            path / f"revise-pass-{pass_index}-{task}-{kind}.log",
+        )
+        result["pass"] = pass_index
         if result["exit_code"] == 0:
             try:
                 result["completed_assignments"] = len(complete_shard(task, kind))
@@ -283,17 +331,38 @@ def execute(path: Path) -> None:
             state["tasks"][f"{task}-{kind}"] = result
             write_json_atomic(status_path, state)
         return result
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(one, shard): shard for shard in SHARDS}
-        for future in as_completed(futures):
-            result = future.result()
-            print(json.dumps(result), flush=True)
-    failures = [row for row in state["tasks"].values() if row["exit_code"] != 0 or row.get("completed_assignments") != 6]
+
+    for pass_index in range(1, revision_recovery_passes() + 1):
+        pending = incomplete_shards()
+        if not pending:
+            break
+        reconciliation = reconcile_incomplete_shards(pending, pass_index)
+        pass_record = {
+            "pass": pass_index,
+            "started_at": now(),
+            "shards": [f"{task}-{kind}" for task, kind in pending],
+            "rearmed": sum(len(row["rearmed"]) for row in reconciliation),
+            "runtime_actions": sum(len(row["actions"]) for row in reconciliation),
+        }
+        state["passes"].append(pass_record)
+        write_json_atomic(status_path, state)
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(one, shard, pass_index): shard for shard in pending}
+            for future in as_completed(futures):
+                result = future.result()
+                print(json.dumps(result), flush=True)
+        pass_record["finished_at"] = now()
+        pass_record["remaining_shards"] = [
+            f"{task}-{kind}" for task, kind in incomplete_shards()
+        ]
+        write_json_atomic(status_path, state)
+
+    failures = incomplete_shards()
     state["finished_at"] = now()
     state["complete"] = not failures
     write_json_atomic(status_path, state)
     if failures:
-        raise RuntimeError(f"Results40 revision retained incomplete shards: {[(r['task_id'], r['shard']) for r in failures]}")
+        raise RuntimeError(f"Results40 revision retained incomplete shards: {list(failures)}")
     for task in TASKS:
         validate_task_match(task)
     write_json_atomic(RUN / "revision-completion.json", {

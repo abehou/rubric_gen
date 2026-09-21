@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 import os
@@ -59,7 +59,12 @@ def main() -> int:
         prefix=f"rg-codex-{os.getuid()}-{secrets.token_hex(4)}-", dir="/tmp"
     ) as socket_root:
         socket_dir = Path(socket_root)
-        with _local_cli_temporary(Path(codex_home), socket_dir / "runtime"):
+        cache_context = (
+            _local_cli_cache(Path(codex_home), socket_dir / "runtime")
+            if os.environ.get("RUBRIC_GEN_CODEX_LOCAL_CACHE") == "1"
+            else nullcontext()
+        )
+        with _local_cli_temporary(Path(codex_home), socket_dir / "runtime"), cache_context:
             socket_path = socket_dir / "rpc.sock"
             runtime = socket_dir / "runtime"
             environment["TMPDIR"] = str(runtime)
@@ -120,13 +125,19 @@ def _local_cli_temporary(codex_home: Path, runtime: Path):
 
     The caller must exclusively own this Codex home, as for the app-server
     itself. Existing temporary contents are restored without modification.
-    A hard kill may leave the link and backup: fail closed on the next start
-    until the terminal owner's runtime link is reconciled, never guess ownership.
+    A hard kill may leave the link and backup. Because this process exclusively
+    owns the isolated Codex home, it may restore only an absent, recognizably
+    job-local runtime target; live or ambiguous links still fail closed.
     """
     runtime.mkdir(mode=0o700)
     cli_tmp = runtime / "cli-tmp"
     cli_tmp.mkdir(mode=0o700)
     original = codex_home / "tmp"
+    _restore_dead_runtime_link(
+        original,
+        backup_prefix=".tmp-preserved-",
+        target_name="cli-tmp",
+    )
     backup = None
     if os.path.lexists(original):
         if original.is_symlink() or not original.is_dir():
@@ -147,6 +158,74 @@ def _local_cli_temporary(codex_home: Path, runtime: Path):
             if os.path.lexists(original):
                 raise RuntimeError("Codex temporary backup preserved; destination occupied")
             backup.rename(original)
+
+
+@contextmanager
+def _local_cli_cache(codex_home: Path, runtime: Path):
+    """Keep reconstructible Codex cache traffic off persistent NFS."""
+
+    runtime.mkdir(mode=0o700, exist_ok=True)
+    local = runtime / "cli-cache"
+    local.mkdir(mode=0o700)
+    original = codex_home / "cache"
+    _restore_dead_runtime_link(
+        original,
+        backup_prefix=".cache-preserved-",
+        target_name="cli-cache",
+    )
+    backup = None
+    if os.path.lexists(original):
+        if original.is_symlink() or not original.is_dir():
+            raise RuntimeError(
+                "Codex cache requires terminal-owner reconciliation: " + str(original)
+            )
+        backup = codex_home / (".cache-preserved-" + secrets.token_hex(12))
+        original.rename(backup)
+    linked = False
+    try:
+        original.symlink_to(local, target_is_directory=True)
+        linked = True
+        yield
+    finally:
+        if linked:
+            if not original.is_symlink() or original.readlink() != local:
+                raise RuntimeError("Codex runtime cache link changed during owned session")
+            original.unlink()
+        if backup is not None:
+            if os.path.lexists(original):
+                raise RuntimeError("Codex cache backup preserved; destination occupied")
+            backup.rename(original)
+
+
+def _restore_dead_runtime_link(
+    original: Path,
+    *,
+    backup_prefix: str,
+    target_name: str,
+) -> None:
+    """Restore only a dead link created by this app-server's runtime layout."""
+
+    if not original.is_symlink():
+        return
+    raw_target = original.readlink()
+    target = raw_target if raw_target.is_absolute() else original.parent / raw_target
+    expected_prefix = f"rg-codex-{os.getuid()}-"
+    if (
+        target.exists()
+        or target.name != target_name
+        or target.parent.name != "runtime"
+        or not target.parent.parent.name.startswith(expected_prefix)
+        or target.parent.parent.parent != Path("/tmp")
+    ):
+        raise RuntimeError(
+            "Codex runtime link requires terminal-owner reconciliation: " + str(original)
+        )
+    backups = sorted(original.parent.glob(backup_prefix + "*"))
+    if len(backups) > 1 or any(path.is_symlink() or not path.is_dir() for path in backups):
+        raise RuntimeError(f"ambiguous Codex runtime backups for {original}: {backups}")
+    original.unlink()
+    if backups:
+        backups[0].rename(original)
 
 
 def _runtime_filesystem_override(codex_home: Path, runtime: Path) -> str:
