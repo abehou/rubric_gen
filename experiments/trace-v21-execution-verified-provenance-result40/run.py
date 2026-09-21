@@ -27,6 +27,7 @@ from prepare import PANEL, sha
 
 UV = Path("/home/aydanh/tools/uv/uv")
 PYTHON = Path("/home/aydanh/repos/rubric_gen/.venv/bin/python")
+ASSIGNMENT_COUNT = len(TASKS) * len(CONDITIONS) * 3
 
 
 def now() -> str:
@@ -97,7 +98,7 @@ def owner(mode: str, commit: str, capacity: dict) -> Path:
         "started_at": stamp,
         "tasks": list(TASKS),
         "conditions": list(CONDITIONS),
-        "assignment_count": 240,
+        "assignment_count": ASSIGNMENT_COUNT,
         "cpus": int(os.environ["SLURM_CPUS_PER_TASK"]),
         "memory_mb": int(os.environ["SLURM_MEM_PER_NODE"]),
         "runtime": capacity,
@@ -204,7 +205,7 @@ def execute(path: Path) -> None:
         "success": True,
         "job_id": os.environ["SLURM_JOB_ID"],
         "source_commit": clean_commit(),
-        "assignment_count": 240,
+        "assignment_count": ASSIGNMENT_COUNT,
         "tasks": list(TASKS),
         "configs": {f"{task}-{kind}": {"experiment_id": experiment(task, kind).experiment_id, "sha256": sha(config(task, kind))} for task, kind in SHARDS},
         "finished_at": now(),
@@ -215,7 +216,7 @@ def check_revision_receipt() -> None:
     receipt = json.loads((RUN / "revision-completion.json").read_text())
     if (
         receipt.get("success") is not True
-        or receipt.get("assignment_count") != 240
+        or receipt.get("assignment_count") != ASSIGNMENT_COUNT
         or tuple(receipt.get("tasks", ())) != TASKS
     ):
         raise RuntimeError("Results40 revision completion receipt is unavailable")

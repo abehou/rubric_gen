@@ -2540,3 +2540,9 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-09-19 — Promoted RTT Results40 recovery
 
 - 02:25 EDT: Active recovery `10498336` is preserving valid assignments and has repaired at least one of the seven missing cells; three remaining failures expose response-free broken pipe, partial solver identity after an incomplete transport turn, and interrupted snapshot-metadata publication. Execution-only recovery `36335cf` passed 106 provider-free tests, leaves scientific requests unchanged, and queues `10499500` → audit `10499502` → report/cost `10499503`/`10499504` without overlapping the active owner.
+# 2026-09-21
+
+- 21:40 JST — Froze the BioMNIBench Result50 extension as the ten tasks absent
+  from Result40, using the unchanged Result40 scientific recipe and rigorous-V2
+  heldouts; the existing forty tasks remain read-only and only 120 missing
+  Static/RTT × Full/User assignments will run.

@@ -1458,3 +1458,17 @@ Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_re
 - 16:19 EDT: After recovery `10491802`, exactly seven assignments remain. Reconcile only the four response-free exhausted Codex records and two dead job-local temporary links verified by provider-free job `10495032`, then resume all seven through their unchanged native studies; begin audit only after the existing 240/240 completion gate passes.
 - 16:27 EDT: Use 160 GiB only for the seven-cell four-shard recovery because 256-GiB job `10495061` could not fit the available 187.5-GiB idle CPU nodes and the identical profile measured approximately 50 GiB peak RSS. Keep the required 256-GiB formal audit request and all concurrency/scientific definitions unchanged.
 - 16:42 EDT: Replace the never-started 160-GiB chain with a 4-hour backfill recovery that runs one shard and one assignment at a time (4 CPUs/32 GiB), because Slurm reserved all tested multi-hour jobs until September 21 but admitted short diagnostics. Preserve native missing-only state across short jobs; restore the frozen 32-CPU/256-GiB profile for the formal concurrent audit.
+# 2026-09-21 BioMNIBench Result50 extension
+
+- Extend the completed Result40 with the ten remaining tasks in the frozen
+  `phylobio/BiomniBench-DA` revision
+  `e1c8ca5e11a620087bc48d97888eb69176a1f235`.
+- Run only the missing ten-task block: Static/RTT × Full/User × three replicates,
+  seed `20260820`, for 120 assignments. Reuse the completed Result40 as read-only
+  evidence; do not rerun its forty tasks.
+- Preserve the promoted
+  `attack_defense_v2.1_execution_verified_proactive_provenance` recipe with only
+  diagnosis/proposer at Luna high, and use the Result40 five-paraphrase policy:
+  selected/development neutral and heldouts rigorous-V2.
+- Run Sol+Opus outcome audit after all 120 revisions complete. Do not run another
+  RTT candidate or modify revision behavior in this extension.

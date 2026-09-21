@@ -1387,3 +1387,16 @@ Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worke
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
+# 2026-09-21 BioMNIBench Result50 extension
+
+- Code/config bundle: `experiments/trace-v21-execution-verified-provenance-result50/`
+- Durable run root:
+  `/data/user_data/aydanh/rubric_gen/runs/rtt-result50-extension-20260921/`
+- Large task supplement:
+  `/data/user_data/aydanh/rubric_gen/data/biomnibench-da-result50-supplement-e1c8ca5e11a6/`
+- Live workspaces:
+  `/data/user_data/aydanh/rubric_gen/live/rtt-result50-extension-20260921/`
+- Runtime/cache:
+  `/data/user_data/aydanh/rubric_gen/cache/rtt-result50-extension-20260921/`
+- Slurm chain: setup → revise → audit, submitted after the existing Result40
+  feedback-policy audit dependency completes successfully.
