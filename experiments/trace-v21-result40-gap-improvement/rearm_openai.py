@@ -176,6 +176,63 @@ def inspect_case(study: Path, case: RecoveryCase) -> dict[str, object]:
     }
 
 
+def discover_case(study: Path, case: RecoveryCase) -> dict[str, object]:
+    ledger = read_object(study / "study.json", "study ledger")
+    record = next(
+        (
+            record
+            for record in ledger.get("records", [])
+            if record.get("assignment_id") == case.assignment_id
+        ),
+        None,
+    )
+    if record is None:
+        raise RuntimeError(f"assignment is absent: {case.assignment_id}")
+    experiment_dir = study / str(record.get("experiment_dir"))
+    request_root = experiment_dir / "trace-defense-v2-requests"
+    incomplete = []
+    for directory in sorted(request_root.iterdir()):
+        attempts = sorted(directory.glob("attempt-*.json"))
+        if not attempts or (directory / "result.json").exists():
+            continue
+        values = [read_object(path, "incomplete request attempt") for path in attempts]
+        incomplete.append(
+            {
+                "request_key": directory.name,
+                "attempts": [
+                    {
+                        "name": path.name,
+                        "sha256": sha256_file(path),
+                        "stage": value.get("stage"),
+                        "status": value.get("status"),
+                        "error_type": value.get("error_type"),
+                        "error": value.get("error"),
+                        "permanent": value.get("permanent"),
+                        "has_output": "output" in value,
+                        "has_response": "response" in value,
+                        "has_result": "result" in value,
+                    }
+                    for path, value in zip(attempts, values, strict=True)
+                ],
+            }
+        )
+    return {
+        "task_id": case.task_id,
+        "assignment_id": case.assignment_id,
+        "record": {
+            key: record.get(key)
+            for key in (
+                "status",
+                "error_type",
+                "error",
+                "failure_category",
+                "automatic_recovery_exhausted",
+            )
+        },
+        "incomplete_requests": incomplete,
+    }
+
+
 def inspect_all(
     cases: tuple[RecoveryCase, ...] = CASES,
     *,
@@ -249,11 +306,21 @@ def rearm_all(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("inspect", "rearm"))
+    parser.add_argument("mode", choices=("discover", "inspect", "rearm"))
     args = parser.parse_args()
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("OpenAI billing recovery must run through Slurm")
     commit = clean_commit()
+    if args.mode == "discover":
+        print(
+            json.dumps(
+                {
+                    "source_commit": commit,
+                    "cases": [discover_case(study_for(case), case) for case in CASES],
+                }
+            )
+        )
+        return
     inspected = inspect_all()
     if args.mode == "inspect":
         print(json.dumps({"source_commit": commit, "cases": inspected}))

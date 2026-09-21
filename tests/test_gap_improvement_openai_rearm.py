@@ -109,5 +109,10 @@ def test_rearm_refuses_extra_incomplete_request(tmp_path: Path) -> None:
     )
     extra.mkdir()
     (extra / "attempt-001.json").write_text("{}")
+    discovered = module.discover_case(studies[case.task_id], case)
+    assert [item["request_key"] for item in discovered["incomplete_requests"]] == [
+        case.request_key,
+        "extra",
+    ]
     with pytest.raises(RuntimeError, match="unexpected incomplete request scope"):
         module.inspect_all(studies=studies)
