@@ -55,6 +55,18 @@ def test_rearms_only_failed_rate_limited_state_and_preserves_valid_chunks(tmp_pa
     assert all(Path(action["archive"]).exists() for action in result["actions"])
 
 
+def test_rearms_response_free_dns_failure_and_preserves_valid_chunks(tmp_path):
+    root, good, bad = direct_fixture(
+        tmp_path,
+        error="Gemini API request failed: <urlopen error [Errno -2] Name or service not known>",
+    )
+    result = MODULE.run(root, tmp_path / "receipt.json")
+    assert result["rearmed_items"] == 1
+    assert good.exists()
+    assert not bad.exists()
+    assert Path(result["actions"][0]["archive"]).exists()
+
+
 def test_rearms_pre_request_capacity_seal_failure(tmp_path):
     root, artifact = semantic_fixture(
         tmp_path, error="shared capacity changed; refuse a split budget"
