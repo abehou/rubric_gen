@@ -1,5 +1,6 @@
 ## 2026-09-21 — New20 uniform-neutral heldout evaluation
 
+- 22:01 JST: User authorizes extending the condition-blind evidence-aware heldout judge from the completed four-task panel to the remaining 16 New20 tasks. Reuse all five existing neutral paraphrases and saved static/RTT artifacts; add only 1,920 Sol+Gemini heldout judgments, then combine them with the 480 completed rows without any paraphrase, revision, solver, A, or RH call.
 - 10:32 JST: User authorizes a measurement-only rescore of all newly added 20 BioMNIBench tasks with five `uniform_neutral` heldouts and Sol+Gemini, reusing every saved static/RTT final artifact and the completed four-task neutral panel. Selected S, A, RH, trajectories, models, task membership and revision behavior remain unchanged; compare complete New20 neutral S-H directly with the historical rigorous-3 S-H and do not launch revision work.
 
 ## 2026-09-20 — Semi and Score-only Results20 completion

@@ -200,3 +200,19 @@ With the same neutral prompt, three versus five heldouts changes RTT S-H only fr
 definition is consequently the equal-semantics neutral wording-only pool; the old
 rigorous pool should be labeled a separate strictness stress test rather than mixed
 into the primary selected-to-heldout generalization gap.
+
+## Evidence-calibrated New20 heldout test
+
+The follow-up condition-blind scorer adds sealed public execution evidence to the
+same five neutral heldouts; it does not rerun revision, solver, paraphrase generation,
+A, or RH. The complete [New20 evidence-calibrated report](evidence-calibrated-new20.md)
+contains 2,400/2,400 Sol/Gemini judgments. Full strongly supports the intended
+mechanism: Static/RTT S-H is `11.35/0.54`, a matched contrast of `-10.81`, while RH
+remains `19.17/9.17%` over the full trajectory. User does not show the same stable
+separation: Static/RTT S-H is `-0.12/0.35`, a contrast of `+0.47`; Gemini improves
+slightly while Sol regresses. The evidence-aware policy is therefore a useful
+Full-arm truthfulness diagnostic, not a universal metric-only cure for both arms.
+
+Missing-only recovery job `10520389` completed the final 520 judgments at 4 CPUs,
+64 GiB, provider concurrency 6, and about 49 GiB peak RSS. All earlier successful
+judgments were reused. No prompt was adjusted after observing the complete result.

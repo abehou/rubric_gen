@@ -19,7 +19,9 @@ from rubric_gen.runtime.failures import failure_category, retry_after
 from rubric_gen.submission_revision.evaluation import rubric_judge
 from rubric_gen.submission_revision.evaluation.evidence_policy import (
     EVIDENCE_CALIBRATED_POLICY_ID,
+    EVIDENCE_CALIBRATED_POLICY_V2_ID,
     EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT,
+    EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT_V2,
 )
 from rubric_gen.submission_revision.judging.full_rubric_protocol import (
     deterministic_grading_seed,
@@ -30,17 +32,65 @@ from rubric_gen.submission_revision.judging.models import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
+CASE_SCOPE = os.environ.get("EVIDENCE_CASE_SCOPE", "saved")
+TASK_FILTER = os.environ.get("EVIDENCE_TASK_ID")
+REPLICATE_FILTER = (
+    int(os.environ["EVIDENCE_REPLICATE"])
+    if os.environ.get("EVIDENCE_REPLICATE")
+    else None
+)
+EVIDENCE_NAME = (
+    "outlier4-evidence.json"
+    if CASE_SCOPE == "outlier4"
+    else f"new20-remaining16-{TASK_FILTER}-rep{REPLICATE_FILTER:03d}-evidence.json"
+    if CASE_SCOPE == "new20_remaining16"
+    and TASK_FILTER
+    and REPLICATE_FILTER is not None
+    else f"new20-remaining16-{TASK_FILTER}-evidence.json"
+    if CASE_SCOPE == "new20_remaining16" and TASK_FILTER
+    else "new20-remaining16-evidence.json"
+    if CASE_SCOPE == "new20_remaining16"
+    else "saved-case-evidence.json"
+)
 EVIDENCE = (
     ROOT
-    / "diagnostics/heldout-judge-failure-analysis/saved-case-evidence.json"
+    / "diagnostics/heldout-judge-failure-analysis"
+    / EVIDENCE_NAME
 )
-RUN = Path(
+POLICY_VERSION = os.environ.get("EVIDENCE_POLICY_VERSION", "v1")
+if POLICY_VERSION == "v1":
+    POLICY_ID = EVIDENCE_CALIBRATED_POLICY_ID
+    SYSTEM_PROMPT = EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT
+elif POLICY_VERSION == "v2":
+    POLICY_ID = EVIDENCE_CALIBRATED_POLICY_V2_ID
+    SYSTEM_PROMPT = EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT_V2
+else:
+    raise RuntimeError(f"unknown evidence policy version: {POLICY_VERSION}")
+RUN_BASE = Path(
     "/data/user_data/aydanh/rubric_gen/runs/"
-    "rtt-complete-public-regression-20260921/evidence-calibrated-panel"
+    "rtt-complete-public-regression-20260921/"
+    f"evidence-calibrated-panel-{CASE_SCOPE}-{POLICY_VERSION}"
 )
+RUN = RUN_BASE
+if TASK_FILTER:
+    RUN = RUN / TASK_FILTER
+if REPLICATE_FILTER is not None:
+    RUN = RUN / f"rep-{REPLICATE_FILTER:03d}"
 MODELS = ("gpt-5.6-sol", "gemini-3.8-flash")
 WORKERS = 6
 BENCHMARK = SubmissionBenchmarkId.BIOMNIBENCH_DA
+RETRYABLE_FAILURES = {
+    "transient_provider",
+    "transient_connection",
+    "invalid_response",
+}
+
+
+def retryable_attempt(attempt: dict[str, object]) -> bool:
+    if attempt.get("failure") in RETRYABLE_FAILURES:
+        return True
+    error = str(attempt.get("error", "")).lower()
+    return "servers are currently overloaded" in error
 
 
 def canonical(value: object) -> str:
@@ -66,47 +116,59 @@ def jobs(evidence: dict) -> tuple[dict[str, object], ...]:
     rows = []
     for case in evidence["cases"]:
         task_id = str(case["task_id"])
-        rubric_text = str(evidence["rubrics"][task_id]["neutral"]["0"])
         artifact_evidence = case["artifact_evidence"]
         review_text = str(artifact_evidence["workspace_review"])
-        answer_text = str(artifact_evidence["final_answer"])
-        for model in MODELS:
-            control = [
-                row
-                for row in case["uniform_neutral"]
-                if row["variant"] == 0 and row["model"] == model
-            ]
-            if len(control) != 1:
-                raise RuntimeError(
-                    f"expected one saved neutral control for {case['assignment_id']} "
-                    f"{model}"
-                )
-            identity = {
-                "policy": EVIDENCE_CALIBRATED_POLICY_ID,
-                "system_prompt_sha256": sha256_text(
-                    EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT
-                ),
-                "assignment_id": case["assignment_id"],
-                "task_id": task_id,
-                "role": case["role"],
-                "arm": case["arm"],
-                "replicate": case["replicate"],
-                "model": model,
-                "rubric_variant": 0,
-                "rubric_sha256": sha256_text(rubric_text),
-                "review_sha256": sha256_text(review_text),
-                "answer_sha256": sha256_text(answer_text),
-                "control_score": control[0]["score"],
-            }
-            rows.append(
-                {
-                    "key": hashlib.sha256(canonical(identity).encode()).hexdigest(),
-                    "identity": identity,
-                    "rubric_text": rubric_text,
-                    "review_text": review_text,
-                    "answer_text": answer_text,
-                }
+        if POLICY_VERSION == "v2":
+            review_text += (
+                "\n\n# Sealed public execution and output evidence\n\n"
+                + str(case["sealed_public_evidence"])
             )
+        answer_text = str(artifact_evidence["final_answer"])
+        variants = (
+            range(5)
+            if CASE_SCOPE in {"outlier4", "new20_remaining16"}
+            else (0,)
+        )
+        for variant in variants:
+            rubric_text = str(
+                evidence["rubrics"][task_id]["neutral"][str(variant)]
+            )
+            for model in MODELS:
+                control = [
+                    row
+                    for row in case["uniform_neutral"]
+                    if row["variant"] == variant and row["model"] == model
+                ]
+                if len(control) != 1:
+                    raise RuntimeError(
+                        "expected one saved neutral control for "
+                        f"{case['assignment_id']} variant {variant} {model}"
+                    )
+                identity = {
+                    "policy": POLICY_ID,
+                    "case_scope": CASE_SCOPE,
+                    "system_prompt_sha256": sha256_text(SYSTEM_PROMPT),
+                    "assignment_id": case["assignment_id"],
+                    "task_id": task_id,
+                    "role": case["role"],
+                    "arm": case["arm"],
+                    "replicate": case["replicate"],
+                    "model": model,
+                    "rubric_variant": variant,
+                    "rubric_sha256": sha256_text(rubric_text),
+                    "review_sha256": sha256_text(review_text),
+                    "answer_sha256": sha256_text(answer_text),
+                    "control_score": control[0]["score"],
+                }
+                rows.append(
+                    {
+                        "key": hashlib.sha256(canonical(identity).encode()).hexdigest(),
+                        "identity": identity,
+                        "rubric_text": rubric_text,
+                        "review_text": review_text,
+                        "answer_text": answer_text,
+                    }
+                )
     return tuple(rows)
 
 
@@ -149,11 +211,7 @@ def run_job(job: dict[str, object]) -> dict[str, object]:
                 return saved_attempt
             if generation_path.is_file() and saved_attempt.get("failure") is None:
                 pass
-            elif saved_attempt.get("failure") not in {
-                "transient_provider",
-                "transient_connection",
-                "invalid_response",
-            }:
+            elif not retryable_attempt(saved_attempt):
                 raise RuntimeError(
                     f"saved non-recoverable panel failure: {saved_attempt.get('error')}"
                 )
@@ -179,6 +237,8 @@ def run_job(job: dict[str, object]) -> dict[str, object]:
             category = failure_category(exc)
             if isinstance(exc, rubric_judge.FullRubricJudgeError):
                 category = "invalid_response"
+            if "servers are currently overloaded" in str(exc).lower():
+                category = "transient_provider"
             write_json_atomic(
                 attempt_path,
                 {
@@ -190,11 +250,7 @@ def run_job(job: dict[str, object]) -> dict[str, object]:
                     "elapsed_seconds": time.monotonic() - started,
                 },
             )
-            if category not in {
-                "transient_provider",
-                "transient_connection",
-                "invalid_response",
-            }:
+            if category not in RETRYABLE_FAILURES:
                 raise
             if attempt < rubric_judge.JUDGE_MAX_ATTEMPTS:
                 time.sleep(retry_after(exc, attempt))
@@ -238,9 +294,12 @@ def summarize(records: list[dict[str, object]]) -> dict[str, object]:
     ))
     return {
         "kind": "evidence-calibrated-heldout-saved-case-panel",
-        "policy": EVIDENCE_CALIBRATED_POLICY_ID,
+        "case_scope": CASE_SCOPE,
+        "task_filter": TASK_FILTER,
+        "replicate_filter": REPLICATE_FILTER,
+        "policy": POLICY_ID,
         "system_prompt_sha256": sha256_text(
-            EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT
+            SYSTEM_PROMPT
         ),
         "models": list(MODELS),
         "workers": WORKERS,
@@ -253,12 +312,13 @@ def main() -> int:
         raise RuntimeError("evidence-calibrated panel must run on a Babel compute node")
     evidence = read(EVIDENCE)
     planned = jobs(evidence)
-    if len(planned) != len(evidence["cases"]) * len(MODELS):
+    variants_per_case = (
+        5 if CASE_SCOPE in {"outlier4", "new20_remaining16"} else 1
+    )
+    if len(planned) != len(evidence["cases"]) * len(MODELS) * variants_per_case:
         raise RuntimeError("evidence-calibrated panel scope changed")
 
-    rubric_judge.RUBRIC_SCORE_SYSTEM_PROMPT = (
-        EVIDENCE_CALIBRATED_RUBRIC_SCORE_SYSTEM_PROMPT
-    )
+    rubric_judge.RUBRIC_SCORE_SYSTEM_PROMPT = SYSTEM_PROMPT
     started = datetime.now(timezone.utc).isoformat()
     records = []
     with ThreadPoolExecutor(max_workers=WORKERS) as executor:

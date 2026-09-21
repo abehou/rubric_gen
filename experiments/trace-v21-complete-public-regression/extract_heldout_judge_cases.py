@@ -3,27 +3,48 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
 from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
+from rubric_gen.submission_revision.evaluation.evidence_policy import (
+    render_sealed_public_evidence,
+)
 from rubric_gen.submission_revision.experiment import load_experiment
 
 from report_neutral_outlier_panel import panel_root, pool_for
 from run_neutral_heldout5 import neutral_jobs, neutral_scope, source_targets
-from run_neutral_new20 import COMPLETED_TASKS, RESULT40, RUN
+from run_neutral_new20 import COMPLETED_TASKS, PENDING_TASKS, RESULT40, RUN
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = (
-    ROOT
-    / "diagnostics/heldout-judge-failure-analysis/saved-case-evidence.json"
+CASE_SCOPE = os.environ.get("EVIDENCE_CASE_SCOPE", "saved")
+TASK_FILTER = os.environ.get("EVIDENCE_TASK_ID")
+REPLICATE_FILTER = (
+    int(os.environ["EVIDENCE_REPLICATE"])
+    if os.environ.get("EVIDENCE_REPLICATE")
+    else None
 )
+OUTPUT_NAME = (
+    "outlier4-evidence.json"
+    if CASE_SCOPE == "outlier4"
+    else f"new20-remaining16-{TASK_FILTER}-rep{REPLICATE_FILTER:03d}-evidence.json"
+    if CASE_SCOPE == "new20_remaining16"
+    and TASK_FILTER
+    and REPLICATE_FILTER is not None
+    else f"new20-remaining16-{TASK_FILTER}-evidence.json"
+    if CASE_SCOPE == "new20_remaining16" and TASK_FILTER
+    else "new20-remaining16-evidence.json"
+    if CASE_SCOPE == "new20_remaining16"
+    else "saved-case-evidence.json"
+)
+OUTPUT = ROOT / "diagnostics/heldout-judge-failure-analysis" / OUTPUT_NAME
 MODELS = ("gpt-5.6-sol", "gemini-3.8-flash")
 REVIEW_MODEL = MODELS[0]
-CASES = (
+SAVED_CASES = (
     ("da-20-4", "static", "Full", 1),
     ("da-20-4", "trace", "Full", 1),
     ("da-5-1", "static", "User", 3),
@@ -41,6 +62,50 @@ CASES = (
     ("da-9-7", "static", "User", 1),
     ("da-9-7", "trace", "User", 1),
 )
+OUTLIER_TASKS = ("da-26-4", "da-26-2", "da-17-1", "da-17-5")
+
+
+def cases() -> tuple[tuple[str, str, str, int], ...]:
+    if CASE_SCOPE == "saved":
+        return SAVED_CASES
+    if CASE_SCOPE == "outlier4":
+        task_ids = OUTLIER_TASKS
+        expected = 48
+    elif CASE_SCOPE == "new20_remaining16":
+        if TASK_FILTER:
+            if TASK_FILTER not in PENDING_TASKS:
+                raise RuntimeError(
+                    f"task is not in the remaining New20 scope: {TASK_FILTER}"
+                )
+            task_ids = (TASK_FILTER,)
+            expected = 4 if REPLICATE_FILTER is not None else 12
+        else:
+            task_ids = PENDING_TASKS
+            expected = 192
+    else:
+        raise RuntimeError(f"unknown evidence case scope: {CASE_SCOPE}")
+    rows = []
+    for task_id in task_ids:
+        for role in ("static", "trace"):
+            experiment = load_experiment(config(task_id, role))
+            for target in source_targets(experiment):
+                if (
+                    REPLICATE_FILTER is not None
+                    and target.replicate != REPLICATE_FILTER
+                ):
+                    continue
+                arm = (
+                    "User"
+                    if target.condition_id.startswith("user-")
+                    else "Full"
+                )
+                rows.append((task_id, role, arm, target.replicate))
+    result = tuple(rows)
+    if len(result) != expected:
+        raise RuntimeError(
+            f"expected {expected} {CASE_SCOPE} cases, found {len(result)}"
+        )
+    return result
 
 
 def read(path: Path) -> dict:
@@ -240,7 +305,7 @@ def rubric_texts(task_id: str, experiment) -> dict[str, object]:
 def main() -> int:
     rows = []
     rubrics = {}
-    for task_id, role, arm, replicate in CASES:
+    for task_id, role, arm, replicate in cases():
         experiment = load_experiment(config(task_id, role))
         target = target_for(experiment, arm, replicate)
         rubrics.setdefault(task_id, rubric_texts(task_id, experiment))
@@ -255,6 +320,9 @@ def main() -> int:
                     task_id, role, experiment, target
                 ),
                 "submission_inventory": submission_inventory(target),
+                "sealed_public_evidence": render_sealed_public_evidence(
+                    target.final_submission
+                ),
                 "historical_selected_and_rigorous": old_judgments(
                     experiment, target
                 ),
@@ -268,6 +336,9 @@ def main() -> int:
         OUTPUT,
         {
             "kind": "heldout-judge-failure-saved-case-evidence",
+            "case_scope": CASE_SCOPE,
+            "task_filter": TASK_FILTER,
+            "replicate_filter": REPLICATE_FILTER,
             "models": list(MODELS),
             "cases": rows,
             "rubrics": rubrics,

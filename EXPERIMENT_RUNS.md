@@ -1,5 +1,6 @@
 ## 2026-09-21 — New20 uniform-neutral heldout evaluation
 
+- Evidence-aware heldout extension: provider-free extraction `10519740` feeds missing-16-task scoring `10519741` and export `10519742` from detached source `6858016cee19d04c46d4662e9f23e606fc574897` plus the recorded judge-only diff. The run uses the existing five neutral paraphrases, 192 saved artifacts, Sol+Gemini, workers 6, 8 CPU/32 GiB, and writes missing-only judgments under `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/evidence-calibrated-panel-new20_remaining16-v2/`; the completed four-task 480-row panel remains reusable.
 - Four completed tasks contribute 480 reusable Sol/Gemini judgments. The missing-only owner adds five neutral paraphrases and 120 final-rubric judgments for each of the remaining 16 New20 tasks under `/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/neutral-new20/`, with audit workers 12, aggregate provider concurrency 6, and no revision calls.
 - Babel job `10515909` completed at source `28498b4cd6119517f082b0d1cd19e343df34b326`: 80 new paraphrases, 1,920 new judgments, and all 480 planned reused judgments are complete. The provider-free report is `docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-new20.{md,json}`.
 
@@ -1418,6 +1419,18 @@ concurrency 12. It makes no revision call and does not rerun Sol.
 Recovery `10499500` ran for 32 seconds on the account-authorized `fnsw` partition and made no provider turn: native resume correctly rejected configs loaded from a different absolute worktree path than the saved studies. The replacement uses the original frozen config files under `trace-result40-20260918` with current recovery code; provider-free compute tests use the submit directory explicitly and an operational path map for preserved old20 static inputs. Audit remains gated on 240/240 plus passing tests.
 
 Recovery `10502684` durably completed the missing `da-17-3` static and trace cells, bringing coverage to 239/240, before it was stopped during a redundant provider-free outer workspace rehash. Conditional recovery `10506164` (4 CPUs, 64 GiB, 24 hours, one shard/assignment worker) will resume only `da-17-1/full-static/rep-001`; provider-free test `10506919` passed 12/12. Audit `10502686` has a 48-hour limit and remains gated behind verified revision completion, followed by report/cost jobs `10502687`/`10502688`.
+
+## 2026-09-22 — Evidence-calibrated New20 heldout reanalysis
+
+The evidence-aware scoring outputs are under
+`/data/user_data/aydanh/rubric_gen/runs/rtt-complete-public-regression-20260921/evidence-calibrated-panel-new20_remaining16-v2/`;
+the reused four-task panel is recorded in
+`diagnostics/heldout-judge-failure-analysis/evidence-calibrated-panel-outlier4-v2.json`.
+Missing-only job `10520389` finished the final 520 judgments with 4 CPUs, 64 GiB,
+provider concurrency 6, elapsed 01:14:16, exit 0, and 51,369,692 KiB peak RSS.
+Provider-free export job `10520980` copied 26 completion receipts for the final
+New20 report; exact aggregate output is
+`docs/reports/2026-09-21/trace-v21-complete-public-regression/evidence-calibrated-new20.json`.
 
 ## 2026-09-20 — Results40 audit concurrency migration
 
