@@ -1438,6 +1438,12 @@ archiving 15 terminal rubric artifacts and 29 terminal direct-RH attempts. It
 preserved completed judgments and made zero provider calls; the durable receipt
 is under the feedback-policy NAS8 run root.
 
+The authorized Results40 extension uses
+`/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`
+for 240 new Semi/Score-only assignments over the precommitted additional twenty
+tasks. Its 40 native shards reuse the completed Results40 seed, paraphrase and
+trace-pretreatment inputs; the requested completion panel is Sol plus Gemini.
+
 ## 2026-09-19 — RTT Results40 bounded recovery
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.

@@ -1,3 +1,7 @@
+## 2026-09-20 — Semi and Score-only Results40 expansion
+
+- 21:16 EDT: User authorizes the same precommitted additional twenty tasks for Semi/Score-only static versus promoted RTT, adding 240 assignments without rerunning original20. Reuse all validated Results40 seeds/paraphrases and completed trace pretreatment, audit with Sol and Gemini only, and report new20 plus cumulative40 before stopping.
+
 ## 2026-09-20 — Semi and Score-only Results20 completion
 
 - 11:07 EDT: After verifying the Full/User Results40 task complete and pushed, run the remaining canonical Results20 feedback policies as four matched cells: Semi/Score-only × static/promoted RTT, 20 tasks × 3 replicates = 240 new assignments. Preserve the promoted method and all scientific settings; audit with Sol, Opus and Gemini, publish one four-policy Results20 table, then stop before any Semi/Score-only expansion.
