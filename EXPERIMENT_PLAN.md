@@ -1479,3 +1479,7 @@ Run one 18-assignment canonical Dev3 for `attack_defense_v2.1_task_paraphrase_re
 ## 2026-09-20 — Semi/Score-only Results20 completion
 
 - Complete the existing 240/240 Semi/Score-only assignments with the frozen promoted RTT and matched static controls. Preserve all Sol/Opus/Gemini judgments and use missing-only recovery; publish the combined original20 Full/User/Semi/Score-only report only after all three auditor panels and four RH windows pass native coverage. Gemini is complete; Opus waits on restored Anthropic credit, and no larger feedback-policy scale-up is authorized.
+
+## 2026-09-21 — Result40 development-rubric gap diagnostic
+
+- 16:12 JST: Score only the saved final artifacts for `da-26-4`, `da-26-2`, `da-17-1`, `da-17-5`, and `da-20-4` with frozen rubric variant 1 under the equal-weight Sol+Gemini panel: exactly 120 new judgments (5 tasks × 3 replicates × Full/User static/RTT × 2 models), missing-only resume, audit concurrency 12, and zero revision or solver calls. Decompose `S-H=(S-D)+(D-H)`, inspect the saved RTT trajectories for the earliest failure stage, then stop without another Dev3, Result50, Opus, or any rerun of existing S/H/A/RH audits.

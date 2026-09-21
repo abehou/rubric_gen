@@ -2580,3 +2580,8 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 - 21:16 EDT: Results40 Semi/Score-only expansion freezes the precommitted Full/User new20 membership as 40 six-assignment native shards. Provider-free config job `10515857` verified 240 assignments and maps all 20 trace shards to completed Results40 pretreatment; the formal audit is Sol plus Gemini, with no Opus dependency.
 - 22:20 EDT: Revision `10516159` was stopped after NAS1 home quota prevented runtime-event writes; provider-free inspection `10516389` found 108 failed, 12 interrupted and 6 pending records, with all 192 RTT provider attempts carrying no output/result. A scoped recovery archives and rearms only the 48 response-free exhausted trace assignments, and a pre-provider write probe prevents recurrence without changing scientific behavior.
 - 22:28 EDT: Recovery `10516432` failed closed without mutation when ten of 192 response-free RTT attempts carried the earlier exact missing-OpenAI-key signature rather than the quota signature. Follow-up inspections show 182 quota and ten missing-key failures, all with no output/result; recovery now accepts exactly those two observed operational classes and rejects any saved output or unrelated runtime error.
+
+## 2026-09-21 — Result40 development-rubric diagnostic
+
+- 16:12 JST: The authorized diagnostic freezes 120 development-rubric judgments over five mechanism tasks with the same Sol+Gemini panel used for S/D/H reconstruction; it reuses saved artifacts and makes no revision, solver, or existing-audit calls.
+- 16:12 JST: Draft review added explicit variant-1 and exact-cohort checks plus durable timing/usage receipts; six focused provider-free tests pass locally before the required Babel preflight.
