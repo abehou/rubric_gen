@@ -2585,3 +2585,4 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 
 - 16:12 JST: The authorized diagnostic freezes 120 development-rubric judgments over five mechanism tasks with the same Sol+Gemini panel used for S/D/H reconstruction; it reuses saved artifacts and makes no revision, solver, or existing-audit calls.
 - 16:12 JST: Draft review added explicit variant-1 and exact-cohort checks plus durable timing/usage receipts; six focused provider-free tests pass locally before the required Babel preflight.
+- 16:25 JST: The first preflight submission made zero provider calls and was rejected before queuing because the draft requested a lowercase nonexistent `a6000` GRES; all four diagnostic launchers now use the established Result40 `preempt_cpu_qos` CPU profile because scoring and analysis require no local GPU.

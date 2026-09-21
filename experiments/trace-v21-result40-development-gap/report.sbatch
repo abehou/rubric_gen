@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#SBATCH --partition=general
-#SBATCH --gres=gpu:a6000:1
+#SBATCH --partition=preempt
+#SBATCH --qos=preempt_cpu_qos
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
