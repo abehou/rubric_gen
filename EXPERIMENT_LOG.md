@@ -1,6 +1,7 @@
 ## 2026-09-20 — Semi/Score-only Results40 gate
 
 - 21:45 EDT: Provider-free job `10516052` validated the precommitted new20 scope (240 Semi/Score-only static/promoted-RTT assignments), all frozen inputs, 20/20 single-layer pretreatment sources, diagnosis-only high proposer reasoning, and the requested Sol+Gemini panel with zero provider calls. Revision uses four six-assignment shards at once (maximum 24 assignment workers) under the shared aggregate-60 cap and internal fanout four.
+- 21:54 EDT: Revision `10516093` was stopped after exact static receipts showed response-free `OPENAI_API_KEY must be set` failures in the unchanged optimizer judge. The private owner now loads OpenAI credentials during revision and OpenAI+Gemini during audit; it does not add Anthropic or change any request/model semantics, and focused provider-free tests pass 4/4 before native missing-only recovery.
 
 ## 2026-09-20 — Semi/Score-only Results20 authorization
 

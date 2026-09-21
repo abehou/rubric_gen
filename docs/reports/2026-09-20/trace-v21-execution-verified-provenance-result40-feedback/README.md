@@ -1,6 +1,6 @@
 # BioMNIBench Results40 Semi/Score-only expansion
 
-Status: **provider-free validation complete; revision ready to launch**.
+Status: **provider-free validation complete; missing-only revision recovery ready**.
 
 This run extends the completed Results20 Semi/Score-only comparison to the same precommitted additional twenty tasks used by the completed Full/User Results40 experiment. It preserves the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` treatment and matched static definitions. The user selected GPT-5.6 Sol and Gemini 3.8 Flash for this expansion audit; the separate incomplete Results20 Opus recovery is not part of the completion gate.
 
@@ -21,3 +21,5 @@ The final report will show new20 and cumulative40 separately for Sol, Gemini, an
 ## Provider-free gate
 
 Slurm job `10516052` completed in nine seconds with zero provider calls. It validated exactly 240 assignments, the disjoint precommitted new20 membership, all frozen seed/paraphrase roots, 20/20 native pretreatment sources, diagnosis-only high proposer reasoning, the absence of dropout/alternate candidates, writable experiment-owned NAS8 roots, and the exact Sol+Gemini audit panel. The durable receipt is `experiments/trace-v21-execution-verified-provenance-result40-feedback/receipts/input-validation.json`.
+
+Initial revision owner `10516093` was stopped after the first static shards consistently failed before a remote judgment because the private runner had not loaded the existing `OPENAI_API_KEY` needed by the unchanged semi/score-only optimizer judge. Exact stdout reported `OPENAI_API_KEY must be set`; the failed judge attempts contain no provider result. The execution-only repair loads OpenAI for revision and OpenAI+Gemini for audit, matching the completed Results20 feedback runner while excluding Anthropic from this run. Native resume removes invalid response-free evaluation trees and preserves any completed state.

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from pathlib import Path
+import sys
 
 import yaml
 
@@ -76,3 +78,15 @@ def test_runtime_partitions() -> None:
         "anthropic": 60,
         "google": 60,
     }
+
+
+def test_execution_and_audit_credentials_are_scoped(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    spec = importlib.util.spec_from_file_location("result40_feedback_run", BUNDLE / "run.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    assert module.credential_keys("execute") == ("OPENAI_API_KEY",)
+    assert module.credential_keys("audit") == ("OPENAI_API_KEY", "GEMINI_API_KEY")

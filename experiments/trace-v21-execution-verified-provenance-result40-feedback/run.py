@@ -39,10 +39,19 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def credential_keys(mode: str) -> tuple[str, ...]:
+    if mode == "execute":
+        # Semi/score-only revision uses the unchanged optimizer judge through
+        # the OpenAI Responses route even though solver/RTT turns use Codex.
+        return ("OPENAI_API_KEY",)
+    if mode == "audit":
+        return ("OPENAI_API_KEY", "GEMINI_API_KEY")
+    raise ValueError(f"unsupported credential mode: {mode}")
+
+
 def credentials(mode: str) -> None:
     values = dotenv_values("/home/aydanh/repos/rubric_gen/.env.local")
-    keys = ("OPENAI_API_KEY", "GEMINI_API_KEY") if mode == "audit" else ()
-    for key in keys:
+    for key in credential_keys(mode):
         if not values.get(key):
             raise RuntimeError(f"configured credential unavailable: {key}")
         os.environ[key] = str(values[key])
