@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from rubric_gen.artifacts.hashing import sha256_file
 from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
 from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
@@ -195,6 +196,23 @@ def artifact_evidence(task_id: str, role: str, experiment, target) -> dict[str, 
     }
 
 
+def submission_inventory(target) -> list[dict[str, object]]:
+    """List the actual saved final-submission files without interpreting them."""
+
+    rows = []
+    for path in sorted(target.final_submission.rglob("*")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        rows.append(
+            {
+                "path": str(path.relative_to(target.final_submission)),
+                "bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+        )
+    return rows
+
+
 def rubric_texts(task_id: str, experiment) -> dict[str, object]:
     old_pool = Path(str(experiment.dag["paraphrase"]["output_dir"]))
     pool = neutral_pool(task_id)
@@ -236,6 +254,7 @@ def main() -> int:
                 "artifact_evidence": artifact_evidence(
                     task_id, role, experiment, target
                 ),
+                "submission_inventory": submission_inventory(target),
                 "historical_selected_and_rigorous": old_judgments(
                     experiment, target
                 ),
