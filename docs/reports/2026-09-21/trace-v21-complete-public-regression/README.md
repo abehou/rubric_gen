@@ -173,3 +173,14 @@ a uniform explanation of the New20 S-H shift.  The next bounded measurement is
 the same saved-artifact comparison on the four preidentified outlier tasks
 (`da-26-4`, `da-26-2`, `da-17-1`, `da-17-5`); it reuses the 40 completed
 `da-26-4` judgments and adds 440 missing judgments without any revision call.
+
+That four-task panel completed as job `10515324` at source `b439439ecb91`:
+440/440 new judgments plus 40/40 reused judgments, 6 minutes 36 seconds, and
+322 MiB peak RSS.  In the Sol/Gemini equal-weight mean, RTT S-H changes from
+`1.75` to `0.86` Full and from `2.58` to `1.43` User.  Because matched static
+also changes, RTT-minus-static improves from `+2.46` to `+1.53` Full and from
+`+1.17` to `+0.87` User.  Task directions are mixed rather than uniform; the
+complete [four-task table](neutral-outlier-panel.md) therefore supports neutral
+heldouts as the cleaner wording-only construct but rejects them as a complete
+explanation or reliable metric-only cure for the Result40 S-H issue.  No full-40
+rescore is launched from this evidence.

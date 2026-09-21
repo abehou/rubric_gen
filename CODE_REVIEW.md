@@ -700,3 +700,4 @@
 ## 2026-09-21 — Heldout prompt-policy symmetry
 
 - 08:52 JST: The `selected_neutral_heldout_rigorous` policy mixes wording generalization with a systematically stricter task-completion interpretation; bounded paired scoring confirms this can materially depress H. Added explicit `uniform_neutral` generation for equal-semantics primary measurement while retaining rigorous wording as a separately named stress test; rubric structure, levels, weights, and saved artifacts remain unchanged.
+- 10:05 JST: Four-task matched scoring confirms `uniform_neutral` improves construct symmetry but not uniformly: 37/96 H rows rise, 21 fall, and 38 tie, while RTT-minus-static S-H remains positive in both arms. Keep the explicit policy for future equal-semantics experiments, preserve rigorous results as a stress test, and do not reinterpret the policy switch as an RTT algorithmic improvement.
