@@ -306,10 +306,26 @@ class StudyRunner:
                 record.get("error_type") == "RubricProposerProviderError"
                 and "attempt allowance exhausted by transport at " in str(record.get("error", ""))
             )
+            codex_transport = (
+                record.get("error_type") == "CodexProviderHealthError"
+                and record.get("error") == "Codex transport closed during an active turn"
+            )
             if (record.get("status") != "failed"
                     or not record.get("automatic_recovery_exhausted")
                     or (record.get("failure_category") != "transient_connection"
-                        and not wrapped_transport)):
+                        and not wrapped_transport
+                        and not codex_transport)):
+                continue
+            if codex_transport:
+                self._archive_assignment_failure(record)
+                record.update(automatic_recovery_exhausted=False, automatic_attempt_count=0,
+                              failure_category="transient_connection",
+                              next_automatic_action=(
+                                  "explicit resume after response-free Codex transport closure"
+                              ))
+                emit("assignment_transport_resume", assignment_id=assignment.assignment_id,
+                     archived_requests=0, archived_attempts=0,
+                     archive=str(self.root / "execution-attempts" / assignment.assignment_id))
                 continue
             requests: list[tuple[Path, list[Path]]] = []
             request_root = self._experiment_dir(assignment) / "trace-defense-v2-requests"

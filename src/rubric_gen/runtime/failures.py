@@ -34,6 +34,9 @@ def failure_category(error: BaseException) -> str:
         if (type(current).__name__ == 'RubricProposerProviderError'
                 and 'attempt allowance exhausted by transport at ' in str(current)):
             return 'transient_connection'
+        if (type(current).__name__ == 'CodexProviderHealthError'
+                and str(current) == 'Codex transport closed during an active turn'):
+            return 'transient_connection'
         current = current.__cause__
     return 'structural'
 

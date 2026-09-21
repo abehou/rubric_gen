@@ -121,6 +121,39 @@ def test_wrapped_transport_exhaustion_is_classified_for_explicit_resume():
     assert failure_category(error) == "transient_connection"
 
 
+def test_explicit_resume_rearms_response_free_codex_turn(tmp_path):
+    from rubric_gen.runtime.agents.codex_sessions import CodexProviderHealthError
+    from rubric_gen.runtime.failures import failure_category
+
+    runner = object.__new__(StudyRunner)
+    runner.root = tmp_path
+    runner.config = SimpleNamespace(resume=True, assignment_ids=None)
+    runner.experiment = SimpleNamespace(execution_conditions=None)
+    assignment = SimpleNamespace(
+        assignment_id="a",
+        condition_id="full",
+        study_relative_path=Path("experiments/a"),
+    )
+    record = {
+        "assignment_id": "a",
+        "status": "failed",
+        "attempt_count": 1,
+        "automatic_attempt_count": 1,
+        "automatic_recovery_exhausted": True,
+        "error_type": "CodexProviderHealthError",
+        "error": "Codex transport closed during an active turn",
+        "failure_category": "structural",
+    }
+    runner._rearm_transport_failures({"records": [record]}, [assignment])
+    assert record["automatic_recovery_exhausted"] is False
+    assert record["automatic_attempt_count"] == 0
+    assert record["failure_category"] == "transient_connection"
+    assert list((tmp_path / "execution-attempts/a").glob("*.json"))
+    assert failure_category(
+        CodexProviderHealthError("Codex transport closed during an active turn")
+    ) == "transient_connection"
+
+
 def test_resume_honors_explicit_assignment_scope(tmp_path):
     runner, assignment, record, directory = fixture(tmp_path)
     runner.config.assignment_ids = ("another",)

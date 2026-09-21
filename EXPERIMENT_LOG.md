@@ -2596,3 +2596,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 - 16:25 JST: The first preflight submission made zero provider calls and was rejected before queuing because the draft requested a lowercase nonexistent `a6000` GRES; all four diagnostic launchers now use the established Result40 `preempt_cpu_qos` CPU profile because scoring and analysis require no local GPU.
 - 16:40 JST: Babel preflight `10518231` and score owner `10518254` completed the frozen scope: 120/120 D judgments, zero failures/abstentions/revision calls, and $2.891765 known Sol usage-based cost; Gemini returned no usage and remains unpriced.
 - 17:10 JST: Provider-free 30-case trajectory review localizes the remediable RTT gap to criterion selection/admission, delivery timing, and revision-budget allocation, while `da-20-4` collapses before proposing because required DE/GSEA evidence cannot be produced. Retain the high proposer; report `docs/reports/2026-09-21/trace-v21-result40-development-gap/README.md` and stop without a follow-up run.
+
+## 2026-09-21 — Result40 gap-improvement pilot recovery
+
+- 23:40 JST: Remaining-task revision job `10519882` preserved 23 healthy assignments while `da-26-4/User/rep-001` exposed an app-server completion/parent-return disconnect: the solver logged `task_complete` at 09:31 EDT but the runner remained in `turn_in_progress` until the isolated child was terminated at 10:36 EDT. The saved response-free transport failure is being handled by exact missing-only resume; no completed peer or scientific setting changes.

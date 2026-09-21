@@ -693,3 +693,7 @@
 ## 2026-09-17 — Results20 candidate integration
 
 - 23:50 JST: Integrated `attack_defense_v2.1_execution_verified_proactive_provenance` with the latest Babel staging branch while retaining its completion-pass recipes. The promoted recipe keeps Luna high only for diagnosis/proposal, rejects literal/echoed output as execution evidence, and leaves historical v2.1 behavior unchanged.
+
+## 2026-09-21 — Response-free Codex turn resume
+
+- 23:40 JST: `Codex transport closed during an active turn` was saved as structural even when the turn status proved no response was adopted, preventing explicit missing-only resume. Exact-message classification and StudyRunner rearming now archive the failed ledger record, reset only its exhausted operational budget, and rely on the existing failed-turn checkpoint validator to discard the uncertain workspace before retrying.
