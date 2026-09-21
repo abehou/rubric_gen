@@ -2,6 +2,7 @@
 
 - 17:44 JST: Branch `codex/result40-rtt-gap-improvement-pilot` prepares one 30-assignment combined challenger under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-gap-improvement-pilot-20260921/`. The counted `da-26-2` six-assignment smoke must complete revision and Sol+Gemini audit before the remaining 24 assignments; all stages are missing-only and the exact source/config identities will be recorded by the Slurm owners.
 - 17:53 JST: Clean source `80072570` is installed in isolated Babel worktree `/home/aydanh/repos/rubric_gen/runs/babel-code/result40-gap-improvement-20260921`. Provider-free preflight `10518518` is pending for priority; counted smoke revision `10518523` and audit `10518524` are strict `afterok` dependents, while the remaining four tasks are intentionally unsubmitted pending smoke inspection.
+- 19:06 JST: User-directed general/A6000 preflight replaced the unscheduled preempt owner. Job `10518798` made zero provider calls and failed closed on absent explicit pretreatment reuse for `da-17-1`; read-only jobs `10518816`/`10518818` verified completed source studies `fa26b6b04e6a` and `52099c5260fd`, each with 25 pool files. Counted smoke remains blocked while the corrected clean source is installed and revalidated.
 
 ## 2026-09-20 — Semi/Score-only Results40 validation
 

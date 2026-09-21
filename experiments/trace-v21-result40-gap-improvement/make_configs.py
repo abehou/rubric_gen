@@ -30,6 +30,36 @@ CONDITIONS = (
     "full-red-team-trace-gap-improvement",
     "user-simulator-red-team-trace-gap-improvement",
 )
+PRETREATMENT_SOURCES = {
+    "da-17-1": {
+        "experiment": (
+            "/home/aydanh/repos/rubric_gen/runs/babel-code/"
+            "trace-result40-20260918/experiments/"
+            "trace-v21-execution-verified-provenance-result40/configs/"
+            "da-17-1-trace.yaml"
+        ),
+        "experiment_id": "biomnibench-da-factorial-r10-fa26b6b04e6a",
+        "study_dir": (
+            "/data/user_data/aydanh/rubric_gen/runs/"
+            "rtt-result40-expansion-20260918/study/da-17-1/trace/"
+            "biomnibench-da-factorial-r10-fa26b6b04e6a"
+        ),
+    },
+    "da-17-5": {
+        "experiment": (
+            "/home/aydanh/repos/rubric_gen/runs/babel-code/"
+            "trace-result40-20260918/experiments/"
+            "trace-v21-execution-verified-provenance-result40/configs/"
+            "da-17-5-trace.yaml"
+        ),
+        "experiment_id": "biomnibench-da-factorial-r10-52099c5260fd",
+        "study_dir": (
+            "/data/user_data/aydanh/rubric_gen/runs/"
+            "rtt-result40-expansion-20260918/study/da-17-5/trace/"
+            "biomnibench-da-factorial-r10-52099c5260fd"
+        ),
+    },
+}
 
 
 def config_path(task: str) -> Path:
@@ -74,6 +104,8 @@ def main() -> None:
         )
         data["outcome_audit"]["models"] = list(PANEL)
         data["execution_audit_models"] = list(PANEL)
+        if task in PRETREATMENT_SOURCES:
+            data["pretreatment_source"] = deepcopy(PRETREATMENT_SOURCES[task])
         data["dag"]["revise"]["output_dir"] = str(
             RUN / "study" / task / "{experiment_id}"
         )

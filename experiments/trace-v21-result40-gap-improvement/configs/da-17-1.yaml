@@ -106,3 +106,7 @@ execution_conditions:
 execution_audit_models:
 - gpt-5.6-sol
 - gemini-3.8-flash
+pretreatment_source:
+  experiment: /home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-20260918/experiments/trace-v21-execution-verified-provenance-result40/configs/da-17-1-trace.yaml
+  experiment_id: biomnibench-da-factorial-r10-fa26b6b04e6a
+  study_dir: /data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-1/trace/biomnibench-da-factorial-r10-fa26b6b04e6a

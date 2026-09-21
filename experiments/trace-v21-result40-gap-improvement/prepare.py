@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -99,8 +98,10 @@ def main() -> None:
         raise RuntimeError("shared runtime policy changed")
     if INTERNAL_STAGE_FANOUT != 4:
         raise RuntimeError("internal stage fanout changed")
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        rows = list(executor.map(validate_task, TASKS))
+    # Each experiment load validates large NFS-backed task and paraphrase inputs.
+    # Validate sequentially so the provider-free preflight stays within its
+    # declared 32 GiB memory request instead of retaining five copies at once.
+    rows = [validate_task(task) for task in TASKS]
     if sum(len(load_experiment(config_path(task)).execution_assignments) for task in TASKS) != 30:
         raise RuntimeError("pilot assignment scope is not 30")
     for root in (
