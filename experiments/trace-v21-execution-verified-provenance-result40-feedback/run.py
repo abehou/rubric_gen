@@ -57,6 +57,16 @@ def credentials(mode: str) -> None:
         os.environ[key] = str(values[key])
 
 
+def runtime_write_probe() -> None:
+    """Fail before provider work when the shared runtime journal is unwritable."""
+
+    root = Path(policy()["coordination_dir"])
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / f"write-probe-{os.environ['SLURM_JOB_ID']}-{os.getpid()}"
+    path.write_text("ok\n")
+    path.unlink()
+
+
 def clean_commit() -> str:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     dirty = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
@@ -409,6 +419,7 @@ def main() -> None:
         raise RuntimeError(f"Results40 production requires one {expected_cpus}-CPU Slurm allocation")
     commit = clean_commit()
     capacity = runtime(args.mode)
+    runtime_write_probe()
     for task, kind in SHARDS:
         exp = experiment(task, kind)
         if len(exp.execution_assignments) != 6 or tuple(exp.outcome_audit["models"]) != PANEL:

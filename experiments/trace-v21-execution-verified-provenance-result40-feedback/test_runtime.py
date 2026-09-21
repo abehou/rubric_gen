@@ -5,6 +5,7 @@ import json
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 
 import yaml
 
@@ -90,3 +91,61 @@ def test_execution_and_audit_credentials_are_scoped(monkeypatch) -> None:
     spec.loader.exec_module(module)
     assert module.credential_keys("execute") == ("OPENAI_API_KEY",)
     assert module.credential_keys("audit") == ("OPENAI_API_KEY", "GEMINI_API_KEY")
+
+
+def test_quota_recovery_only_rearms_response_free_requests(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import recover_quota_failures as recovery
+
+    with tempfile.TemporaryDirectory() as raw:
+        run = Path(raw)
+        study = run / "study" / "da-x" / "trace" / "experiment"
+        request = study / "workspace" / "trace-defense-v2-requests" / "request"
+        request.mkdir(parents=True)
+        (request / "attempt-001.json").write_text(json.dumps({
+            "status": "provider_failure",
+            "permanent": False,
+            "error_type": "OSError",
+            "error": "[Errno 122] Disk quota exceeded",
+        }))
+        (study / "study.json").write_text(json.dumps({"records": [{
+            "assignment_id": "assignment",
+            "experiment_dir": "workspace",
+            "status": "failed",
+            "error_type": "RubricProposerProviderError",
+            "automatic_recovery_exhausted": True,
+            "automatic_attempt_count": 1,
+        }]}))
+        planned = recovery.plan(run)
+        assert len(planned) == 1
+        receipt = recovery.apply_recovery(run, planned)
+        assert receipt.is_file()
+        ledger = json.loads((study / "study.json").read_text())
+        record = ledger["records"][0]
+        assert record["automatic_recovery_exhausted"] is False
+        assert record["automatic_attempt_count"] == 0
+        assert not request.exists()
+
+
+def test_quota_recovery_rejects_saved_provider_output(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    import recover_quota_failures as recovery
+
+    with tempfile.TemporaryDirectory() as raw:
+        request = Path(raw) / "trace-defense-v2-requests" / "request"
+        request.mkdir(parents=True)
+        (request / "attempt-001.json").write_text(json.dumps({
+            "status": "provider_failure",
+            "permanent": False,
+            "error_type": "OSError",
+            "error": "[Errno 122] Disk quota exceeded",
+            "output": {"response_text": "must be preserved"},
+        }))
+        try:
+            recovery.response_free_quota_requests(Path(raw))
+        except RuntimeError as error:
+            assert "not an exact response-free quota failure" in str(error)
+        else:
+            raise AssertionError("saved provider output was accepted as response-free")
