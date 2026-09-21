@@ -1,3 +1,7 @@
+## 2026-09-20 — Semi/Score-only Results40 gate
+
+- 21:45 EDT: Provider-free job `10516052` validated the precommitted new20 scope (240 Semi/Score-only static/promoted-RTT assignments), all frozen inputs, 20/20 single-layer pretreatment sources, diagnosis-only high proposer reasoning, and the requested Sol+Gemini panel with zero provider calls. Revision uses four six-assignment shards at once (maximum 24 assignment workers) under the shared aggregate-60 cap and internal fanout four.
+
 ## 2026-09-20 — Semi/Score-only Results20 authorization
 
 - 11:07 EDT: Results40 completion was revalidated at 240/240 with all three auditor panels and final commit `a49936fd` on the remote branch. The next bounded task adds only Semi/Score-only static and promoted-RTT Results20 cells; Full/User are read-only report inputs and no method or evaluation semantics change is authorized.

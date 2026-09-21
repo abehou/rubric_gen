@@ -1,0 +1,2255 @@
+{
+  "assignment_count": 240,
+  "audit": {
+    "anthropic": 60,
+    "audit_studies": 3,
+    "gemini_workers": 3,
+    "google": 60,
+    "openai": 60,
+    "panels": {
+      "gemini": [
+        "gemini-3.8-flash"
+      ],
+      "sol": [
+        "gpt-5.6-sol"
+      ],
+      "sol_gemini": [
+        "gpt-5.6-sol",
+        "gemini-3.8-flash"
+      ]
+    },
+    "sol_workers": 60
+  },
+  "conditions": [
+    "semi-static",
+    "semi-red-team-trace-execution-provenance-high-proposer",
+    "score-only-static",
+    "score-only-red-team-trace-execution-provenance-high-proposer"
+  ],
+  "heldout_generation": {
+    "new20": "rigorous-V2 prompt source commit 47463ca",
+    "old20": "historical original-20 producer prompt; full text unrecovered"
+  },
+  "input_rows": [
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-8-1-static.yaml",
+      "config_sha256": "5dabe6fcaea8d15be26d823e4bc92b9da8810facb9beb7fd5e8afeb81c220472",
+      "experiment_id": "biomnibench-da-factorial-r10-7614e30e3487",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "7ae31e3febbaeb09b011cb15abaad7345c3e6cc213e1b65b7fb40fa8aed6da05"
+        },
+        {
+          "replicate": 2,
+          "sha256": "fefff52e34067dddc8bc9addb9139ed80104c65555c9a873b76a95fb87bef9c0"
+        },
+        {
+          "replicate": 3,
+          "sha256": "a0e4fa84351dcf0b117b5d00d7592303019dea6e74d89d9846664b0d9d313ba4"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-8-1",
+      "task_instruction_sha256": "2ddd2f0dfe0585268476d3d13baa835c3bf27040f1932945defa62aecbd787bb",
+      "task_rubric_sha256": "3368ddd9b390cbc075b34590ba506251aa995b04c746c967fc8e2982006e0645",
+      "variants": [
+        {
+          "json_sha256": "5fd5c2d65566dc7fc0bd9faf67bca71e5268b29c4a96fde77d79a751df1ac754",
+          "txt_sha256": "c1e29a300860ede333e3fe34fa16ed42d1ab0c67eadc7aaf33570111130ff529",
+          "variant": 0
+        },
+        {
+          "json_sha256": "92a5eef9c8a120b93681f947574311563d361e9836fc65f860855a0f88b888e3",
+          "txt_sha256": "08c8278d9699cd73a88dbd455a833b7a85d87755049e814b11f3ed63f029ebd2",
+          "variant": 1
+        },
+        {
+          "json_sha256": "17f7ee6ea32df89869a13307079d89eb68877cf5d01071b1d3f4c0aa61bca359",
+          "txt_sha256": "484d175b45fbdc62d8887dec4eb6fb1a7f77ae37bbfed71d3fcc352c6d24124f",
+          "variant": 2
+        },
+        {
+          "json_sha256": "463d8a35d11c71783713c1c66d4d19bb2eeda1ff98a595de6fb7990435e5424b",
+          "txt_sha256": "ed4239c698eee6a9b08637f9086c6b9fac163d3e00c115224a36756128c8c4b5",
+          "variant": 3
+        },
+        {
+          "json_sha256": "12bc38ded93b20c087eee6cf2796a674577767d398f8e694a0ab12761f30f2c6",
+          "txt_sha256": "308c22aafb1c65f847d3f14bce9ee414d9be56e7b981040c8f8dba2b349038bc",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-8-1-trace.yaml",
+      "config_sha256": "7f44821a1529027dbd0df20faf94e8e640136d236bab80d422ec564a69ce065a",
+      "experiment_id": "biomnibench-da-factorial-r10-f706cee4d48e",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/study/biomnibench-da-factorial-r10-d56d430de53a/pretreatment-rubrics",
+      "pretreatment_source_files": 21,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-8-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "7ae31e3febbaeb09b011cb15abaad7345c3e6cc213e1b65b7fb40fa8aed6da05"
+        },
+        {
+          "replicate": 2,
+          "sha256": "fefff52e34067dddc8bc9addb9139ed80104c65555c9a873b76a95fb87bef9c0"
+        },
+        {
+          "replicate": 3,
+          "sha256": "a0e4fa84351dcf0b117b5d00d7592303019dea6e74d89d9846664b0d9d313ba4"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-8-1",
+      "task_instruction_sha256": "2ddd2f0dfe0585268476d3d13baa835c3bf27040f1932945defa62aecbd787bb",
+      "task_rubric_sha256": "3368ddd9b390cbc075b34590ba506251aa995b04c746c967fc8e2982006e0645",
+      "variants": [
+        {
+          "json_sha256": "5fd5c2d65566dc7fc0bd9faf67bca71e5268b29c4a96fde77d79a751df1ac754",
+          "txt_sha256": "c1e29a300860ede333e3fe34fa16ed42d1ab0c67eadc7aaf33570111130ff529",
+          "variant": 0
+        },
+        {
+          "json_sha256": "92a5eef9c8a120b93681f947574311563d361e9836fc65f860855a0f88b888e3",
+          "txt_sha256": "08c8278d9699cd73a88dbd455a833b7a85d87755049e814b11f3ed63f029ebd2",
+          "variant": 1
+        },
+        {
+          "json_sha256": "17f7ee6ea32df89869a13307079d89eb68877cf5d01071b1d3f4c0aa61bca359",
+          "txt_sha256": "484d175b45fbdc62d8887dec4eb6fb1a7f77ae37bbfed71d3fcc352c6d24124f",
+          "variant": 2
+        },
+        {
+          "json_sha256": "463d8a35d11c71783713c1c66d4d19bb2eeda1ff98a595de6fb7990435e5424b",
+          "txt_sha256": "ed4239c698eee6a9b08637f9086c6b9fac163d3e00c115224a36756128c8c4b5",
+          "variant": 3
+        },
+        {
+          "json_sha256": "12bc38ded93b20c087eee6cf2796a674577767d398f8e694a0ab12761f30f2c6",
+          "txt_sha256": "308c22aafb1c65f847d3f14bce9ee414d9be56e7b981040c8f8dba2b349038bc",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-26-4-static.yaml",
+      "config_sha256": "0c05936cc67aee46ee92639f1c0fe06d0aac25f5e6b8ccd84abaa9d03d2b4633",
+      "experiment_id": "biomnibench-da-factorial-r10-dd04a0834327",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "be541f97db9ac3bfae979528c94268dbf82e8601cd38d86a9e1b4bf2db620d44"
+        },
+        {
+          "replicate": 2,
+          "sha256": "cdd524765646015a38aebd98dd3fd8a7419fa27723153611a2f04e421370258f"
+        },
+        {
+          "replicate": 3,
+          "sha256": "a32d123aa2b5538b51bee8bb779d634933e81893349ad925ce894995b4135b94"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-26-4",
+      "task_instruction_sha256": "e7aa1cedd5153cc5f4ed4f52ce5b11d44a634b904d1107c9828798aa46a055f2",
+      "task_rubric_sha256": "065255aace91ac7640f11837f8b8a3b269c900fffecf6988f22ba6ce3cdf409e",
+      "variants": [
+        {
+          "json_sha256": "a916723717e68967ab3f65d353d36780b4f61aa524400b674b9bdf8a99d906e9",
+          "txt_sha256": "c06a92f283cb587e459d67ec3939157c3f39413f5aefab50abe479fa4d237015",
+          "variant": 0
+        },
+        {
+          "json_sha256": "8919254cd9ffb31fea377698f2024b3a1ae6e14c56a79e1e59e70d63974af2a2",
+          "txt_sha256": "5f992aa98a15df09dce510a2a391bc010309274c4ab6085e227c2399c3a4d804",
+          "variant": 1
+        },
+        {
+          "json_sha256": "adcfb1805de727946b71ecf037db9af5be6ce8efc2d14efae68e44a83ba92e40",
+          "txt_sha256": "683a14d51e229edd6ecc8315df717d5fd00648ab395f7fc2ca2dbd7e5687f1bc",
+          "variant": 2
+        },
+        {
+          "json_sha256": "3ca8311a9020b2da0f9b9afd4be340fc9d6123e8e70fa5daa0954ec690aa9d97",
+          "txt_sha256": "51442fc3724089e326c18d9110ae3acaf6efae45ec8de4946970112e6c2ab8c4",
+          "variant": 3
+        },
+        {
+          "json_sha256": "7504359f5bda674ba3e3675796d29ccebdef3a52238f5c1a7d56dc2e246c4a56",
+          "txt_sha256": "d2344c9e1ebdf29d489f092c69e9b63cfc93ee4f140b497d354db0782249e0bc",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-26-4-trace.yaml",
+      "config_sha256": "40e6816d5b2893b69bcdc71c4a3f3f272ff08117e4a2b2b160cdc14c607b9470",
+      "experiment_id": "biomnibench-da-factorial-r10-2ff56e5d43d1",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/study/biomnibench-da-factorial-r10-b5bc0babeafb/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-4/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "be541f97db9ac3bfae979528c94268dbf82e8601cd38d86a9e1b4bf2db620d44"
+        },
+        {
+          "replicate": 2,
+          "sha256": "cdd524765646015a38aebd98dd3fd8a7419fa27723153611a2f04e421370258f"
+        },
+        {
+          "replicate": 3,
+          "sha256": "a32d123aa2b5538b51bee8bb779d634933e81893349ad925ce894995b4135b94"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-26-4",
+      "task_instruction_sha256": "e7aa1cedd5153cc5f4ed4f52ce5b11d44a634b904d1107c9828798aa46a055f2",
+      "task_rubric_sha256": "065255aace91ac7640f11837f8b8a3b269c900fffecf6988f22ba6ce3cdf409e",
+      "variants": [
+        {
+          "json_sha256": "a916723717e68967ab3f65d353d36780b4f61aa524400b674b9bdf8a99d906e9",
+          "txt_sha256": "c06a92f283cb587e459d67ec3939157c3f39413f5aefab50abe479fa4d237015",
+          "variant": 0
+        },
+        {
+          "json_sha256": "8919254cd9ffb31fea377698f2024b3a1ae6e14c56a79e1e59e70d63974af2a2",
+          "txt_sha256": "5f992aa98a15df09dce510a2a391bc010309274c4ab6085e227c2399c3a4d804",
+          "variant": 1
+        },
+        {
+          "json_sha256": "adcfb1805de727946b71ecf037db9af5be6ce8efc2d14efae68e44a83ba92e40",
+          "txt_sha256": "683a14d51e229edd6ecc8315df717d5fd00648ab395f7fc2ca2dbd7e5687f1bc",
+          "variant": 2
+        },
+        {
+          "json_sha256": "3ca8311a9020b2da0f9b9afd4be340fc9d6123e8e70fa5daa0954ec690aa9d97",
+          "txt_sha256": "51442fc3724089e326c18d9110ae3acaf6efae45ec8de4946970112e6c2ab8c4",
+          "variant": 3
+        },
+        {
+          "json_sha256": "7504359f5bda674ba3e3675796d29ccebdef3a52238f5c1a7d56dc2e246c4a56",
+          "txt_sha256": "d2344c9e1ebdf29d489f092c69e9b63cfc93ee4f140b497d354db0782249e0bc",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-20-4-static.yaml",
+      "config_sha256": "8ad77b9a2c3f62ed89de53cf2c969f8817186e4c061e7ab70129edb0d1d111f2",
+      "experiment_id": "biomnibench-da-factorial-r10-98fcb5b37392",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "c52bb2a78ee7757d449c4edc0541ee7b69706b5def4570b27b23f82414dd3530"
+        },
+        {
+          "replicate": 2,
+          "sha256": "9b25002c051e945e9af1b5450e05453e9f6d1b03d76c71836e672f0cf15fcade"
+        },
+        {
+          "replicate": 3,
+          "sha256": "b33f2dc06f8f6125fe9031e259b7dea53f50081118643a9ec6e782664c3a6da9"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-20-4",
+      "task_instruction_sha256": "8338b41cc1328d34c938a6e4910486aa13dda299f7fa8e2fef5e65d0d221a6a0",
+      "task_rubric_sha256": "4d759e8c5cf738918029faedc4d217bc5f6aa196c886b1894a58d5ad43802a3d",
+      "variants": [
+        {
+          "json_sha256": "b2d0f63c30fc8d5412ab9ccb070a1dd2ec886471242fa7134815b9efb1c17c70",
+          "txt_sha256": "e2bbbb6e5ba15cc262e9ec4e2a0c0558386feec807ac3bff2ce29464489cba71",
+          "variant": 0
+        },
+        {
+          "json_sha256": "c3bf8ace9da314a76b36a0c87e08d2abfd479fd430140f78785a2b3f5f2f1fa0",
+          "txt_sha256": "6206a62b1c7efacae995fb6798b338c0179aa919964aa5633310e26492017b4a",
+          "variant": 1
+        },
+        {
+          "json_sha256": "e84ec9e2756d78777f4a9e4b2b6c008e166989f5a5bed14158ba2741816d274c",
+          "txt_sha256": "aaea56d30c7a4e0aa772e6e6e242a3ef9d67857db2f76f721fd80238c9079c41",
+          "variant": 2
+        },
+        {
+          "json_sha256": "68909a02061754959ea8f71ee96b37871e84eae925cffaa36da2aa62d49d9b57",
+          "txt_sha256": "59a6eb8d184b97f27764c3ee7bf674d5bb561b973987e096aae9f7a3c69a57b0",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d4421602b7eba77b3e1050439024a533587ff01e1fd8d5c6a4e84a750b315181",
+          "txt_sha256": "29f22f20103e8900db87fa2f1e2adbd6c5b352f3d29f08ec0c9e58b450633989",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-20-4-trace.yaml",
+      "config_sha256": "bc8e9b2bb55613b89acc2b4587dbea57b1f740f62497c0e659c58f9f952e00b9",
+      "experiment_id": "biomnibench-da-factorial-r10-4fb5b30ebaab",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/study/biomnibench-da-factorial-r10-8bfe4828ce05/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-20-4/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "c52bb2a78ee7757d449c4edc0541ee7b69706b5def4570b27b23f82414dd3530"
+        },
+        {
+          "replicate": 2,
+          "sha256": "9b25002c051e945e9af1b5450e05453e9f6d1b03d76c71836e672f0cf15fcade"
+        },
+        {
+          "replicate": 3,
+          "sha256": "b33f2dc06f8f6125fe9031e259b7dea53f50081118643a9ec6e782664c3a6da9"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-20-4",
+      "task_instruction_sha256": "8338b41cc1328d34c938a6e4910486aa13dda299f7fa8e2fef5e65d0d221a6a0",
+      "task_rubric_sha256": "4d759e8c5cf738918029faedc4d217bc5f6aa196c886b1894a58d5ad43802a3d",
+      "variants": [
+        {
+          "json_sha256": "b2d0f63c30fc8d5412ab9ccb070a1dd2ec886471242fa7134815b9efb1c17c70",
+          "txt_sha256": "e2bbbb6e5ba15cc262e9ec4e2a0c0558386feec807ac3bff2ce29464489cba71",
+          "variant": 0
+        },
+        {
+          "json_sha256": "c3bf8ace9da314a76b36a0c87e08d2abfd479fd430140f78785a2b3f5f2f1fa0",
+          "txt_sha256": "6206a62b1c7efacae995fb6798b338c0179aa919964aa5633310e26492017b4a",
+          "variant": 1
+        },
+        {
+          "json_sha256": "e84ec9e2756d78777f4a9e4b2b6c008e166989f5a5bed14158ba2741816d274c",
+          "txt_sha256": "aaea56d30c7a4e0aa772e6e6e242a3ef9d67857db2f76f721fd80238c9079c41",
+          "variant": 2
+        },
+        {
+          "json_sha256": "68909a02061754959ea8f71ee96b37871e84eae925cffaa36da2aa62d49d9b57",
+          "txt_sha256": "59a6eb8d184b97f27764c3ee7bf674d5bb561b973987e096aae9f7a3c69a57b0",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d4421602b7eba77b3e1050439024a533587ff01e1fd8d5c6a4e84a750b315181",
+          "txt_sha256": "29f22f20103e8900db87fa2f1e2adbd6c5b352f3d29f08ec0c9e58b450633989",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-19-3-static.yaml",
+      "config_sha256": "baccf12076c0f59d4e2e83653399204bf09d81c1103ee76f3c8ab7ab21e1152b",
+      "experiment_id": "biomnibench-da-factorial-r10-184335270f30",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "0e0b97bcbca526ce0220a1fe5e737c7d91547e87b3528c36e1f5e913c0747192"
+        },
+        {
+          "replicate": 2,
+          "sha256": "1d7529907cc1a3771b1604475e6dd9ce28857a9bc8e2c3032435de9f940f78ff"
+        },
+        {
+          "replicate": 3,
+          "sha256": "e7604c3944eb9712d8a590d8b7aa96397baaf5f7b9207e43d257574e16b90f23"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-19-3",
+      "task_instruction_sha256": "cb00fea4ec07ebd01028f80b96cbbf6fa093df6edacabcf5db810cc7bf59a1d1",
+      "task_rubric_sha256": "66266b1226268e80b0685e7313ae3ab146950d651b4694501279e1c4a87b9e6e",
+      "variants": [
+        {
+          "json_sha256": "a4c2e7e8c5819d318ce14830d28a300d84f32b06d952352433229bf39a942257",
+          "txt_sha256": "a8a1947e2eb33410e312d21c15930685ee9296460567efbaf0abbe6cbcc61b66",
+          "variant": 0
+        },
+        {
+          "json_sha256": "ea40e15e9f153b774721ee11a7dc2dce8ebb53b8995b7b13027383741efba530",
+          "txt_sha256": "8b6ea5d2b4326f192706308d7095ecab390d63da248a089049cc3ccf90d8e761",
+          "variant": 1
+        },
+        {
+          "json_sha256": "bdd986e485910088f032364a428b96ac546fc45ce909fc91e98afba80158e8c6",
+          "txt_sha256": "26fbdd41f90a299e8f89cc64dcc24d164286828625d5d286005ee3732a08d481",
+          "variant": 2
+        },
+        {
+          "json_sha256": "862a06bf04d328b87141ddb9c52f4a5b3a8f61ecbd989c5018f5119583a8197a",
+          "txt_sha256": "1613736dff150ae036d66eac40706db0f195079d55bd593e27ae018912aba3e9",
+          "variant": 3
+        },
+        {
+          "json_sha256": "80dcf6b6d11ace0b450a36bd536c81693d64fdf9c49c0ebc3f104d0c2da74339",
+          "txt_sha256": "1f53f652fede9f922e9b852e158555c9358437b6bd3c1be41ffadb82686f8528",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-19-3-trace.yaml",
+      "config_sha256": "ea4c8ec268c934aa26884157157e621eb29afd26b03b74cb33f6e067b5ab71c5",
+      "experiment_id": "biomnibench-da-factorial-r10-474e5f7ae065",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/study/biomnibench-da-factorial-r10-791d8b9f341e/pretreatment-rubrics",
+      "pretreatment_source_files": 21,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-19-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "0e0b97bcbca526ce0220a1fe5e737c7d91547e87b3528c36e1f5e913c0747192"
+        },
+        {
+          "replicate": 2,
+          "sha256": "1d7529907cc1a3771b1604475e6dd9ce28857a9bc8e2c3032435de9f940f78ff"
+        },
+        {
+          "replicate": 3,
+          "sha256": "e7604c3944eb9712d8a590d8b7aa96397baaf5f7b9207e43d257574e16b90f23"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-19-3",
+      "task_instruction_sha256": "cb00fea4ec07ebd01028f80b96cbbf6fa093df6edacabcf5db810cc7bf59a1d1",
+      "task_rubric_sha256": "66266b1226268e80b0685e7313ae3ab146950d651b4694501279e1c4a87b9e6e",
+      "variants": [
+        {
+          "json_sha256": "a4c2e7e8c5819d318ce14830d28a300d84f32b06d952352433229bf39a942257",
+          "txt_sha256": "a8a1947e2eb33410e312d21c15930685ee9296460567efbaf0abbe6cbcc61b66",
+          "variant": 0
+        },
+        {
+          "json_sha256": "ea40e15e9f153b774721ee11a7dc2dce8ebb53b8995b7b13027383741efba530",
+          "txt_sha256": "8b6ea5d2b4326f192706308d7095ecab390d63da248a089049cc3ccf90d8e761",
+          "variant": 1
+        },
+        {
+          "json_sha256": "bdd986e485910088f032364a428b96ac546fc45ce909fc91e98afba80158e8c6",
+          "txt_sha256": "26fbdd41f90a299e8f89cc64dcc24d164286828625d5d286005ee3732a08d481",
+          "variant": 2
+        },
+        {
+          "json_sha256": "862a06bf04d328b87141ddb9c52f4a5b3a8f61ecbd989c5018f5119583a8197a",
+          "txt_sha256": "1613736dff150ae036d66eac40706db0f195079d55bd593e27ae018912aba3e9",
+          "variant": 3
+        },
+        {
+          "json_sha256": "80dcf6b6d11ace0b450a36bd536c81693d64fdf9c49c0ebc3f104d0c2da74339",
+          "txt_sha256": "1f53f652fede9f922e9b852e158555c9358437b6bd3c1be41ffadb82686f8528",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-4-1-static.yaml",
+      "config_sha256": "18b857a41acc76435310e57c2e1125d98dbba86f289d09c6b21be24c37c94548",
+      "experiment_id": "biomnibench-da-factorial-r10-e86339e74b11",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "2d32f742aa87d630075b7254dc003352ab2b5ea5568c710f2b121a5bcd7ac739"
+        },
+        {
+          "replicate": 2,
+          "sha256": "0fed9e90d02f950071a9442a1601377aa43dd67da07993393f65419994f6c2d2"
+        },
+        {
+          "replicate": 3,
+          "sha256": "38f09c2f533db076029644cbdf56edbfe35c7ab4ea5377d2d8224e4d2c6eb3a1"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-4-1",
+      "task_instruction_sha256": "17feac18336006facb0570f6b662d729f1ad74be91b0a8154b47cd84eb33f413",
+      "task_rubric_sha256": "1109767ef1aab10a36f1f54f05b0f0d9cff0fdefa22185e24a31fd611217f6b5",
+      "variants": [
+        {
+          "json_sha256": "204a47ea8df2440ecd674313fcc9514b6b678936fda3512ea9213805556d35e4",
+          "txt_sha256": "de3275e7d45f2ba460bd76ec13f588aeb9577aea61a98fb59c0c2a02b50b5684",
+          "variant": 0
+        },
+        {
+          "json_sha256": "a940569832b1199232a65ac5ad026f02fef90109407dbb15e2fe4b924cd521cb",
+          "txt_sha256": "ae37b494932ca740e4a3c241cbffbf1581d52dbb5d44069ec96831f2e3bb6eac",
+          "variant": 1
+        },
+        {
+          "json_sha256": "2b505be85547963780badf2d5e5db5acde68cea85855dd256df2ce1bd15f043f",
+          "txt_sha256": "c41e12452f3ecf79d3460fae186158e30cf52fbe4a41aaf1b72720e1fa58153a",
+          "variant": 2
+        },
+        {
+          "json_sha256": "730ed6f7e65694de99c8d042ae36aa8bb698a2fdc2445b7231d811347eda7149",
+          "txt_sha256": "2532bb8be7f5a1cb1c11b9a05f0c144139a1b9e45dcaa0c16a191b954f39c60d",
+          "variant": 3
+        },
+        {
+          "json_sha256": "f5c284b30460819128d304c146352898075e3296b272467abbfcef02bb864471",
+          "txt_sha256": "982a4e033a428f51042c339db09ffb2b3c5531848da7afeddcb8f27a578339e7",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-4-1-trace.yaml",
+      "config_sha256": "d3a6d9a8e1bee50fe9efbfea785b51ab4bb1c6afc268a91bc7cc68d29a392883",
+      "experiment_id": "biomnibench-da-factorial-r10-569042b81e82",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/study/biomnibench-da-factorial-r10-4e2b003a3209/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "2d32f742aa87d630075b7254dc003352ab2b5ea5568c710f2b121a5bcd7ac739"
+        },
+        {
+          "replicate": 2,
+          "sha256": "0fed9e90d02f950071a9442a1601377aa43dd67da07993393f65419994f6c2d2"
+        },
+        {
+          "replicate": 3,
+          "sha256": "38f09c2f533db076029644cbdf56edbfe35c7ab4ea5377d2d8224e4d2c6eb3a1"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-4-1",
+      "task_instruction_sha256": "17feac18336006facb0570f6b662d729f1ad74be91b0a8154b47cd84eb33f413",
+      "task_rubric_sha256": "1109767ef1aab10a36f1f54f05b0f0d9cff0fdefa22185e24a31fd611217f6b5",
+      "variants": [
+        {
+          "json_sha256": "204a47ea8df2440ecd674313fcc9514b6b678936fda3512ea9213805556d35e4",
+          "txt_sha256": "de3275e7d45f2ba460bd76ec13f588aeb9577aea61a98fb59c0c2a02b50b5684",
+          "variant": 0
+        },
+        {
+          "json_sha256": "a940569832b1199232a65ac5ad026f02fef90109407dbb15e2fe4b924cd521cb",
+          "txt_sha256": "ae37b494932ca740e4a3c241cbffbf1581d52dbb5d44069ec96831f2e3bb6eac",
+          "variant": 1
+        },
+        {
+          "json_sha256": "2b505be85547963780badf2d5e5db5acde68cea85855dd256df2ce1bd15f043f",
+          "txt_sha256": "c41e12452f3ecf79d3460fae186158e30cf52fbe4a41aaf1b72720e1fa58153a",
+          "variant": 2
+        },
+        {
+          "json_sha256": "730ed6f7e65694de99c8d042ae36aa8bb698a2fdc2445b7231d811347eda7149",
+          "txt_sha256": "2532bb8be7f5a1cb1c11b9a05f0c144139a1b9e45dcaa0c16a191b954f39c60d",
+          "variant": 3
+        },
+        {
+          "json_sha256": "f5c284b30460819128d304c146352898075e3296b272467abbfcef02bb864471",
+          "txt_sha256": "982a4e033a428f51042c339db09ffb2b3c5531848da7afeddcb8f27a578339e7",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-1-3-static.yaml",
+      "config_sha256": "d2c021ef20d28ed231c6cc6894fce6261ad63e21172902c19171c97b95b629da",
+      "experiment_id": "biomnibench-da-factorial-r10-c1f5a519f5be",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "3c0aa3b14d682f6320658a6d6eb8806dd200c40caca08e38600244927ee801c4"
+        },
+        {
+          "replicate": 2,
+          "sha256": "c7b895e9bbe34653bc3b2bf59af45bc83ac7c4e02f96db0210d7f2ed6c161d05"
+        },
+        {
+          "replicate": 3,
+          "sha256": "648cfcc2601213c767cca12ad099ea8bd171df4456a3278356e182b09fc4129c"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-1-3",
+      "task_instruction_sha256": "1f3d6be0015cb118289667d3c8fcd44b825e4d0fe19b4bfcaacda7bf918e61fa",
+      "task_rubric_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+      "variants": [
+        {
+          "json_sha256": "c7eeed79aa6484c6e292213651c5115f75fca3b80238f0cec911eb9fedafa7d0",
+          "txt_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+          "variant": 0
+        },
+        {
+          "json_sha256": "35ced61ae7804cc75bf9c61229d3dd6b91f06ca74b222a1fcce1f7809e94d895",
+          "txt_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+          "variant": 1
+        },
+        {
+          "json_sha256": "dadd2994ae87b71bcdeebdfaa2c60a0610cb136c9f381ef8ab9b9cd9ff6d648d",
+          "txt_sha256": "7de29b190c46eb77a14d8dc214d7b44fd34aa157ad15761c15f3a7905ef38f81",
+          "variant": 2
+        },
+        {
+          "json_sha256": "4dc669e129e0377021de9456b59721ab859a19af08e4f0c106b760df9f793e95",
+          "txt_sha256": "a4732ace1f7278c4609277b0c75681cd3f41928aa198cd3ab93236f75c668c9e",
+          "variant": 3
+        },
+        {
+          "json_sha256": "bcd015f99aee3c927f5bfb1b536e8a7b05797035f598aceef6d67dfb808bec23",
+          "txt_sha256": "8255924c13510ec8b51d26f70e90f570b484c6db4e49e4b904b18007d753f53a",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-1-3-trace.yaml",
+      "config_sha256": "40438896ee607b7908f2762d481d6288505969650b4d3972cc223ca1f2e797c3",
+      "experiment_id": "biomnibench-da-factorial-r10-4079a4305da5",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-1-3/trace/biomnibench-da-factorial-r10-9171e9645e6d/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-1-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "3c0aa3b14d682f6320658a6d6eb8806dd200c40caca08e38600244927ee801c4"
+        },
+        {
+          "replicate": 2,
+          "sha256": "c7b895e9bbe34653bc3b2bf59af45bc83ac7c4e02f96db0210d7f2ed6c161d05"
+        },
+        {
+          "replicate": 3,
+          "sha256": "648cfcc2601213c767cca12ad099ea8bd171df4456a3278356e182b09fc4129c"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-1-3",
+      "task_instruction_sha256": "1f3d6be0015cb118289667d3c8fcd44b825e4d0fe19b4bfcaacda7bf918e61fa",
+      "task_rubric_sha256": "d084d5cc063c7daa068c87cb7dac491380298ec406dc76c9417afe7fea2cb4cc",
+      "variants": [
+        {
+          "json_sha256": "c7eeed79aa6484c6e292213651c5115f75fca3b80238f0cec911eb9fedafa7d0",
+          "txt_sha256": "e62ae9aa0a687a0fdaadfd620636fbe158714300f1ef3f87a1bf691e974f6d70",
+          "variant": 0
+        },
+        {
+          "json_sha256": "35ced61ae7804cc75bf9c61229d3dd6b91f06ca74b222a1fcce1f7809e94d895",
+          "txt_sha256": "70574a82f7a45ca5f061edb9ec9bb3639e27c5a3e5afdf5ad8452ec683f0098c",
+          "variant": 1
+        },
+        {
+          "json_sha256": "dadd2994ae87b71bcdeebdfaa2c60a0610cb136c9f381ef8ab9b9cd9ff6d648d",
+          "txt_sha256": "7de29b190c46eb77a14d8dc214d7b44fd34aa157ad15761c15f3a7905ef38f81",
+          "variant": 2
+        },
+        {
+          "json_sha256": "4dc669e129e0377021de9456b59721ab859a19af08e4f0c106b760df9f793e95",
+          "txt_sha256": "a4732ace1f7278c4609277b0c75681cd3f41928aa198cd3ab93236f75c668c9e",
+          "variant": 3
+        },
+        {
+          "json_sha256": "bcd015f99aee3c927f5bfb1b536e8a7b05797035f598aceef6d67dfb808bec23",
+          "txt_sha256": "8255924c13510ec8b51d26f70e90f570b484c6db4e49e4b904b18007d753f53a",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-3-5-static.yaml",
+      "config_sha256": "280507ef694c8d6f879e075351577554efb732456f7524cba8c3a962fdc1544d",
+      "experiment_id": "biomnibench-da-factorial-r10-caa0062e726a",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "1173d2cedbba956a37472b51880be11cbb8fa8da94db10396d98885c84c9ac38"
+        },
+        {
+          "replicate": 2,
+          "sha256": "e474effe8f9d87666a5c50e6a155e43c2f6be249864bca86ab55d71d281dcf18"
+        },
+        {
+          "replicate": 3,
+          "sha256": "16cf096c97b2bf3d8c01612c1162d9d55ef833ccebea56a865fe700b5f64b482"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-3-5",
+      "task_instruction_sha256": "d43d5c5f79ef5fde4faed872e79302e81e8585fb12000466b5ad291e7a0c0004",
+      "task_rubric_sha256": "44362cc5d3040aea092e149d776d8d5e0ea5825334614520a1270512e08e13c1",
+      "variants": [
+        {
+          "json_sha256": "9195aeb22d2d7f2a1fa5a196ef6b0ea1f9a5197b9b23d6b07fa410c49fa84a07",
+          "txt_sha256": "636d0874a3e40d78e768b79fb61d46badf30f1faa18cce0d7301c436bc0de603",
+          "variant": 0
+        },
+        {
+          "json_sha256": "cf9ed5a1c8e84cb8c3da7214ff0a27ba6121ea9baa0edc0f7159925cc15a6575",
+          "txt_sha256": "a6d78990ca0a7b74cf459980e8f033dc1613f90290151766d310248eb49d67bc",
+          "variant": 1
+        },
+        {
+          "json_sha256": "d6eee4b55d0cddf94a8771ebe042b50605118381285c5bc5f7c154537bd9577a",
+          "txt_sha256": "c3899fd8c876c95b9defda6977553b60b50d085bb961989924d607f9ae4232e9",
+          "variant": 2
+        },
+        {
+          "json_sha256": "c59a346014120f4a430e7aa06063ba35fceb9a81673a7dbc615d5771497b5638",
+          "txt_sha256": "eedf4b443481e1821907e7d0699a7a7500c30bbec786cb44694bb24adffd4025",
+          "variant": 3
+        },
+        {
+          "json_sha256": "bf3c49bd43a52aaa9f02e98daf4456e9ed745c9fd65818bcc76465db08702057",
+          "txt_sha256": "4d512fedb1645f77b339f697f9c22f3317e07a7f16a90a2b293f08f402016cb7",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-3-5-trace.yaml",
+      "config_sha256": "8f3f6533ade4cf44a7566e999eba614212013b2fc83a31676b71e7a352bf8cf3",
+      "experiment_id": "biomnibench-da-factorial-r10-f708c3842bdf",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/study/biomnibench-da-factorial-r10-e91de7eaf32d/pretreatment-rubrics",
+      "pretreatment_source_files": 21,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-3-5/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "1173d2cedbba956a37472b51880be11cbb8fa8da94db10396d98885c84c9ac38"
+        },
+        {
+          "replicate": 2,
+          "sha256": "e474effe8f9d87666a5c50e6a155e43c2f6be249864bca86ab55d71d281dcf18"
+        },
+        {
+          "replicate": 3,
+          "sha256": "16cf096c97b2bf3d8c01612c1162d9d55ef833ccebea56a865fe700b5f64b482"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-3-5",
+      "task_instruction_sha256": "d43d5c5f79ef5fde4faed872e79302e81e8585fb12000466b5ad291e7a0c0004",
+      "task_rubric_sha256": "44362cc5d3040aea092e149d776d8d5e0ea5825334614520a1270512e08e13c1",
+      "variants": [
+        {
+          "json_sha256": "9195aeb22d2d7f2a1fa5a196ef6b0ea1f9a5197b9b23d6b07fa410c49fa84a07",
+          "txt_sha256": "636d0874a3e40d78e768b79fb61d46badf30f1faa18cce0d7301c436bc0de603",
+          "variant": 0
+        },
+        {
+          "json_sha256": "cf9ed5a1c8e84cb8c3da7214ff0a27ba6121ea9baa0edc0f7159925cc15a6575",
+          "txt_sha256": "a6d78990ca0a7b74cf459980e8f033dc1613f90290151766d310248eb49d67bc",
+          "variant": 1
+        },
+        {
+          "json_sha256": "d6eee4b55d0cddf94a8771ebe042b50605118381285c5bc5f7c154537bd9577a",
+          "txt_sha256": "c3899fd8c876c95b9defda6977553b60b50d085bb961989924d607f9ae4232e9",
+          "variant": 2
+        },
+        {
+          "json_sha256": "c59a346014120f4a430e7aa06063ba35fceb9a81673a7dbc615d5771497b5638",
+          "txt_sha256": "eedf4b443481e1821907e7d0699a7a7500c30bbec786cb44694bb24adffd4025",
+          "variant": 3
+        },
+        {
+          "json_sha256": "bf3c49bd43a52aaa9f02e98daf4456e9ed745c9fd65818bcc76465db08702057",
+          "txt_sha256": "4d512fedb1645f77b339f697f9c22f3317e07a7f16a90a2b293f08f402016cb7",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-4-6-static.yaml",
+      "config_sha256": "a2a98d5795d7cba2e7ceae1d93f910294e6deb0fe9c884b79efc4de1f739afd4",
+      "experiment_id": "biomnibench-da-factorial-r10-fea89cac12f7",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "87a626456c204622c32d0f699a9e6961cbc3c6ab676618d7e364bee01186e556"
+        },
+        {
+          "replicate": 2,
+          "sha256": "0807a9fa349cfd6d084bb30f616015646788672082d38529313f86703313c67e"
+        },
+        {
+          "replicate": 3,
+          "sha256": "4289f51bc5834cd20645c9654e44efea8e201c23b4a081d668880dda6b0a2a0a"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-4-6",
+      "task_instruction_sha256": "4c69c6c400962d1a46fe902ee51dc5dd66d83b1544d03cf17346e8a176952bae",
+      "task_rubric_sha256": "b94936604653bbeeb499730e815714f7a777d3bfc4abdc8dea94649f613bdb2c",
+      "variants": [
+        {
+          "json_sha256": "1579bee38da4ba6bf87857bc4a27a1a583e95943f4623d905dc767bd06895dac",
+          "txt_sha256": "299725c0bd8c3a7a45b9554a2f85a1064c4a047d45872c43ec9b86fd4f2394e0",
+          "variant": 0
+        },
+        {
+          "json_sha256": "d2983a5310f14dec15608d0979f20f4580560da967498117fe7f81a169f47a0a",
+          "txt_sha256": "6028ba3ef93e2e58661ec669688164ff892cfe9bd20471acee5060208d2382ce",
+          "variant": 1
+        },
+        {
+          "json_sha256": "94b831596abc3c8ed8233d582590018588dd6c995bdc50497163bcf3e9bdfa0e",
+          "txt_sha256": "58efce2e1f9bbed9e0de65689ce10a379fff17cf246afd8318c422caad8fe646",
+          "variant": 2
+        },
+        {
+          "json_sha256": "b791d9d1d4f498b3123cd8ae481f47822907878078c64a7a3d23b45e07f12c63",
+          "txt_sha256": "d6483f4034e1c03b938720b68367a90641ea528c074dd9681b423a9fa4adec30",
+          "variant": 3
+        },
+        {
+          "json_sha256": "0ff5aa19a6818ea78a92cf85ce97fdea81628f140fcc2178d4c06dab3c5b4a9e",
+          "txt_sha256": "b0372e9c2cc01bdb2107ca2f742ed937e84c7cfbd27a5abfccceb732b03cea59",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-4-6-trace.yaml",
+      "config_sha256": "c48fea00b0726dbafa5a35b8104d062e3b471012bb48f92f28d737bfa368838a",
+      "experiment_id": "biomnibench-da-factorial-r10-793ce9e6b4d6",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/study/biomnibench-da-factorial-r10-15c76fde59ca/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-4-6/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "87a626456c204622c32d0f699a9e6961cbc3c6ab676618d7e364bee01186e556"
+        },
+        {
+          "replicate": 2,
+          "sha256": "0807a9fa349cfd6d084bb30f616015646788672082d38529313f86703313c67e"
+        },
+        {
+          "replicate": 3,
+          "sha256": "4289f51bc5834cd20645c9654e44efea8e201c23b4a081d668880dda6b0a2a0a"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-4-6",
+      "task_instruction_sha256": "4c69c6c400962d1a46fe902ee51dc5dd66d83b1544d03cf17346e8a176952bae",
+      "task_rubric_sha256": "b94936604653bbeeb499730e815714f7a777d3bfc4abdc8dea94649f613bdb2c",
+      "variants": [
+        {
+          "json_sha256": "1579bee38da4ba6bf87857bc4a27a1a583e95943f4623d905dc767bd06895dac",
+          "txt_sha256": "299725c0bd8c3a7a45b9554a2f85a1064c4a047d45872c43ec9b86fd4f2394e0",
+          "variant": 0
+        },
+        {
+          "json_sha256": "d2983a5310f14dec15608d0979f20f4580560da967498117fe7f81a169f47a0a",
+          "txt_sha256": "6028ba3ef93e2e58661ec669688164ff892cfe9bd20471acee5060208d2382ce",
+          "variant": 1
+        },
+        {
+          "json_sha256": "94b831596abc3c8ed8233d582590018588dd6c995bdc50497163bcf3e9bdfa0e",
+          "txt_sha256": "58efce2e1f9bbed9e0de65689ce10a379fff17cf246afd8318c422caad8fe646",
+          "variant": 2
+        },
+        {
+          "json_sha256": "b791d9d1d4f498b3123cd8ae481f47822907878078c64a7a3d23b45e07f12c63",
+          "txt_sha256": "d6483f4034e1c03b938720b68367a90641ea528c074dd9681b423a9fa4adec30",
+          "variant": 3
+        },
+        {
+          "json_sha256": "0ff5aa19a6818ea78a92cf85ce97fdea81628f140fcc2178d4c06dab3c5b4a9e",
+          "txt_sha256": "b0372e9c2cc01bdb2107ca2f742ed937e84c7cfbd27a5abfccceb732b03cea59",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-5-1-static.yaml",
+      "config_sha256": "8237409a122ffad0502b9aa12ac5551969f98514af39df7000fd214dad717c04",
+      "experiment_id": "biomnibench-da-factorial-r10-7987ffe75a37",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "d8aa8f144bcfe27061b87d8a97c0c4683017b67c8b787e9b404a8ad6141453bf"
+        },
+        {
+          "replicate": 2,
+          "sha256": "5b606990dffa04e30fc9ac48f182ccab2c7a243b6518b6b9b0bcc7aadc4b8d25"
+        },
+        {
+          "replicate": 3,
+          "sha256": "6952f85ace4d3b69823a6759e49608595614f60b37d2c9965903344a89dc8976"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-5-1",
+      "task_instruction_sha256": "b7d180a952215866d87f58b9c865f23d67f762910e60fbfc2ebcaae4a8209ed2",
+      "task_rubric_sha256": "ec7856235815b2bd5ae44bad847e1024f73ca51b24f061b4b6b0dfc95798e9ef",
+      "variants": [
+        {
+          "json_sha256": "0bd365a62481ad203f71fbaea950efa78f3f0538edf475d632c43047ec16418d",
+          "txt_sha256": "6c9d52a56d4879d472312815554c1e4d84895bc54e840e3ed24b9b4468a6010b",
+          "variant": 0
+        },
+        {
+          "json_sha256": "9394049bddc38ad37091e3cdcbf150709574b182bba24d773f72c2ddcebd0d42",
+          "txt_sha256": "a64817aa548f1bf7f3d99ffc86a764a9ced429a18414631f048c167325575923",
+          "variant": 1
+        },
+        {
+          "json_sha256": "df54ba4224c8570956f6470c4d7eb547c5822f42ad783c67042828d3dbd81d0f",
+          "txt_sha256": "17ce09edb9832855a7a8701a6361f165fb131292178aa80616779f87282d674b",
+          "variant": 2
+        },
+        {
+          "json_sha256": "f2119d312811be202959d5b5a8554047c3103f4846fc8300d626e6777bf2e1c2",
+          "txt_sha256": "391cf17684138d6e84d1b10116e300513988b9dc240b498272164ab70835b97a",
+          "variant": 3
+        },
+        {
+          "json_sha256": "16b3e9a02f96dab3fcae6e1469585fb6ad8da9590ce30c51392dfb9495474e8b",
+          "txt_sha256": "8c2dcf016de73fb250a232e8e484c5a0f83e21542790209ad83fd661cc06dc7c",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-5-1-trace.yaml",
+      "config_sha256": "b19e5062a4e6d5e1fde634179aac3a0c6de0c98027a42b8ee0eade80d3754229",
+      "experiment_id": "biomnibench-da-factorial-r10-336055af37e3",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/study/biomnibench-da-factorial-r10-1735c400364d/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-5-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "d8aa8f144bcfe27061b87d8a97c0c4683017b67c8b787e9b404a8ad6141453bf"
+        },
+        {
+          "replicate": 2,
+          "sha256": "5b606990dffa04e30fc9ac48f182ccab2c7a243b6518b6b9b0bcc7aadc4b8d25"
+        },
+        {
+          "replicate": 3,
+          "sha256": "6952f85ace4d3b69823a6759e49608595614f60b37d2c9965903344a89dc8976"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-5-1",
+      "task_instruction_sha256": "b7d180a952215866d87f58b9c865f23d67f762910e60fbfc2ebcaae4a8209ed2",
+      "task_rubric_sha256": "ec7856235815b2bd5ae44bad847e1024f73ca51b24f061b4b6b0dfc95798e9ef",
+      "variants": [
+        {
+          "json_sha256": "0bd365a62481ad203f71fbaea950efa78f3f0538edf475d632c43047ec16418d",
+          "txt_sha256": "6c9d52a56d4879d472312815554c1e4d84895bc54e840e3ed24b9b4468a6010b",
+          "variant": 0
+        },
+        {
+          "json_sha256": "9394049bddc38ad37091e3cdcbf150709574b182bba24d773f72c2ddcebd0d42",
+          "txt_sha256": "a64817aa548f1bf7f3d99ffc86a764a9ced429a18414631f048c167325575923",
+          "variant": 1
+        },
+        {
+          "json_sha256": "df54ba4224c8570956f6470c4d7eb547c5822f42ad783c67042828d3dbd81d0f",
+          "txt_sha256": "17ce09edb9832855a7a8701a6361f165fb131292178aa80616779f87282d674b",
+          "variant": 2
+        },
+        {
+          "json_sha256": "f2119d312811be202959d5b5a8554047c3103f4846fc8300d626e6777bf2e1c2",
+          "txt_sha256": "391cf17684138d6e84d1b10116e300513988b9dc240b498272164ab70835b97a",
+          "variant": 3
+        },
+        {
+          "json_sha256": "16b3e9a02f96dab3fcae6e1469585fb6ad8da9590ce30c51392dfb9495474e8b",
+          "txt_sha256": "8c2dcf016de73fb250a232e8e484c5a0f83e21542790209ad83fd661cc06dc7c",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-26-2-static.yaml",
+      "config_sha256": "c45a53989f7bff55b054f560ce2a7f626d3f97a648509de4487f7ca2d688dc0c",
+      "experiment_id": "biomnibench-da-factorial-r10-34ece658164c",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "af971e90d2fd2118e68164214d4f4ecebc4bfe5385e1b627b4a3854416c778ac"
+        },
+        {
+          "replicate": 2,
+          "sha256": "e63b4ced98aa4b14ffe22fc977b4da58eac9ac738eb8daff1477981bbcc287d4"
+        },
+        {
+          "replicate": 3,
+          "sha256": "273cf135816c73890b14c1721883e53e87f51586d9f44f2aa8dc45217094b61b"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-26-2",
+      "task_instruction_sha256": "f156d805c4884b72ca639fad614931045e3f45c9fedc348c0818ab41db771cbb",
+      "task_rubric_sha256": "eae5f2872d9bf33d10e1d7aba39ceb4d1373b5d514c2842ea99ee510ae91d5eb",
+      "variants": [
+        {
+          "json_sha256": "042e05344cf07436fde1906e67459abe924f006aeb9de661b30fedb604146e71",
+          "txt_sha256": "2922bbb6359014e6520b8e3297dbeb63be09ac9810c2720a12e7c29d990d2597",
+          "variant": 0
+        },
+        {
+          "json_sha256": "9769ae7dbf3a115d775576369010d4ce8f31effe5da94da78cecfa5d2db52bbb",
+          "txt_sha256": "54e478810d370a9453c0f17729b645ef32c74fa51e88958853208f7ab27f46c4",
+          "variant": 1
+        },
+        {
+          "json_sha256": "9547fce7f533e9e20b9ff9c4a41d348055d863271047974daba1f9e0750488a5",
+          "txt_sha256": "c0fc70b6b01c7afbcee77d248b7a1e61d6f6184b659285e46d75eda055ab517f",
+          "variant": 2
+        },
+        {
+          "json_sha256": "679444af461c405104248a7add65e7581532177d940e2fe04e3408d4185cfa7e",
+          "txt_sha256": "f5bfb2a1effa2a119660e4eb617f134235fba87ed0956108989a7f89a6b6d0b2",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d34daaad09d317b5040135e6448f0c1b51202ffc9d3c3ae5ac68f2e72e8172c6",
+          "txt_sha256": "22bf9d652b2740a480307a1387d3976ae6a50663e888b1597a7a9cde96f02612",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-26-2-trace.yaml",
+      "config_sha256": "e4fbb452994a2bd3e6c299d26539b3f2d8b9fb3c4e0219b01a590ea0c9a67a09",
+      "experiment_id": "biomnibench-da-factorial-r10-1e51504928ab",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/study/biomnibench-da-factorial-r10-028189c5ad90/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results30/da-26-2/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "af971e90d2fd2118e68164214d4f4ecebc4bfe5385e1b627b4a3854416c778ac"
+        },
+        {
+          "replicate": 2,
+          "sha256": "e63b4ced98aa4b14ffe22fc977b4da58eac9ac738eb8daff1477981bbcc287d4"
+        },
+        {
+          "replicate": 3,
+          "sha256": "273cf135816c73890b14c1721883e53e87f51586d9f44f2aa8dc45217094b61b"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-26-2",
+      "task_instruction_sha256": "f156d805c4884b72ca639fad614931045e3f45c9fedc348c0818ab41db771cbb",
+      "task_rubric_sha256": "eae5f2872d9bf33d10e1d7aba39ceb4d1373b5d514c2842ea99ee510ae91d5eb",
+      "variants": [
+        {
+          "json_sha256": "042e05344cf07436fde1906e67459abe924f006aeb9de661b30fedb604146e71",
+          "txt_sha256": "2922bbb6359014e6520b8e3297dbeb63be09ac9810c2720a12e7c29d990d2597",
+          "variant": 0
+        },
+        {
+          "json_sha256": "9769ae7dbf3a115d775576369010d4ce8f31effe5da94da78cecfa5d2db52bbb",
+          "txt_sha256": "54e478810d370a9453c0f17729b645ef32c74fa51e88958853208f7ab27f46c4",
+          "variant": 1
+        },
+        {
+          "json_sha256": "9547fce7f533e9e20b9ff9c4a41d348055d863271047974daba1f9e0750488a5",
+          "txt_sha256": "c0fc70b6b01c7afbcee77d248b7a1e61d6f6184b659285e46d75eda055ab517f",
+          "variant": 2
+        },
+        {
+          "json_sha256": "679444af461c405104248a7add65e7581532177d940e2fe04e3408d4185cfa7e",
+          "txt_sha256": "f5bfb2a1effa2a119660e4eb617f134235fba87ed0956108989a7f89a6b6d0b2",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d34daaad09d317b5040135e6448f0c1b51202ffc9d3c3ae5ac68f2e72e8172c6",
+          "txt_sha256": "22bf9d652b2740a480307a1387d3976ae6a50663e888b1597a7a9cde96f02612",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-9-7-static.yaml",
+      "config_sha256": "3d9ef78d874deb05a62f070831082039fdaa953d1f7fb7b725e3b3e05c886576",
+      "experiment_id": "biomnibench-da-factorial-r10-9c03a5a3941a",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-7/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-7/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "de668da7a97a6d7d397b75baa3eb1e6904e83e84fa2d589a45e228d2a2b66dfa"
+        },
+        {
+          "replicate": 2,
+          "sha256": "5d8f8124af857823675ffdad8a9dbb2fb7a923b37f78c27727d6edf9ec9d3924"
+        },
+        {
+          "replicate": 3,
+          "sha256": "37674e1af9c6e5acfc5692bfcf2e2f83271af3c2bdfd162f009cf8c0992dde71"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-9-7",
+      "task_instruction_sha256": "cd7d0178b47a9ae1e3484f3d2e35da0fd0b815706123e2124aaec3d41a875c74",
+      "task_rubric_sha256": "b29ba3b12c13cc82c259bfd3d6950f97f110a0f66797fa1e7858bad8dc2900cf",
+      "variants": [
+        {
+          "json_sha256": "fd5366c4df4a65e1c586e5a020f79fe02516c3f4f1b2d3fe8dff078ed0760c77",
+          "txt_sha256": "3f060128d807451072756150feac2dea88158d0303fe97a586e9b99abea89cc1",
+          "variant": 0
+        },
+        {
+          "json_sha256": "0f2fe905748ca88a350217e817725c68edf83fa590927b51d01a7cfa43591659",
+          "txt_sha256": "ec489cd7c55f5d7ac5955cfbf8a8a025671a8133ed99ea66d2b6dabd96604f31",
+          "variant": 1
+        },
+        {
+          "json_sha256": "1eac90cb30aff5565c263a005d90d68a330a78a50a00e70afe86be1b7f773bad",
+          "txt_sha256": "544d517fcd62b160940500f4b1a3e3a9971899f3c5ac66f30089fb44da59403a",
+          "variant": 2
+        },
+        {
+          "json_sha256": "ad3a1781d4749f6276fb870ed73544d90c7e44bc6a538bb623c58d0c3c675d11",
+          "txt_sha256": "3818d587ff4fca33b1099d7f8e3180b4909e958189f4a6d7a985fa28bce594e8",
+          "variant": 3
+        },
+        {
+          "json_sha256": "eb3c5fc4daaf7a6f227b556d015d366d0f85e26a095e558e67c75e515bebaeb7",
+          "txt_sha256": "24a08ca7820451656f402e9e6cf5a1a8334dbda2457a38a85c16b0f848812337",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-9-7-trace.yaml",
+      "config_sha256": "9c5d7e8dd68143e45ff68ad8f0c6a898c00fff09fe36fb85594bf619b3945717",
+      "experiment_id": "biomnibench-da-factorial-r10-fe38f7e7b59c",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-7/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-9-7/trace/biomnibench-da-factorial-r10-feca80b170be/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-7/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "de668da7a97a6d7d397b75baa3eb1e6904e83e84fa2d589a45e228d2a2b66dfa"
+        },
+        {
+          "replicate": 2,
+          "sha256": "5d8f8124af857823675ffdad8a9dbb2fb7a923b37f78c27727d6edf9ec9d3924"
+        },
+        {
+          "replicate": 3,
+          "sha256": "37674e1af9c6e5acfc5692bfcf2e2f83271af3c2bdfd162f009cf8c0992dde71"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-9-7",
+      "task_instruction_sha256": "cd7d0178b47a9ae1e3484f3d2e35da0fd0b815706123e2124aaec3d41a875c74",
+      "task_rubric_sha256": "b29ba3b12c13cc82c259bfd3d6950f97f110a0f66797fa1e7858bad8dc2900cf",
+      "variants": [
+        {
+          "json_sha256": "fd5366c4df4a65e1c586e5a020f79fe02516c3f4f1b2d3fe8dff078ed0760c77",
+          "txt_sha256": "3f060128d807451072756150feac2dea88158d0303fe97a586e9b99abea89cc1",
+          "variant": 0
+        },
+        {
+          "json_sha256": "0f2fe905748ca88a350217e817725c68edf83fa590927b51d01a7cfa43591659",
+          "txt_sha256": "ec489cd7c55f5d7ac5955cfbf8a8a025671a8133ed99ea66d2b6dabd96604f31",
+          "variant": 1
+        },
+        {
+          "json_sha256": "1eac90cb30aff5565c263a005d90d68a330a78a50a00e70afe86be1b7f773bad",
+          "txt_sha256": "544d517fcd62b160940500f4b1a3e3a9971899f3c5ac66f30089fb44da59403a",
+          "variant": 2
+        },
+        {
+          "json_sha256": "ad3a1781d4749f6276fb870ed73544d90c7e44bc6a538bb623c58d0c3c675d11",
+          "txt_sha256": "3818d587ff4fca33b1099d7f8e3180b4909e958189f4a6d7a985fa28bce594e8",
+          "variant": 3
+        },
+        {
+          "json_sha256": "eb3c5fc4daaf7a6f227b556d015d366d0f85e26a095e558e67c75e515bebaeb7",
+          "txt_sha256": "24a08ca7820451656f402e9e6cf5a1a8334dbda2457a38a85c16b0f848812337",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-24-3-static.yaml",
+      "config_sha256": "a56d94b3f94aa5f147391d6caad20f81d492573adb23abffa711199f67a03b5d",
+      "experiment_id": "biomnibench-da-factorial-r10-9b9f1afca6e2",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-24-3/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-24-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "2584b381107f899a8de6117e35b2c903626d559ab4107a30480aed4412332ddd"
+        },
+        {
+          "replicate": 2,
+          "sha256": "06d75307f8a9b421878310699c71a9951248578f61266ce5d6aa4b736b2e427a"
+        },
+        {
+          "replicate": 3,
+          "sha256": "30cee98c0bc8f0d0dfedd2dcd0a4ce99fa3664f91894e135e6c376b66b38b15d"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-24-3",
+      "task_instruction_sha256": "a58819879c2dfeb8e58bd73a9d468b605ee65df901c1fda5fc72d81fc668378d",
+      "task_rubric_sha256": "546d1bf2b802db089367f813387500e5f56c77562c6456a358e6a22fc09c0abe",
+      "variants": [
+        {
+          "json_sha256": "3de2d136c6294dd7288494ec4da8711de17e7eb61c7f4ccd9cfdf0c4ea50e379",
+          "txt_sha256": "22fe3af552dbc1c320bfaa3d1a48813606c8a66b611fc4c4cf9741e2b81e5afe",
+          "variant": 0
+        },
+        {
+          "json_sha256": "c01c0244532f32e00aee56d0d72ead1706933af705d95a6dd08f93247c5b561d",
+          "txt_sha256": "bca1235a0454891f9802b91c3d0e2e147c51a4c6a7c6d3f388d6ba324c591949",
+          "variant": 1
+        },
+        {
+          "json_sha256": "eb879db7c671f98e6537a1d661716a8058a56b0a3573bee372fee0444e7858a4",
+          "txt_sha256": "108a1022d81c9f05de59fff8104bdb5917d1de299739b474e1ed9e2c914c03ba",
+          "variant": 2
+        },
+        {
+          "json_sha256": "be31e648814c879aa476be87221d99eed27f66fdcffe599873a4bb0be2505d05",
+          "txt_sha256": "290031c17e3d8ca028b2b694c7f649279b40ba664d9592c70ab25d179dd33c44",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d7846eb8cf9630334115c30a21adb5efdfb1b8eb8f23e6d8fc3e50bb9715e15e",
+          "txt_sha256": "eb63fe9b3691ddaa0bf1432459b97fb3cb38c283dcef12978baf0410758f7b56",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-24-3-trace.yaml",
+      "config_sha256": "aa89af55a52af9829f4601a02ce52eaf7e035988dd0482b6caabd543490c7189",
+      "experiment_id": "biomnibench-da-factorial-r10-d69dc7c839ba",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-24-3/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-24-3/trace/biomnibench-da-factorial-r10-0774275c26ac/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-24-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "2584b381107f899a8de6117e35b2c903626d559ab4107a30480aed4412332ddd"
+        },
+        {
+          "replicate": 2,
+          "sha256": "06d75307f8a9b421878310699c71a9951248578f61266ce5d6aa4b736b2e427a"
+        },
+        {
+          "replicate": 3,
+          "sha256": "30cee98c0bc8f0d0dfedd2dcd0a4ce99fa3664f91894e135e6c376b66b38b15d"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-24-3",
+      "task_instruction_sha256": "a58819879c2dfeb8e58bd73a9d468b605ee65df901c1fda5fc72d81fc668378d",
+      "task_rubric_sha256": "546d1bf2b802db089367f813387500e5f56c77562c6456a358e6a22fc09c0abe",
+      "variants": [
+        {
+          "json_sha256": "3de2d136c6294dd7288494ec4da8711de17e7eb61c7f4ccd9cfdf0c4ea50e379",
+          "txt_sha256": "22fe3af552dbc1c320bfaa3d1a48813606c8a66b611fc4c4cf9741e2b81e5afe",
+          "variant": 0
+        },
+        {
+          "json_sha256": "c01c0244532f32e00aee56d0d72ead1706933af705d95a6dd08f93247c5b561d",
+          "txt_sha256": "bca1235a0454891f9802b91c3d0e2e147c51a4c6a7c6d3f388d6ba324c591949",
+          "variant": 1
+        },
+        {
+          "json_sha256": "eb879db7c671f98e6537a1d661716a8058a56b0a3573bee372fee0444e7858a4",
+          "txt_sha256": "108a1022d81c9f05de59fff8104bdb5917d1de299739b474e1ed9e2c914c03ba",
+          "variant": 2
+        },
+        {
+          "json_sha256": "be31e648814c879aa476be87221d99eed27f66fdcffe599873a4bb0be2505d05",
+          "txt_sha256": "290031c17e3d8ca028b2b694c7f649279b40ba664d9592c70ab25d179dd33c44",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d7846eb8cf9630334115c30a21adb5efdfb1b8eb8f23e6d8fc3e50bb9715e15e",
+          "txt_sha256": "eb63fe9b3691ddaa0bf1432459b97fb3cb38c283dcef12978baf0410758f7b56",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-6-5-static.yaml",
+      "config_sha256": "46674eb15003b51633ed4ba3992fb7b4cb172d82a6496633ba43c91c5bc301ea",
+      "experiment_id": "biomnibench-da-factorial-r10-0e0d4a1122b3",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-6-5/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-6-5/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "ff1c8bb878ae0176d9796817275b8797d0d4ef2c38aeb0e5f224148d028a7394"
+        },
+        {
+          "replicate": 2,
+          "sha256": "9af0dd068e9ae8b396c2fa6810f2ab9ab092ebfc8a4872d85da44f9ef60ea485"
+        },
+        {
+          "replicate": 3,
+          "sha256": "a80f21a2e576dbfb25ae5120522115270eb99cb208af1fd0ef244f5a5bc16a9f"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-6-5",
+      "task_instruction_sha256": "f98ea3ff34b66480bd09084dbac6f582b1c8f5e68d0bd09dfd0c0bc509a1ddf1",
+      "task_rubric_sha256": "ddb4f26bd5287c6eba25451396fc600fe7799b320231da4a6df05d7ecc9f0a17",
+      "variants": [
+        {
+          "json_sha256": "8c3b99142e79ed6413ab156abd51e3e50002ddf0c9ac1119d503015eb08e9341",
+          "txt_sha256": "7e48b0592c5291780c2e2138857d4558fd4b2b8959a19df82450c2fc82de70c7",
+          "variant": 0
+        },
+        {
+          "json_sha256": "60210f193e3892ca945546ac475f1eb36421068e2dfa3220beccde811bff5a0f",
+          "txt_sha256": "3ac258d99e9be3236ef91660577d4e476cecb2c6a433521565f0db5eea1744ba",
+          "variant": 1
+        },
+        {
+          "json_sha256": "8c0ab3280c8b18295b529c159365e51ea2c56d9aa4c2814131129c350c62b82b",
+          "txt_sha256": "8d2a5d8e9840521030fd2802ff0ab90e1c334f1a31c50ea3afd1b7f546bbe77d",
+          "variant": 2
+        },
+        {
+          "json_sha256": "f5ef9585521098485d90cdbf31eec4e899d5855ec989069bcc580ae4a9f86c05",
+          "txt_sha256": "857787231b4373a4cc5545f258e4029fd0aee9767da84c743d4c0819d80ddc25",
+          "variant": 3
+        },
+        {
+          "json_sha256": "daa6e917bdb24b33bc600b2a7eee24884617725d414d51047c275a0fa7b28de1",
+          "txt_sha256": "d7d5d60f8f94d8c56d86a71f6d4d649b46ad7ef4d5d5704c28f6e017c71d6bdf",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-6-5-trace.yaml",
+      "config_sha256": "03fb005bd2a866bc9c91d7ea022eae95311501517de45318389e0787080664c8",
+      "experiment_id": "biomnibench-da-factorial-r10-37ea52903e96",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-6-5/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-6-5/trace/biomnibench-da-factorial-r10-085de887c2cf/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-6-5/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "ff1c8bb878ae0176d9796817275b8797d0d4ef2c38aeb0e5f224148d028a7394"
+        },
+        {
+          "replicate": 2,
+          "sha256": "9af0dd068e9ae8b396c2fa6810f2ab9ab092ebfc8a4872d85da44f9ef60ea485"
+        },
+        {
+          "replicate": 3,
+          "sha256": "a80f21a2e576dbfb25ae5120522115270eb99cb208af1fd0ef244f5a5bc16a9f"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-6-5",
+      "task_instruction_sha256": "f98ea3ff34b66480bd09084dbac6f582b1c8f5e68d0bd09dfd0c0bc509a1ddf1",
+      "task_rubric_sha256": "ddb4f26bd5287c6eba25451396fc600fe7799b320231da4a6df05d7ecc9f0a17",
+      "variants": [
+        {
+          "json_sha256": "8c3b99142e79ed6413ab156abd51e3e50002ddf0c9ac1119d503015eb08e9341",
+          "txt_sha256": "7e48b0592c5291780c2e2138857d4558fd4b2b8959a19df82450c2fc82de70c7",
+          "variant": 0
+        },
+        {
+          "json_sha256": "60210f193e3892ca945546ac475f1eb36421068e2dfa3220beccde811bff5a0f",
+          "txt_sha256": "3ac258d99e9be3236ef91660577d4e476cecb2c6a433521565f0db5eea1744ba",
+          "variant": 1
+        },
+        {
+          "json_sha256": "8c0ab3280c8b18295b529c159365e51ea2c56d9aa4c2814131129c350c62b82b",
+          "txt_sha256": "8d2a5d8e9840521030fd2802ff0ab90e1c334f1a31c50ea3afd1b7f546bbe77d",
+          "variant": 2
+        },
+        {
+          "json_sha256": "f5ef9585521098485d90cdbf31eec4e899d5855ec989069bcc580ae4a9f86c05",
+          "txt_sha256": "857787231b4373a4cc5545f258e4029fd0aee9767da84c743d4c0819d80ddc25",
+          "variant": 3
+        },
+        {
+          "json_sha256": "daa6e917bdb24b33bc600b2a7eee24884617725d414d51047c275a0fa7b28de1",
+          "txt_sha256": "d7d5d60f8f94d8c56d86a71f6d4d649b46ad7ef4d5d5704c28f6e017c71d6bdf",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-17-3-static.yaml",
+      "config_sha256": "4bde0c3e9d8c075e6c9f2b5182bfd79a07fc0dba47e1cf378252bb4d09bee181",
+      "experiment_id": "biomnibench-da-factorial-r10-546df9430917",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-3/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "8dd5ecb3404219e721e66099d7ef37c8aa08edcf229dce8f5a9453f833d919fe"
+        },
+        {
+          "replicate": 2,
+          "sha256": "3fe58bdde7c4adfe07afd5ef1be83bf1e1237411565e712de33ad0b80f427ff5"
+        },
+        {
+          "replicate": 3,
+          "sha256": "08eb5e952525d0be134edef3612e6b4723cef31fb15ec8070ad152a8b65bbb81"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-17-3",
+      "task_instruction_sha256": "41401a27ad69a878cc52913cd00e537e93fed8a0cf8aa62220a73b23b147b5ed",
+      "task_rubric_sha256": "85e069aacb8da36bfdcdae0b2a5bb05b669ee525b10732a2bf26fc6722cb21ac",
+      "variants": [
+        {
+          "json_sha256": "49dc70027decd02b5cf8259969d71807725d78ef6ebad39f1efe3915009cf415",
+          "txt_sha256": "86051eef1c44a819f1f380c2e63d7e451a89a4a4bfcb3923daff87431a919797",
+          "variant": 0
+        },
+        {
+          "json_sha256": "7d599f511935bb85f1144b28321e2473e9e34d0b196b76217a85d6c7d36eaab2",
+          "txt_sha256": "120b728ae06c978e7c38105f29bd0b2c2ec67aebc2fda81022f958ba27486be0",
+          "variant": 1
+        },
+        {
+          "json_sha256": "1bf8d15dfd7620d997b1a3998f0c24eafb2fd087f50f91e32e974bbced664cde",
+          "txt_sha256": "b7636fabd52ddf406b5d33e766f3935e923813e9550c24909315f029ea4c6ddd",
+          "variant": 2
+        },
+        {
+          "json_sha256": "95bb6201c1d24768d36a42018b2851f86fc11985b14e85648c51de6fa13635a0",
+          "txt_sha256": "3fa140771f817109e9d9d12035bb545b39cfc1f3fb74ca5f42c13c99cf69097b",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d41d093009ddedeb956a8260825eab1f3c7e7177a00be04ccec377c46fd3e639",
+          "txt_sha256": "91fdb086bef13a7ff059e6eb44835348f80e4fd7f4404ce5475dde4eb4a6bd49",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-17-3-trace.yaml",
+      "config_sha256": "048c972fb98d78e6e5d64315efe58ee59d4f179e8d4823ddd0508a5c4f5e69c4",
+      "experiment_id": "biomnibench-da-factorial-r10-d2a2df2edbe5",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-3/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-3/trace/biomnibench-da-factorial-r10-abc03a646573/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "8dd5ecb3404219e721e66099d7ef37c8aa08edcf229dce8f5a9453f833d919fe"
+        },
+        {
+          "replicate": 2,
+          "sha256": "3fe58bdde7c4adfe07afd5ef1be83bf1e1237411565e712de33ad0b80f427ff5"
+        },
+        {
+          "replicate": 3,
+          "sha256": "08eb5e952525d0be134edef3612e6b4723cef31fb15ec8070ad152a8b65bbb81"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-17-3",
+      "task_instruction_sha256": "41401a27ad69a878cc52913cd00e537e93fed8a0cf8aa62220a73b23b147b5ed",
+      "task_rubric_sha256": "85e069aacb8da36bfdcdae0b2a5bb05b669ee525b10732a2bf26fc6722cb21ac",
+      "variants": [
+        {
+          "json_sha256": "49dc70027decd02b5cf8259969d71807725d78ef6ebad39f1efe3915009cf415",
+          "txt_sha256": "86051eef1c44a819f1f380c2e63d7e451a89a4a4bfcb3923daff87431a919797",
+          "variant": 0
+        },
+        {
+          "json_sha256": "7d599f511935bb85f1144b28321e2473e9e34d0b196b76217a85d6c7d36eaab2",
+          "txt_sha256": "120b728ae06c978e7c38105f29bd0b2c2ec67aebc2fda81022f958ba27486be0",
+          "variant": 1
+        },
+        {
+          "json_sha256": "1bf8d15dfd7620d997b1a3998f0c24eafb2fd087f50f91e32e974bbced664cde",
+          "txt_sha256": "b7636fabd52ddf406b5d33e766f3935e923813e9550c24909315f029ea4c6ddd",
+          "variant": 2
+        },
+        {
+          "json_sha256": "95bb6201c1d24768d36a42018b2851f86fc11985b14e85648c51de6fa13635a0",
+          "txt_sha256": "3fa140771f817109e9d9d12035bb545b39cfc1f3fb74ca5f42c13c99cf69097b",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d41d093009ddedeb956a8260825eab1f3c7e7177a00be04ccec377c46fd3e639",
+          "txt_sha256": "91fdb086bef13a7ff059e6eb44835348f80e4fd7f4404ce5475dde4eb4a6bd49",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-1-4-static.yaml",
+      "config_sha256": "739417483bcc7a15549b889663cc292c6bc672882bf328ba121d782952c98194",
+      "experiment_id": "biomnibench-da-factorial-r10-22a1f291379f",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-1-4/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-1-4/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "384f461e19a9e6d4eab9ba61cc22e6a17e9d7393bb12ba35652895c4b299c8ad"
+        },
+        {
+          "replicate": 2,
+          "sha256": "d71932156b5dd045de74ba5f09fe6a31c65dc43f2eabdb2351b54c13e897fe81"
+        },
+        {
+          "replicate": 3,
+          "sha256": "62960f72c3427d29e92b50bc33edce0dc928b3df4fab59d1068f17f38770bcec"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-1-4",
+      "task_instruction_sha256": "b277926d483b097a553ac92880fa2f16c2acd5a26270e3eca960daf0d3258ad0",
+      "task_rubric_sha256": "4d0fc43902afc46d26ac58202cfa400b832d0afe4af2d8827a856a34c1aca645",
+      "variants": [
+        {
+          "json_sha256": "37e6f6a5d05fe8b6dc5706259cf129f9bb7683fb3e6af3a2856e609c031537c5",
+          "txt_sha256": "173fc0ac1e49c9ec09704cbd56544ca0a9b87c481796e408e407a247178fa4de",
+          "variant": 0
+        },
+        {
+          "json_sha256": "31ed0a6662e179f78969dad83725b9f0ed502349d2e5e3611bbb4f63436f9d11",
+          "txt_sha256": "881d6c6c57c760ebe2a7a88a4816bd71569c4c76864a0aebe57de967f550e4ad",
+          "variant": 1
+        },
+        {
+          "json_sha256": "a80486c5e12dcfb4ae2838fad49982e29795454fa7c288e910797b54f88b3916",
+          "txt_sha256": "82d6e4c193a9e109e1eab41bd4645b9f75e439e201599dd28aecfca6572e14c4",
+          "variant": 2
+        },
+        {
+          "json_sha256": "f19499ebbde8d9ebe93ad4a31217eed8697ee4fbbbe089e8047f4e7212aa8e98",
+          "txt_sha256": "29040146fe8d2bcdd22683aa7d384c35d9d6022725b20b11ab53d00681594b23",
+          "variant": 3
+        },
+        {
+          "json_sha256": "0180b18dbd1195dac748fb3a379f4c48788bf4666cf0cad356e304573ed132c7",
+          "txt_sha256": "f24bbc0338ed3850837cabb1c4f4cd7611012c6eac98771b47cdc9b197653046",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-1-4-trace.yaml",
+      "config_sha256": "752fe61b58884d7a9305f89b0c7ae4f47f419dc2d53743a1497ccf502b6dd3e3",
+      "experiment_id": "biomnibench-da-factorial-r10-a6ee9a82a20d",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-1-4/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-1-4/trace/biomnibench-da-factorial-r10-b17b44618eb8/pretreatment-rubrics",
+      "pretreatment_source_files": 20,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-1-4/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "384f461e19a9e6d4eab9ba61cc22e6a17e9d7393bb12ba35652895c4b299c8ad"
+        },
+        {
+          "replicate": 2,
+          "sha256": "d71932156b5dd045de74ba5f09fe6a31c65dc43f2eabdb2351b54c13e897fe81"
+        },
+        {
+          "replicate": 3,
+          "sha256": "62960f72c3427d29e92b50bc33edce0dc928b3df4fab59d1068f17f38770bcec"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-1-4",
+      "task_instruction_sha256": "b277926d483b097a553ac92880fa2f16c2acd5a26270e3eca960daf0d3258ad0",
+      "task_rubric_sha256": "4d0fc43902afc46d26ac58202cfa400b832d0afe4af2d8827a856a34c1aca645",
+      "variants": [
+        {
+          "json_sha256": "37e6f6a5d05fe8b6dc5706259cf129f9bb7683fb3e6af3a2856e609c031537c5",
+          "txt_sha256": "173fc0ac1e49c9ec09704cbd56544ca0a9b87c481796e408e407a247178fa4de",
+          "variant": 0
+        },
+        {
+          "json_sha256": "31ed0a6662e179f78969dad83725b9f0ed502349d2e5e3611bbb4f63436f9d11",
+          "txt_sha256": "881d6c6c57c760ebe2a7a88a4816bd71569c4c76864a0aebe57de967f550e4ad",
+          "variant": 1
+        },
+        {
+          "json_sha256": "a80486c5e12dcfb4ae2838fad49982e29795454fa7c288e910797b54f88b3916",
+          "txt_sha256": "82d6e4c193a9e109e1eab41bd4645b9f75e439e201599dd28aecfca6572e14c4",
+          "variant": 2
+        },
+        {
+          "json_sha256": "f19499ebbde8d9ebe93ad4a31217eed8697ee4fbbbe089e8047f4e7212aa8e98",
+          "txt_sha256": "29040146fe8d2bcdd22683aa7d384c35d9d6022725b20b11ab53d00681594b23",
+          "variant": 3
+        },
+        {
+          "json_sha256": "0180b18dbd1195dac748fb3a379f4c48788bf4666cf0cad356e304573ed132c7",
+          "txt_sha256": "f24bbc0338ed3850837cabb1c4f4cd7611012c6eac98771b47cdc9b197653046",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-8-3-static.yaml",
+      "config_sha256": "494bb3d4591f50f6127e9552f13fbc00aa0a852d8cd462ccdd69dff03ad4b48e",
+      "experiment_id": "biomnibench-da-factorial-r10-aad75b885901",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-8-3/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-8-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "946c3f46803febff900625b1abb81e78452208201a76c1d4457c87d21670039a"
+        },
+        {
+          "replicate": 2,
+          "sha256": "ef464bed3a0ed69854fa591ad0542848b789df9c8a04ce32552959567c667e02"
+        },
+        {
+          "replicate": 3,
+          "sha256": "2654a3045af5333650967e57f9a39dc1875c94390255f5487e9fd613417ba846"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-8-3",
+      "task_instruction_sha256": "a519daa05caa2de3bf14ecb065b8a9a2cc2b1aaaf9e32ca691f2eb021ea505bc",
+      "task_rubric_sha256": "95afb052a43cb4bf753c933b36ca8527a836edc91e1e7e6e4d2e0812f847c049",
+      "variants": [
+        {
+          "json_sha256": "84335e2a7eddbed7460fbfde7d49bea0291b844fe19fdfec72ee605cc53314a7",
+          "txt_sha256": "74821da3b50b15d3e877124a5ca71e2237cddd526e38520cdde4130e7b362eed",
+          "variant": 0
+        },
+        {
+          "json_sha256": "51d7eb7a49b32cfaf0689e5ec1aee0f9c4332bc2472a766697cebd2155ca655e",
+          "txt_sha256": "e589a06d8849887ca8d436db8efe601a7e7e9fe0d0fff4ace92c127c44c13fbb",
+          "variant": 1
+        },
+        {
+          "json_sha256": "d36405bda35c8a95e4290327bed3819d38a92fc2ba35c2f9ab55d6c2a219596f",
+          "txt_sha256": "624e779d44848064c61d4d7fefda2c830755573834a09b5b315947d9c969c2ce",
+          "variant": 2
+        },
+        {
+          "json_sha256": "20817cea8d124eb7c5088c1ffd6fd5136cecbe8e06432fd01144fcd1738a1233",
+          "txt_sha256": "f7f7043e3aaba50100cc5c1b15e14beaa717d8ac7bd0e31a61df9fd3ad7a9585",
+          "variant": 3
+        },
+        {
+          "json_sha256": "b3fe1a1687aacc3ec90a70f7ff94b1d9c565de92c8596a762afe401074a7a4a8",
+          "txt_sha256": "f4aaf45f525a35a3ca07d12652bce92011b31ceb1575eadd44769237d029eeef",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-8-3-trace.yaml",
+      "config_sha256": "e580c8bf5198ab9fff4d3a27bb73345984bafc54567b498f2c4606fd35b8e667",
+      "experiment_id": "biomnibench-da-factorial-r10-559454e91192",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-8-3/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-8-3/trace/biomnibench-da-factorial-r10-a7fd110c4d98/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-8-3/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "946c3f46803febff900625b1abb81e78452208201a76c1d4457c87d21670039a"
+        },
+        {
+          "replicate": 2,
+          "sha256": "ef464bed3a0ed69854fa591ad0542848b789df9c8a04ce32552959567c667e02"
+        },
+        {
+          "replicate": 3,
+          "sha256": "2654a3045af5333650967e57f9a39dc1875c94390255f5487e9fd613417ba846"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-8-3",
+      "task_instruction_sha256": "a519daa05caa2de3bf14ecb065b8a9a2cc2b1aaaf9e32ca691f2eb021ea505bc",
+      "task_rubric_sha256": "95afb052a43cb4bf753c933b36ca8527a836edc91e1e7e6e4d2e0812f847c049",
+      "variants": [
+        {
+          "json_sha256": "84335e2a7eddbed7460fbfde7d49bea0291b844fe19fdfec72ee605cc53314a7",
+          "txt_sha256": "74821da3b50b15d3e877124a5ca71e2237cddd526e38520cdde4130e7b362eed",
+          "variant": 0
+        },
+        {
+          "json_sha256": "51d7eb7a49b32cfaf0689e5ec1aee0f9c4332bc2472a766697cebd2155ca655e",
+          "txt_sha256": "e589a06d8849887ca8d436db8efe601a7e7e9fe0d0fff4ace92c127c44c13fbb",
+          "variant": 1
+        },
+        {
+          "json_sha256": "d36405bda35c8a95e4290327bed3819d38a92fc2ba35c2f9ab55d6c2a219596f",
+          "txt_sha256": "624e779d44848064c61d4d7fefda2c830755573834a09b5b315947d9c969c2ce",
+          "variant": 2
+        },
+        {
+          "json_sha256": "20817cea8d124eb7c5088c1ffd6fd5136cecbe8e06432fd01144fcd1738a1233",
+          "txt_sha256": "f7f7043e3aaba50100cc5c1b15e14beaa717d8ac7bd0e31a61df9fd3ad7a9585",
+          "variant": 3
+        },
+        {
+          "json_sha256": "b3fe1a1687aacc3ec90a70f7ff94b1d9c565de92c8596a762afe401074a7a4a8",
+          "txt_sha256": "f4aaf45f525a35a3ca07d12652bce92011b31ceb1575eadd44769237d029eeef",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-17-5-static.yaml",
+      "config_sha256": "073fb4f24ab3b7bed64d5d0753494df586c0a05f52368f23d5869bfff712d824",
+      "experiment_id": "biomnibench-da-factorial-r10-eeb19ebbe40c",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-5/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-5/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "c3445fe90c387a863d2f9d5dc63ed3edf06eacf65a733f4378ec16456e500ea4"
+        },
+        {
+          "replicate": 2,
+          "sha256": "988de6bd8c6ec9ff4479ce264467da0fd35237a109022928ace2a87269eb3e29"
+        },
+        {
+          "replicate": 3,
+          "sha256": "c3fb71bb950bc80c8de2af8e134657c36bf649a8b4c4b22d64cbcf4226c5dd4d"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-17-5",
+      "task_instruction_sha256": "73f4c4c64693f607a8b88ef0b597fe6bc8d7c2178780bb99cf90b28e77ecc253",
+      "task_rubric_sha256": "b94190f04f4e9fb7dffdaa5388cca612776a10194318af9d5f791bcb11b0cf61",
+      "variants": [
+        {
+          "json_sha256": "f933da07b2e7c3d7466a15cdce8ca6a77d30ff99c979e3ad448daf0c39b7e35a",
+          "txt_sha256": "1bd7bed571d63d59535ca4afd89d88fc7f67cf29fd3acac9a15349f848864ced",
+          "variant": 0
+        },
+        {
+          "json_sha256": "03be073680cbfdcd7a7bb06f4e7166b8d7711189d92e51d3142665a9a72f8565",
+          "txt_sha256": "76553aceff072aef9b2705c787bdbb8693d880afdd7174b920b77cc87d3cd31a",
+          "variant": 1
+        },
+        {
+          "json_sha256": "9bcf5179568bdc53a73bceace4fa0818a6675ab8eae6fc1a1327945608c3c0e3",
+          "txt_sha256": "1324008db0c8247afa67940f3229b35caac60b84a7a36293d05047293d339ad5",
+          "variant": 2
+        },
+        {
+          "json_sha256": "df75d72b43251b4175d2089106e0b07f44f5d70056c8804d9b58029125556015",
+          "txt_sha256": "55e08b67c338d3b8f6f7b375c7f02039d100a661c4d1157e23ee219bb296b0a7",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d3b51cc6e311d65c00dc8a1cd7c0bb02085365ff3001e6b98f2a34997cea6654",
+          "txt_sha256": "4ee3bc137aaff5e54103d1d4e6b7f18e1f2b1a93cc50ed652883462c4f4c1855",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-17-5-trace.yaml",
+      "config_sha256": "6917b065c0fec6b2136b94deee810a24502bdc39a862a17134e1d6ef8b7e1e0f",
+      "experiment_id": "biomnibench-da-factorial-r10-05185acd2351",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-5/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-5/trace/biomnibench-da-factorial-r10-52099c5260fd/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-5/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "c3445fe90c387a863d2f9d5dc63ed3edf06eacf65a733f4378ec16456e500ea4"
+        },
+        {
+          "replicate": 2,
+          "sha256": "988de6bd8c6ec9ff4479ce264467da0fd35237a109022928ace2a87269eb3e29"
+        },
+        {
+          "replicate": 3,
+          "sha256": "c3fb71bb950bc80c8de2af8e134657c36bf649a8b4c4b22d64cbcf4226c5dd4d"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-17-5",
+      "task_instruction_sha256": "73f4c4c64693f607a8b88ef0b597fe6bc8d7c2178780bb99cf90b28e77ecc253",
+      "task_rubric_sha256": "b94190f04f4e9fb7dffdaa5388cca612776a10194318af9d5f791bcb11b0cf61",
+      "variants": [
+        {
+          "json_sha256": "f933da07b2e7c3d7466a15cdce8ca6a77d30ff99c979e3ad448daf0c39b7e35a",
+          "txt_sha256": "1bd7bed571d63d59535ca4afd89d88fc7f67cf29fd3acac9a15349f848864ced",
+          "variant": 0
+        },
+        {
+          "json_sha256": "03be073680cbfdcd7a7bb06f4e7166b8d7711189d92e51d3142665a9a72f8565",
+          "txt_sha256": "76553aceff072aef9b2705c787bdbb8693d880afdd7174b920b77cc87d3cd31a",
+          "variant": 1
+        },
+        {
+          "json_sha256": "9bcf5179568bdc53a73bceace4fa0818a6675ab8eae6fc1a1327945608c3c0e3",
+          "txt_sha256": "1324008db0c8247afa67940f3229b35caac60b84a7a36293d05047293d339ad5",
+          "variant": 2
+        },
+        {
+          "json_sha256": "df75d72b43251b4175d2089106e0b07f44f5d70056c8804d9b58029125556015",
+          "txt_sha256": "55e08b67c338d3b8f6f7b375c7f02039d100a661c4d1157e23ee219bb296b0a7",
+          "variant": 3
+        },
+        {
+          "json_sha256": "d3b51cc6e311d65c00dc8a1cd7c0bb02085365ff3001e6b98f2a34997cea6654",
+          "txt_sha256": "4ee3bc137aaff5e54103d1d4e6b7f18e1f2b1a93cc50ed652883462c4f4c1855",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-17-1-static.yaml",
+      "config_sha256": "04b9d97ace87c27a7ea9915f1cb1d15060b1046575e04844da4e14d562b28453",
+      "experiment_id": "biomnibench-da-factorial-r10-d0e49890250d",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "a989ae2eb65e5f9fb6b7c3a035ec3da931cde089f3ec455a073474adff6538a2"
+        },
+        {
+          "replicate": 2,
+          "sha256": "13fb2c9676eb1aee1de8cd7a985f2b86a853c71da5c492b0538f556774f981c5"
+        },
+        {
+          "replicate": 3,
+          "sha256": "777ccd8087804162beefb1f2a90f20962b7b85a2b8e5cedb321be84a43a4ae7a"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-17-1",
+      "task_instruction_sha256": "fb1ca0d0bf08ba4f4ac9915e0628ebbf4838c4ba4c02ab074fa8f1949ab9b00b",
+      "task_rubric_sha256": "859f0bdaeb68200f71ad00f35e2b7427893058da2e7b90d2c3cb7a719a2b97c1",
+      "variants": [
+        {
+          "json_sha256": "87eedcb3bdd85ade6847ae308f6b9ff2faef334433ce31c309c78dd38173d225",
+          "txt_sha256": "0fe3e418fa1ed0fe6a6f3357be3caf272dedeabed9c13c8237057ca1a9c59d0f",
+          "variant": 0
+        },
+        {
+          "json_sha256": "d1f8df75b0f7d20907fd259e6db8b6788939be67ad35cfed6c81f21e794ab049",
+          "txt_sha256": "3471bb79c5c65c5a6cd9d53ddbe3784f767c7802431c6541f3f6c21857281445",
+          "variant": 1
+        },
+        {
+          "json_sha256": "5f1ddb2ddd80455a64510f17178098ceeda2cfcd0baa6b51784e2f062680beb4",
+          "txt_sha256": "a365a077e1db62e5a6f7099340b11b84952476557e83ba7ab34d8b2b6b561f31",
+          "variant": 2
+        },
+        {
+          "json_sha256": "9b9ed72d5527356f1129da10c890e6fc0830bbf696abfa145405eb654103ee34",
+          "txt_sha256": "70a423c21740149df3c87f2c56dfa013a0cbc5ae5ee2aa914957458029117cb8",
+          "variant": 3
+        },
+        {
+          "json_sha256": "3fde6dd6a4574c2d396d396bbd88a164c1f0e7d0cd15cb1f2232ab1fb97fa758",
+          "txt_sha256": "90544e4778f2a9ed54758c4c3652bed10fe9b63b18759470f51e4e893c7d7725",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-17-1-trace.yaml",
+      "config_sha256": "9cce037d1603efcd0ba2c7928a02f5a70e16802be1970f07238c61a7e0b40f7c",
+      "experiment_id": "biomnibench-da-factorial-r10-f4d234b06ed0",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-17-1/trace/biomnibench-da-factorial-r10-fa26b6b04e6a/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-17-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "a989ae2eb65e5f9fb6b7c3a035ec3da931cde089f3ec455a073474adff6538a2"
+        },
+        {
+          "replicate": 2,
+          "sha256": "13fb2c9676eb1aee1de8cd7a985f2b86a853c71da5c492b0538f556774f981c5"
+        },
+        {
+          "replicate": 3,
+          "sha256": "777ccd8087804162beefb1f2a90f20962b7b85a2b8e5cedb321be84a43a4ae7a"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-17-1",
+      "task_instruction_sha256": "fb1ca0d0bf08ba4f4ac9915e0628ebbf4838c4ba4c02ab074fa8f1949ab9b00b",
+      "task_rubric_sha256": "859f0bdaeb68200f71ad00f35e2b7427893058da2e7b90d2c3cb7a719a2b97c1",
+      "variants": [
+        {
+          "json_sha256": "87eedcb3bdd85ade6847ae308f6b9ff2faef334433ce31c309c78dd38173d225",
+          "txt_sha256": "0fe3e418fa1ed0fe6a6f3357be3caf272dedeabed9c13c8237057ca1a9c59d0f",
+          "variant": 0
+        },
+        {
+          "json_sha256": "d1f8df75b0f7d20907fd259e6db8b6788939be67ad35cfed6c81f21e794ab049",
+          "txt_sha256": "3471bb79c5c65c5a6cd9d53ddbe3784f767c7802431c6541f3f6c21857281445",
+          "variant": 1
+        },
+        {
+          "json_sha256": "5f1ddb2ddd80455a64510f17178098ceeda2cfcd0baa6b51784e2f062680beb4",
+          "txt_sha256": "a365a077e1db62e5a6f7099340b11b84952476557e83ba7ab34d8b2b6b561f31",
+          "variant": 2
+        },
+        {
+          "json_sha256": "9b9ed72d5527356f1129da10c890e6fc0830bbf696abfa145405eb654103ee34",
+          "txt_sha256": "70a423c21740149df3c87f2c56dfa013a0cbc5ae5ee2aa914957458029117cb8",
+          "variant": 3
+        },
+        {
+          "json_sha256": "3fde6dd6a4574c2d396d396bbd88a164c1f0e7d0cd15cb1f2232ab1fb97fa758",
+          "txt_sha256": "90544e4778f2a9ed54758c4c3652bed10fe9b63b18759470f51e4e893c7d7725",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-9-1-static.yaml",
+      "config_sha256": "6e22e875d3c2812c553a6b4f117646e087ac6f6832b6f6e9aaed8fe9b69be585",
+      "experiment_id": "biomnibench-da-factorial-r10-60a9fce690e9",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-1/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "92f7db12e5a311f6ecb1991961b58cef8d1d08c2abbe248228ecb1e3298f9c32"
+        },
+        {
+          "replicate": 2,
+          "sha256": "371a5bc55bda43f92e79ef774418797ceea148376376441d57968aa2f154b218"
+        },
+        {
+          "replicate": 3,
+          "sha256": "c9ee6726b60d4b99d42698590fa7617c6ab25389a7a192bf5ce85cc4da9fecfa"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-9-1",
+      "task_instruction_sha256": "f87a79332281e4b653e812a81a87e824274451dde88ee9fa49198c79703c374b",
+      "task_rubric_sha256": "dcc354165d2e97e73c43ecac4003ac0483ec0572d4ac397c6be59574be820abc",
+      "variants": [
+        {
+          "json_sha256": "779d5045f7bc96ea422c9031208c82162761133b73c38d222f96e96cdd4164d8",
+          "txt_sha256": "712448e29d7e4178c00fd3e4f5dc67bf60ac415a5deca6d0f15c31958f9fc7ec",
+          "variant": 0
+        },
+        {
+          "json_sha256": "adbc9e90c1b8b4c1e8c00b138df63d721f36f89758cc8ec4f9440d9039bcb41c",
+          "txt_sha256": "cb4c68ceacb0cd3f9d613f07465dc838d8d068868719057738c9e730e9299ef2",
+          "variant": 1
+        },
+        {
+          "json_sha256": "004c5aa67a00f3d6761106e8de115b80ca6d615fe3c1d6d13166ea0f4008dde5",
+          "txt_sha256": "16eff33b48415095a80cc6dbd16e69743f1a3404df5da296a1b3503642bdb7c7",
+          "variant": 2
+        },
+        {
+          "json_sha256": "7a60117069e8cada0ede53aabfdbd2e999968a02e755aaad3fb6476f44f9eca8",
+          "txt_sha256": "14dc01a72be29e9137c8bd60df75174e24026c8e0624188f94cf50138e7d9c3b",
+          "variant": 3
+        },
+        {
+          "json_sha256": "04b222eb6e298f9ba80781844981cafbd59681f83291542bfff08d37c19b196c",
+          "txt_sha256": "12ce5b274a5891149bed19b4673669b0211d467106a8ae931235c08cda0f6867",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-9-1-trace.yaml",
+      "config_sha256": "dfccd07c21a7fbb59882ad22f7b32ab89e09e4d70b582d7533eac6210429dbfa",
+      "experiment_id": "biomnibench-da-factorial-r10-f4b7e945ac68",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-1/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-9-1/trace/biomnibench-da-factorial-r10-814fe6cc5816/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-9-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "92f7db12e5a311f6ecb1991961b58cef8d1d08c2abbe248228ecb1e3298f9c32"
+        },
+        {
+          "replicate": 2,
+          "sha256": "371a5bc55bda43f92e79ef774418797ceea148376376441d57968aa2f154b218"
+        },
+        {
+          "replicate": 3,
+          "sha256": "c9ee6726b60d4b99d42698590fa7617c6ab25389a7a192bf5ce85cc4da9fecfa"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-9-1",
+      "task_instruction_sha256": "f87a79332281e4b653e812a81a87e824274451dde88ee9fa49198c79703c374b",
+      "task_rubric_sha256": "dcc354165d2e97e73c43ecac4003ac0483ec0572d4ac397c6be59574be820abc",
+      "variants": [
+        {
+          "json_sha256": "779d5045f7bc96ea422c9031208c82162761133b73c38d222f96e96cdd4164d8",
+          "txt_sha256": "712448e29d7e4178c00fd3e4f5dc67bf60ac415a5deca6d0f15c31958f9fc7ec",
+          "variant": 0
+        },
+        {
+          "json_sha256": "adbc9e90c1b8b4c1e8c00b138df63d721f36f89758cc8ec4f9440d9039bcb41c",
+          "txt_sha256": "cb4c68ceacb0cd3f9d613f07465dc838d8d068868719057738c9e730e9299ef2",
+          "variant": 1
+        },
+        {
+          "json_sha256": "004c5aa67a00f3d6761106e8de115b80ca6d615fe3c1d6d13166ea0f4008dde5",
+          "txt_sha256": "16eff33b48415095a80cc6dbd16e69743f1a3404df5da296a1b3503642bdb7c7",
+          "variant": 2
+        },
+        {
+          "json_sha256": "7a60117069e8cada0ede53aabfdbd2e999968a02e755aaad3fb6476f44f9eca8",
+          "txt_sha256": "14dc01a72be29e9137c8bd60df75174e24026c8e0624188f94cf50138e7d9c3b",
+          "variant": 3
+        },
+        {
+          "json_sha256": "04b222eb6e298f9ba80781844981cafbd59681f83291542bfff08d37c19b196c",
+          "txt_sha256": "12ce5b274a5891149bed19b4673669b0211d467106a8ae931235c08cda0f6867",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-20-1-static.yaml",
+      "config_sha256": "e97c81cb5432f2e05f73cbd7ed2d4c10a7d0b170f9c1f4ac42067c5aa1a1b480",
+      "experiment_id": "biomnibench-da-factorial-r10-67d5b2ce5b84",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-20-1/inputs/paraphrases",
+      "pretreatment_source": null,
+      "pretreatment_source_files": 0,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-20-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "145d1464b93f37f6818b3da92a35d140e1db78bf92489a6ff82129640ced1907"
+        },
+        {
+          "replicate": 2,
+          "sha256": "e8a9c0bbd11afa8695da44dd24e5ba18b328baeee268673e0359abe643f44161"
+        },
+        {
+          "replicate": 3,
+          "sha256": "512979647fb4a92d3801c24be2c64d7c69997611bbaa661015b849c3336a9044"
+        }
+      ],
+      "shard": "static",
+      "task_id": "da-20-1",
+      "task_instruction_sha256": "8ad04d88ee67d24fd6f158a5148d2c9f92922a580c9b3a05a4b013e6898f322f",
+      "task_rubric_sha256": "d90dda082bad65372d6c6bd3ec9f3f29469cbb4f9df899ed0ff7ceb7cb5cf043",
+      "variants": [
+        {
+          "json_sha256": "392f41fcf7e9adb66a7505d356128cc6b321648f48ab3688cc6d144ed4585b23",
+          "txt_sha256": "cc1e9b06f4e795f95a7600c9860bd5147d5fa32d91fc78e21053914fe4e91d33",
+          "variant": 0
+        },
+        {
+          "json_sha256": "b3b79062e260cb2368c824298d4a43d8a8c7ee0a2d77136c3f7dc10b4fc04168",
+          "txt_sha256": "7a7d22145484d8aec9b25c289ae41cca8668c253eb1243e97d7560b6c692cd3a",
+          "variant": 1
+        },
+        {
+          "json_sha256": "04049644e413d301258c9dc7362e1b4a2e333b0ce3a7618f85038ab3e4de517f",
+          "txt_sha256": "ded60d8f6cf12d663f37bf9678045fcab84a18b7c25cae050c531abaaa82d711",
+          "variant": 2
+        },
+        {
+          "json_sha256": "2f113c62ece7a189bf0d656f736d4dcea18d02c0cc286278ddc2df994ae25dbc",
+          "txt_sha256": "c13e97633eb5180725669c1e577fdb7189ec085bb99e6e95e18641194031b9d4",
+          "variant": 3
+        },
+        {
+          "json_sha256": "5b411c0aef0bedc107f6981f214a205ff681f6caa4349b73f5cd9b1677e3d9ac",
+          "txt_sha256": "6a6c8f1d539090933ef84f9884c7e807953ef0a0024f7fb59f46a134cdda983e",
+          "variant": 4
+        }
+      ]
+    },
+    {
+      "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40-feedback/configs/da-20-1-trace.yaml",
+      "config_sha256": "9017bda3442290552ee442fe0c7785074f576e79c984790bcdf5c1641907da75",
+      "experiment_id": "biomnibench-da-factorial-r10-bcfb877c7185",
+      "paraphrase_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-20-1/inputs/paraphrases",
+      "pretreatment_source": "/data/user_data/aydanh/rubric_gen/runs/rtt-result40-expansion-20260918/study/da-20-1/trace/biomnibench-da-factorial-r10-c9c9e8e4035b/pretreatment-rubrics",
+      "pretreatment_source_files": 25,
+      "seed_root": "/data/user_data/aydanh/rubric_gen/runs/biomnibench-v21-to45-20260912/results45-added15/da-20-1/inputs/seeds",
+      "seeds": [
+        {
+          "replicate": 1,
+          "sha256": "145d1464b93f37f6818b3da92a35d140e1db78bf92489a6ff82129640ced1907"
+        },
+        {
+          "replicate": 2,
+          "sha256": "e8a9c0bbd11afa8695da44dd24e5ba18b328baeee268673e0359abe643f44161"
+        },
+        {
+          "replicate": 3,
+          "sha256": "512979647fb4a92d3801c24be2c64d7c69997611bbaa661015b849c3336a9044"
+        }
+      ],
+      "shard": "trace",
+      "task_id": "da-20-1",
+      "task_instruction_sha256": "8ad04d88ee67d24fd6f158a5148d2c9f92922a580c9b3a05a4b013e6898f322f",
+      "task_rubric_sha256": "d90dda082bad65372d6c6bd3ec9f3f29469cbb4f9df899ed0ff7ceb7cb5cf043",
+      "variants": [
+        {
+          "json_sha256": "392f41fcf7e9adb66a7505d356128cc6b321648f48ab3688cc6d144ed4585b23",
+          "txt_sha256": "cc1e9b06f4e795f95a7600c9860bd5147d5fa32d91fc78e21053914fe4e91d33",
+          "variant": 0
+        },
+        {
+          "json_sha256": "b3b79062e260cb2368c824298d4a43d8a8c7ee0a2d77136c3f7dc10b4fc04168",
+          "txt_sha256": "7a7d22145484d8aec9b25c289ae41cca8668c253eb1243e97d7560b6c692cd3a",
+          "variant": 1
+        },
+        {
+          "json_sha256": "04049644e413d301258c9dc7362e1b4a2e333b0ce3a7618f85038ab3e4de517f",
+          "txt_sha256": "ded60d8f6cf12d663f37bf9678045fcab84a18b7c25cae050c531abaaa82d711",
+          "variant": 2
+        },
+        {
+          "json_sha256": "2f113c62ece7a189bf0d656f736d4dcea18d02c0cc286278ddc2df994ae25dbc",
+          "txt_sha256": "c13e97633eb5180725669c1e577fdb7189ec085bb99e6e95e18641194031b9d4",
+          "variant": 3
+        },
+        {
+          "json_sha256": "5b411c0aef0bedc107f6981f214a205ff681f6caa4349b73f5cd9b1677e3d9ac",
+          "txt_sha256": "6a6c8f1d539090933ef84f9884c7e807953ef0a0024f7fb59f46a134cdda983e",
+          "variant": 4
+        }
+      ]
+    }
+  ],
+  "job_id": "10516052",
+  "native_shards": 40,
+  "old20_source": {
+    "assignment_count": 240,
+    "config": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml",
+    "config_sha256": "f478e50b85ae7e1bf15536339fad99c7e2c461929e790470d9f2a388eb86cc8a",
+    "experiment_id": "biomnibench-da-factorial-r10-2e389d4e31bb",
+    "gemini_audit_dir": "/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/audit-gemini/biomnibench-da-factorial-r10-2e389d4e31bb",
+    "sol_opus_audit_dir": "/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/audit/biomnibench-da-factorial-r10-2e389d4e31bb",
+    "study_dir": "/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/study/biomnibench-da-factorial-r10-2e389d4e31bb"
+  },
+  "provider_calls": 0,
+  "randomization_seed": 20260820,
+  "reused_input_receipt": {
+    "job_id": "10488521",
+    "path": "/home/aydanh/repos/rubric_gen/runs/babel-code/trace-result40-audit3-20260919/experiments/trace-v21-execution-verified-provenance-result40/receipts/input-validation.json",
+    "sha256": "91f16d2fb65a5800f74feb2b8c09973de377dfb4d36928a6246fd57cf6273076"
+  },
+  "revision": {
+    "aggregate_provider_concurrency": 60,
+    "assignment_workers_per_shard": 6,
+    "internal_fanout": 4,
+    "maximum_assignment_workers": 24,
+    "shard_workers": 4
+  },
+  "runtime": {
+    "aggregate_concurrency": 60,
+    "audit_provider_concurrency": {
+      "anthropic": 60,
+      "google": 60,
+      "openai": 60
+    },
+    "audit_studies": 3,
+    "coordination_dir": "/home/aydanh/repos/rubric_gen/runs/.runtime-babel",
+    "version": 1
+  },
+  "source_commit": "603b49e823fe5f76c5418ff685115c71e83f532a",
+  "success": true,
+  "tasks": [
+    "da-8-1",
+    "da-26-4",
+    "da-20-4",
+    "da-19-3",
+    "da-4-1",
+    "da-1-3",
+    "da-3-5",
+    "da-4-6",
+    "da-5-1",
+    "da-26-2",
+    "da-9-7",
+    "da-24-3",
+    "da-6-5",
+    "da-17-3",
+    "da-1-4",
+    "da-8-3",
+    "da-17-5",
+    "da-17-1",
+    "da-9-1",
+    "da-20-1"
+  ]
+}

@@ -1,6 +1,6 @@
 # BioMNIBench Results40 Semi/Score-only expansion
 
-Status: **provider-free preparation; no new assignment call has started**.
+Status: **provider-free validation complete; revision ready to launch**.
 
 This run extends the completed Results20 Semi/Score-only comparison to the same precommitted additional twenty tasks used by the completed Full/User Results40 experiment. It preserves the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` treatment and matched static definitions. The user selected GPT-5.6 Sol and Gemini 3.8 Flash for this expansion audit; the separate incomplete Results20 Opus recovery is not part of the completion gate.
 
@@ -17,3 +17,7 @@ This run extends the completed Results20 Semi/Score-only comparison to the same 
 - Bundle: `experiments/trace-v21-execution-verified-provenance-result40-feedback/`.
 
 The final report will show new20 and cumulative40 separately for Sol, Gemini, and their equal-weight panel. Original20 assignments and judgments are reused read-only and are not rerun.
+
+## Provider-free gate
+
+Slurm job `10516052` completed in nine seconds with zero provider calls. It validated exactly 240 assignments, the disjoint precommitted new20 membership, all frozen seed/paraphrase roots, 20/20 native pretreatment sources, diagnosis-only high proposer reasoning, the absence of dropout/alternate candidates, writable experiment-owned NAS8 roots, and the exact Sol+Gemini audit panel. The durable receipt is `experiments/trace-v21-execution-verified-provenance-result40-feedback/receipts/input-validation.json`.

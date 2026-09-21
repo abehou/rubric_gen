@@ -1,3 +1,7 @@
+## 2026-09-20 — Semi/Score-only Results40 validation
+
+Provider-free input and runtime validation completed in job `10516052` from source `603b49e8` with zero model calls. The exact 240-assignment scope and input hashes are tracked at `experiments/trace-v21-execution-verified-provenance-result40-feedback/receipts/input-validation.json`; persistent execution uses `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`.
+
 ## 2026-09-20 — Semi/Score-only Results20 prepared
 
 - 11:07 EDT: The new four-cell bundle is `experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml`, with 240 assignments and persistent root `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/`. It reuses canonical Results20 seeds/paraphrases/g1 and the promoted `attack_defense_v2.1_execution_verified_proactive_provenance` recipe; provider-free compute validation precedes launch at revision concurrency 60 and Sol/Opus/Gemini partitions 60 each.
