@@ -1,3 +1,7 @@
+## 2026-09-21 — Result40 five-task S-H improvement prepared
+
+- 17:44 JST: Branch `codex/result40-rtt-gap-improvement-pilot` prepares one 30-assignment combined challenger under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-gap-improvement-pilot-20260921/`. The counted `da-26-2` six-assignment smoke must complete revision and Sol+Gemini audit before the remaining 24 assignments; all stages are missing-only and the exact source/config identities will be recorded by the Slurm owners.
+
 ## 2026-09-20 — Semi/Score-only Results40 validation
 
 Provider-free input and runtime validation completed in job `10516052` from source `603b49e8` with zero model calls. The exact 240-assignment scope and input hashes are tracked at `experiments/trace-v21-execution-verified-provenance-result40-feedback/receipts/input-validation.json`; persistent execution uses `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`.

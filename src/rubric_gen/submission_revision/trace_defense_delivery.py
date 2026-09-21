@@ -8,6 +8,9 @@ from .feedback import FeedbackPolicy, _validate_score_record
 from .trace_defense_prompts import CORRECTIVE, ANTICIPATORY
 
 _NUMERIC = re.compile(r'(?<![\w.])[+-]?(?:\d+(?:,\d{3})*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?%?')
+GAP_IMPROVEMENT_VERSION = (
+    'attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement'
+)
 
 def numeric_literals(text):
     return set(_NUMERIC.findall(text))
@@ -43,6 +46,10 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
     prior_records=[read_json_object(record_dir/f's{i:03d}.json','prior trace reminder') for i in range(checkpoint)]
     reminded={r['selection']['criterion_id'] for r in prior_records if r['selection'] is not None}
     task_numbers=numeric_literals(instruction)
+    gap_improvement = (
+        getattr(generation, 'red_team_trace_version', None)
+        == GAP_IMPROVEMENT_VERSION
+    )
     if getattr(generation, 'red_team_trace_version', None) in {
             'attack_defense_v2.1_task_paraphrase_required_enforced',
             'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only',
@@ -56,7 +63,8 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
     elif (getattr(generation, 'red_team_trace_version', None) in {
           'attack_defense_v2.1_execution_verified',
           'attack_defense_v2.1_execution_verified_proactive',
-          'attack_defense_v2.1_execution_verified_proactive_provenance'}
+          'attack_defense_v2.1_execution_verified_proactive_provenance',
+          GAP_IMPROVEMENT_VERSION}
           and not skip_execution_verified):
         from .task_required_enforcement import select_execution_verified
         selection, enforcement_skipped, _ = select_execution_verified(
@@ -68,15 +76,23 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
     validation=read_json_object(score_validation_path,'score validation')
     _,_,_,scores=_validate_score_record(validation,generation.rubric.content,generation.rubric.content_sha256)
     offset=len(scores)-len(generation.elicited_criteria)+1
-    eligible=[]; skipped=[]
+    eligible=[]; skipped=[]; pending_undelivered_corrective=[]
     for index,c in enumerate(generation.elicited_criteria,offset):
         if retained_learned_ids is not None and c.criterion_id not in retained_learned_ids:
             skipped.append({'criterion_id':c.criterion_id,'reason':'rubric_dropout',
                             'absent_numeric_literals':[]});continue
         points=scores[f'criterion_{index}']
         new=c.source_generation==generation.generation_round
-        category=(1 if new and points<0 else 2 if points<0 else 3 if new and c.criterion_id not in reminded
-                  else 4 if checkpoint==0 and c.source_generation==1 and c.criterion_id not in reminded else None)
+        if gap_improvement:
+            category=(1 if new and points<0 and c.criterion_id not in reminded
+                      else 2 if points<0 and c.criterion_id not in reminded
+                      else 3 if points<0
+                      else 4 if new and c.criterion_id not in reminded
+                      else 5 if checkpoint==0 and c.source_generation==1 and c.criterion_id not in reminded
+                      else None)
+        else:
+            category=(1 if new and points<0 else 2 if points<0 else 3 if new and c.criterion_id not in reminded
+                      else 4 if checkpoint==0 and c.source_generation==1 and c.criterion_id not in reminded else None)
         if category is None:continue
         reason=None
         if len(c.requirement)>650:reason='requirement_exceeds_delivery_limit'
@@ -84,6 +100,8 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
         if extra:reason='numeric_literal_absent_from_public_task'
         if reason:
             skipped.append({'criterion_id':c.criterion_id,'reason':reason,'absent_numeric_literals':extra});continue
+        if gap_improvement and points < 0 and c.criterion_id not in reminded:
+            pending_undelivered_corrective.append(c.criterion_id)
         eligible.append((category,points,-c.source_generation,c.criterion_id,c))
     eligible.sort(key=lambda x:x[:4])
     selection=None
@@ -93,7 +111,32 @@ def select_reminder(*,generation,score_validation_path,root,submission_id,instru
         selection={'criterion_id':identity,'source_generation':c.source_generation,'category':category,
                    'points':points,'previously_reminded':identity in reminded,'corrective':corrective,
                    'requirement':c.requirement}
+        if gap_improvement:
+            selection.update(
+                delivery_policy='unreminded_corrective_first_v1',
+                pending_undelivered_corrective_count=len(
+                    pending_undelivered_corrective
+                ),
+            )
     return selection, enforcement_skipped + skipped
+
+
+def pending_delivery_followup(root, submission_id):
+    """Whether one unchanged turn should continue to an unseen correction."""
+
+    path = root / 'trace-defense-reminders' / f'{submission_id}.json'
+    if not path.is_file():
+        return False
+    record = read_json_object(path, 'trace reminder')
+    if record.get('red_team_trace_version') != GAP_IMPROVEMENT_VERSION:
+        return False
+    selection = record.get('selection')
+    deferred = record.get('deferred_ordinary_selection')
+    if isinstance(deferred, dict):
+        return deferred.get('pending_undelivered_corrective_count', 0) > 0
+    if isinstance(selection, dict) and not selection.get('protected_execution_issue'):
+        return selection.get('pending_undelivered_corrective_count', 0) > 1
+    return False
 
 
 def appendix_mode(version, feedback_policy):
@@ -119,10 +162,12 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
         if isinstance(dropout, dict) else None
     )
     issue = None
+    deferred_ordinary = None
     if (getattr(generation, 'red_team_trace_version', None) in {
             'attack_defense_v2.1_execution_verified',
             'attack_defense_v2.1_execution_verified_proactive',
-            'attack_defense_v2.1_execution_verified_proactive_provenance'}):
+            'attack_defense_v2.1_execution_verified_proactive_provenance',
+            GAP_IMPROVEMENT_VERSION}):
         from .task_required_enforcement import select_execution_verified
         selection, skipped, issue = select_execution_verified(
             generation=generation, root=root)
@@ -137,6 +182,17 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
                 retained_learned_ids=retained_learned_ids,
                 skip_execution_verified=True)
             selection = ordinary
+            skipped += ordinary_skipped
+        elif selection is None and issue is not None and (
+                generation.red_team_trace_version == GAP_IMPROVEMENT_VERSION):
+            # A resolved execution issue still owns this checkpoint.  Inspect
+            # the ordinary queue without marking anything delivered so an
+            # unchanged solver turn can continue to the next unseen fix.
+            deferred_ordinary, ordinary_skipped = select_reminder(
+                generation=generation, score_validation_path=score_validation_path,
+                root=root, submission_id=submission_id, instruction=instruction,
+                retained_learned_ids=retained_learned_ids,
+                skip_execution_verified=True)
             skipped += ordinary_skipped
     else:
         selection, skipped = select_reminder(generation=generation,
@@ -161,6 +217,11 @@ def append_reminder(projected,*,generation,score_validation_path,root,submission
             'generation_sha256':generation.generation_sha256,'selection':selection,'skipped':skipped,
             'message_component':block,'ordinary_prompt_sha256':sha256_text(projected.prompt),
             'final_prompt_sha256':sha256_text(prompt)}
+    if generation.red_team_trace_version == GAP_IMPROVEMENT_VERSION:
+        record.update(
+            delivery_policy='unreminded_corrective_first_v1',
+            deferred_ordinary_selection=deferred_ordinary,
+        )
     if issue is not None:
         issue_record = {
             'kind': 'execution-truthfulness-issue-v1',

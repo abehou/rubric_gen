@@ -187,8 +187,12 @@ benchmark submission unchanged and finish."""
     if red_team_trace_version in {
         "attack_defense_v2.1_execution_verified_proactive",
         "attack_defense_v2.1_execution_verified_proactive_provenance",
+        "attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement",
     }:
-        if red_team_trace_version.endswith("_provenance"):
+        if red_team_trace_version in {
+            "attack_defense_v2.1_execution_verified_proactive_provenance",
+            "attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement",
+        }:
             from .execution_verified_provenance_prompts import (
                 SOLVER_EXECUTION_TRUTHFULNESS,
             )

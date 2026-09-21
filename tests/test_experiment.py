@@ -726,6 +726,44 @@ def test_provenance_trace_accepts_explicit_results20_condition_ids(
     }
 
 
+def test_gap_improvement_trace_freezes_high_learning_stages_and_low_solver(
+    tmp_path: Path,
+) -> None:
+    _task(tmp_path, "da-1-1")
+    _task(tmp_path, "da-2-1")
+    payload = _payload(tmp_path)
+    payload["conditions"] = [
+        {
+            "condition_id": "full-red-team-trace-gap-improvement",
+            "feedback_policy": "full",
+            "rubric_policy": "red_team_trace",
+        },
+        {
+            "condition_id": "user-simulator-red-team-trace-gap-improvement",
+            "feedback_policy": "user_simulator",
+            "rubric_policy": "red_team_trace",
+        },
+    ]
+    payload["protocol"]["red_team_trace_version"] = (
+        "attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement"
+    )
+    payload["protocol"]["rubric_proposer_reasoning_effort_by_stage"] = {
+        "rubric_view": "high",
+        "diagnosis": "high",
+        "semantic": "high",
+    }
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(payload, sort_keys=False))
+
+    experiment = load_experiment(path)
+
+    assert experiment.payload["solvers"][0]["reasoning_effort"] == "low"
+    assert experiment.payload["protocol"][
+        "rubric_proposer_reasoning_effort_by_stage"
+    ] == {"rubric_view": "high", "diagnosis": "high", "semantic": "high"}
+    assert len(experiment.assignments) == 12
+
+
 def test_experiment_rejects_obsolete_condition_level_prompts(
     tmp_path: Path,
 ) -> None:

@@ -452,13 +452,24 @@ class SubmissionRevisionController:
             "attack_defense_v2.1_execution_verified",
             "attack_defense_v2.1_execution_verified_proactive",
             "attack_defense_v2.1_execution_verified_proactive_provenance",
+            "attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement",
         }:
             from .task_required_enforcement import active_execution_issue
             unresolved_execution_issue = active_execution_issue(
                 self.experiment_dir, state.submission_ids[-1]
             )
+        pending_delivery = False
+        if (
+            not changed
+            and self.config.red_team_trace_version
+            == "attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement"
+        ):
+            from .trace_defense_delivery import pending_delivery_followup
+            pending_delivery = pending_delivery_followup(
+                self.experiment_dir, state.submission_ids[-1]
+            )
         if (not changed and turn_index >= self.config.min_revisions
-                and not unresolved_execution_issue):
+                and not unresolved_execution_issue and not pending_delivery):
             state.stop_reason = "no_change"
             state.next_prompt = ""
             state.phase = _RevisionPhase.COMPLETED

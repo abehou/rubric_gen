@@ -78,6 +78,9 @@ _V21_EXECUTION_VERIFIED_PROACTIVE = TraceRecipe(
 _V21_EXECUTION_VERIFIED_PROACTIVE_PROVENANCE = TraceRecipe(
     'v2', 'execution_verified_provenance_prompts', 'task_paraphrase_required',
     'trace_defense_v2_attack', 'attack-record-v2.json')
+_V21_GAP_IMPROVEMENT = TraceRecipe(
+    'v2', 'gap_improvement_prompts', 'task_paraphrase_required',
+    'trace_defense_v2_attack', 'attack-record-v2.json')
 # v3 keeps the complete v2.1 attack/learning path.  Its only scientific
 # difference is the User-simulator delivery adapter, selected in controller
 # scoring; the learning recipe remains the pinned v2.1 implementation.
@@ -101,6 +104,7 @@ RECIPES = {
     'attack_defense_v2.1_execution_verified': _V21_EXECUTION_VERIFIED,
     'attack_defense_v2.1_execution_verified_proactive': _V21_EXECUTION_VERIFIED_PROACTIVE,
     'attack_defense_v2.1_execution_verified_proactive_provenance': _V21_EXECUTION_VERIFIED_PROACTIVE_PROVENANCE,
+    'attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement': _V21_GAP_IMPROVEMENT,
     'attack_defense_v2.1_corrective_appendix': _V21,
     'attack_defense_v2.1_no_appendix': _V21,
     'attack_defense_v2.1_score_only_no_appendix': _V21,

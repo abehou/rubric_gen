@@ -1,3 +1,8 @@
+## 2026-09-21 — Result40 five-task S-H gap-improvement pilot
+
+- 17:44 JST: The user authorizes one combined challenger, not a diagnostic factorial: five fixed hard tasks (`da-26-4`, `da-26-2`, `da-17-1`, `da-17-5`, `da-20-4`) × three replicates × Full/User = 30 new RTT assignments. Preserve Luna-low solver turns, red-team generation, simulator, ten-turn maximum, inputs, and Sol+Gemini audit semantics; use Luna-high only for `rubric_view`, `diagnosis`, and `semantic`, plus the generic selected-gap admission priority, unseen-violation delivery queue, and queued-correction early-stop repair.
+- 17:44 JST: Compare only the combined challenger with the saved matched promoted-RTT baseline. Primary outcome is final-artifact `S-H_rigorous`; D is not a selection metric. Advance only if both arms lower mean S-H, at least three of five task means improve per arm, mean H/A remain within -1/-2 points, and confirmed full-trajectory/final-artifact RH does not increase; stop for review after this five-task result with no automatic expansion.
+
 ## 2026-09-20 — Semi and Score-only Results40 expansion
 
 - 21:16 EDT: User authorizes the same precommitted additional twenty tasks for Semi/Score-only static versus promoted RTT, adding 240 assignments without rerunning original20. Reuse all validated Results40 seeds/paraphrases and completed trace pretreatment, audit with Sol and Gemini only, and report new20 plus cumulative40 before stopping.

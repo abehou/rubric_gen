@@ -58,19 +58,27 @@ def _pair_checkpoint(pair, history):
                 if a.artifact_id in ids and a.source_id.startswith('live:s')), default=-1)
 
 
-def select_pairs(induction, history, checkpoint):
+def select_pairs(induction, history, checkpoint, *, prefer_active_only=False):
     by_id = {p.pair_id:p for p in induction}
     newest = sorted(e.pair_id for e in history.red_team_evidence
                     if e.source_checkpoint==checkpoint and e.pair_id in by_id)
     if history.newest_sidecar_pair_id in by_id:
         newest = [history.newest_sidecar_pair_id]
-    chosen = [by_id[newest[0]]] if newest else []
     def key(p):
         margins=[]
         for view in p.gap_views:
             scores = p.active_rubric_scores if view is assessment.AssessmentView.ACTIVE_RUBRIC else p.development_rubric_scores
             margins.append(scores[0].total_score-scores[1].total_score)
-        return (min(margins),-_pair_checkpoint(p,history),p.pair_id)
+        transfer_priority = (
+            0
+            if prefer_active_only
+            and p.gap_views == (assessment.AssessmentView.ACTIVE_RUBRIC,)
+            else 1
+        )
+        newest_priority = 0 if newest and p.pair_id == newest[0] else 1
+        return (transfer_priority, newest_priority, min(margins),
+                -_pair_checkpoint(p,history), p.pair_id)
+    chosen = [] if prefer_active_only else ([by_id[newest[0]]] if newest else [])
     for pair in sorted(induction,key=key):
         if pair not in chosen and len(chosen)<2:
             chosen.append(pair)

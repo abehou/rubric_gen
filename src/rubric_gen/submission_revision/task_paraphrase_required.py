@@ -41,6 +41,7 @@ ENFORCED_VERSIONS = {
     'attack_defense_v2.1_execution_verified',
     'attack_defense_v2.1_execution_verified_proactive',
     'attack_defense_v2.1_execution_verified_proactive_provenance',
+    'attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement',
 }
 INTERNAL_STAGE_FANOUT = 4
 
@@ -312,6 +313,7 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
                 'attack_defense_v2.1_execution_verified',
                 'attack_defense_v2.1_execution_verified_proactive',
                 'attack_defense_v2.1_execution_verified_proactive_provenance',
+                'attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement',
             }),
             freeze_witness=(version in {
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_witness_frozen',
@@ -319,7 +321,8 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
                 'attack_defense_v2.1_task_paraphrase_required_enforced_requirement_only_durable_delivery',
                 'attack_defense_v2.1_execution_verified',
                 'attack_defense_v2.1_execution_verified_proactive',
-                'attack_defense_v2.1_execution_verified_proactive_provenance'}))
+                'attack_defense_v2.1_execution_verified_proactive_provenance',
+                'attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement'}))
         witness_record['source_binding'] = source_binding
         enforcement = stages.call('enforcement', enforcement_input, enforcement_contract)
         enforcement_record = {
@@ -364,7 +367,15 @@ def elicit_trace_defense(*, proposer, instruction, original_rubric, development_
                 views.append(_view_result(view, values, history, current_generation))
         comparisons = assessment.pair_comparisons(free, *views, history) if all(v is not None for v in views) else ()
         induction, validation_pairs = assessment.partition_gaps(comparisons, priority_induction_pair_ids=history.red_team_pair_ids)
-        selected = select_pairs(induction, history, source_checkpoint)
+        selected = select_pairs(
+            induction,
+            history,
+            source_checkpoint,
+            prefer_active_only=(
+                version
+                == 'attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement'
+            ),
+        )
         labels = protocol.required_level_labels(original_rubric)
         required_ids = assessment.validation_artifact_ids(comparisons)
         for pair in selected:

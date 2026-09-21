@@ -314,6 +314,9 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
             "attack_defense_v2.1_execution_verified_proactive_provenance",
         }
     )
+    gap_improvement_conditions = trace_version == (
+        "attack_defense_v2.1_execution_verified_proactive_provenance_gap_improvement"
+    )
     condition_pairs: list[tuple[FeedbackPolicy, RubricPolicy]] = []
     condition_cells: list[tuple[FeedbackPolicy, RubricPolicy, float]] = []
     for condition in conditions:
@@ -364,6 +367,8 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
                 expected_id = (
                     f"{base_id}-execution-verified-dropout-{int(percent)}"
                 )
+        elif gap_improvement_conditions:
+            expected_id = f"{base_id}-gap-improvement"
         elif proactive_execution_conditions:
             if trace_version.endswith("_provenance"):
                 expected_id = f"{base_id}-execution-provenance-high-proposer"

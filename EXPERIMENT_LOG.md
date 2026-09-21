@@ -1,3 +1,7 @@
+## 2026-09-21 — Result40 S-H gap-improvement pilot
+
+- 17:44 JST: Froze the combined five-task intervention: Luna-high `rubric_view`/`diagnosis`/`semantic`, development-resolved selected-gap induction priority, unseen violated-criterion delivery before repeats, and use of remaining baseline turns when corrective work remains queued. Solver/red-team reasoning, maximum turns, inputs, and Sol+Gemini outcomes remain controlled; focused experiment/config tests pass 99/99 before Babel preflight.
+
 ## 2026-09-20 — Semi/Score-only Results40 gate
 
 - 21:45 EDT: Provider-free job `10516052` validated the precommitted new20 scope (240 Semi/Score-only static/promoted-RTT assignments), all frozen inputs, 20/20 single-layer pretreatment sources, diagnosis-only high proposer reasoning, and the requested Sol+Gemini panel with zero provider calls. Revision uses four six-assignment shards at once (maximum 24 assignment workers) under the shared aggregate-60 cap and internal fanout four.
