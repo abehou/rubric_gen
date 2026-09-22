@@ -101,6 +101,33 @@ def test_partial_opus_launcher_uses_frozen_runner() -> None:
     assert "run.py audit-opus-complete" in launcher
 
 
+def test_partial_opus_skips_only_exact_incomplete_invocation(monkeypatch) -> None:
+    monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
+    monkeypatch.syspath_prepend(str(BUNDLE))
+    spec = importlib.util.spec_from_file_location("result40_feedback_partial_opus", BUNDLE / "run.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    def incomplete(_experiment, _ledger):
+        raise ValueError(module.INCOMPLETE_INVOCATION)
+
+    monkeypatch.setattr(module, "terminal_records", incomplete)
+    assert module.partial_audit_rows(object(), {}) is None
+
+    def different(_experiment, _ledger):
+        raise ValueError("different validation failure")
+
+    monkeypatch.setattr(module, "terminal_records", different)
+    try:
+        module.partial_audit_rows(object(), {})
+    except ValueError as error:
+        assert str(error) == "different validation failure"
+    else:
+        raise AssertionError("unrelated lineage failure was silently skipped")
+
+
 def test_revision_recovery_is_bounded_and_uses_local_codex_cache(monkeypatch) -> None:
     monkeypatch.syspath_prepend(str(BUNDLE.parents[1] / "src"))
     monkeypatch.syspath_prepend(str(BUNDLE))

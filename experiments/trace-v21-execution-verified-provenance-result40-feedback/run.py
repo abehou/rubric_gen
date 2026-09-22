@@ -34,6 +34,7 @@ PYTHON = Path("/home/aydanh/repos/rubric_gen/.venv/bin/python")
 SOL_PANEL = ("gpt-5.6-sol",)
 GEMINI_PANEL = ("gemini-3.8-flash",)
 OPUS_PANEL = ("claude-opus-5",)
+INCOMPLETE_INVOCATION = "audit scope differs from the terminal study invocation"
 
 
 def now() -> str:
@@ -246,6 +247,20 @@ def complete_shard(task: str, kind: str) -> list[dict]:
     expected = {row["assignment_id"] for row in rows}
     if len(targets) != 6 or {target.assignment_id for target in targets} != expected:
         raise RuntimeError(f"{task}/{kind} audit target scope differs from completed assignments")
+    return rows
+
+
+def partial_audit_rows(exp, ledger: dict) -> list[dict] | None:
+    """Return terminal rows, or None for the exact native incomplete invocation."""
+
+    try:
+        rows = terminal_records(exp, ledger)
+    except ValueError as error:
+        if str(error) == INCOMPLETE_INVOCATION:
+            return None
+        raise
+    if len(rows) != 6 or any(row.get("status") != "completed" for row in rows):
+        return None
     return rows
 
 
@@ -494,8 +509,8 @@ def audit_opus_complete(path: Path) -> None:
             skipped.append((task, kind))
             continue
         ledger = json.loads((study / "study.json").read_text())
-        rows = terminal_records(exp, ledger)
-        if len(rows) != 6 or any(row.get("status") != "completed" for row in rows):
+        rows = partial_audit_rows(exp, ledger)
+        if rows is None:
             skipped.append((task, kind))
             continue
         complete_shard(task, kind)
