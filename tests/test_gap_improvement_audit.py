@@ -83,6 +83,38 @@ def test_inventory_counts_only_saved_provider_material(tmp_path: Path) -> None:
     ]
 
 
+def test_inventory_counts_published_judgments_by_model_and_stage(
+    tmp_path: Path,
+) -> None:
+    module = load_module("gap_audit_inventory_counts", "audit_inventory.py")
+    root = tmp_path / "audit"
+    for stage in ("absolute_score", "pairwise_preference", "rubric_score"):
+        records = root / stage / "records"
+        records.mkdir(parents=True)
+        (records / "sol.json").write_text('{"model":"gpt-5.6-sol"}')
+        (records / "gemini.json").write_text(
+            '{"model":"gemini-3.8-flash"}'
+        )
+    score = (
+        root
+        / "direct_final_artifact/evaluations/run/cases/revision-000001"
+        / "gpt-5.6-sol/score.json"
+    )
+    score.parent.mkdir(parents=True)
+    score.write_text('{"model":"gpt-5.6-sol","status":"completed"}')
+    counts = module.saved_model_counts(root)
+    assert counts["gpt-5.6-sol"] == {
+        "absolute_score": 1,
+        "direct_final_artifact": 1,
+        "pairwise_preference": 1,
+        "rubric_score": 1,
+    }
+    coverage = module.model_coverage(counts, "gpt-5.6-sol")
+    assert coverage["expected"] == 94
+    assert coverage["saved"] == 4
+    assert coverage["missing"] == 90
+
+
 def test_audit_launcher_uses_authorized_cpu_only_a6000_profile() -> None:
     text = (BUNDLE / "audit.sbatch").read_text()
     assert "#SBATCH --partition=general" in text

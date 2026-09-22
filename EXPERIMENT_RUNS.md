@@ -1425,6 +1425,8 @@ Formal audit supplements write to `audit-sol/<task>/<experiment_id>` and `audit-
 
 Before launch, each provider/task scope declares one outer shard, 60 assignment workers, provider cap 60, no revision fanout, at most three parallel audit owners, 4 CPUs/32 GiB and a 90-minute ETA enforced by a two-hour Slurm limit. Audit owners are replenished only after a slot completes, so queued GPU allocations do not substitute for real request concurrency.
 
+Revision recovery `10528592` completed 30/30 assignments in 1:38:19. Provider-free verification `10529227` confirmed six completed assignments for each of the five tasks and zero provider calls. Legacy mixed-panel audit `10528792` failed after 5:06 on exhausted OpenAI credit but preserved 188 successful Sol judgments; provider-free inventory `10529298` reports per-task Sol gaps of 69 (`da-17-1`), 74 (`da-17-5`), 71 (`da-20-4`), zero (`da-26-2`), and 68 (`da-26-4`), or 282 total. Formal Opus remains 470 judgments; stale never-started dependency job `10528811` was canceled.
+
 ## 2026-09-21 — Result40 development-rubric gap diagnostic
 
 - 16:12 JST: Dedicated branch `codex/result40-development-gap-diagnostic` starts from current Result40 source `fea3ac934f33a3bd52701ff895d094bd96cbe1e6`; independent output root is `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-development-score-pilot-20260921/`. Preparation fixes five tasks, four condition arms, three replicates, final artifacts only, rubric variant 1, Sol+Gemini, 120 semantic judgments, missing-only resume, shared runtime coordination, audit concurrency 12, and zero revision calls; paid work remains gated on focused tests and a Babel provider-free preflight.

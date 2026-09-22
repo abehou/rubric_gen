@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from collections import Counter
 
 from rubric_gen.submission_revision.experiment import load_experiment
 
@@ -15,6 +16,17 @@ from audit_sol_opus import (
     planned_scopes,
     validate_revision,
 )
+
+
+STAGE_EXPECTED_PER_MODEL = {
+    "absolute_score": 9,
+    "pairwise_preference": 6,
+    "rubric_score": 55,
+    "direct_full_trajectory": 6,
+    "direct_post_update": 6,
+    "direct_final_artifact": 6,
+    "direct_final_revision": 6,
+}
 from make_configs import (
     PANEL as HISTORICAL_PANEL,
     ROOT,
@@ -44,6 +56,61 @@ def provider_material(root: Path) -> list[str]:
     return sorted(values)
 
 
+def saved_model_counts(root: Path) -> dict[str, dict[str, int]]:
+    """Count only published judgments, never failed/request attempt files."""
+
+    counts: Counter[tuple[str, str]] = Counter()
+    for stage in ("absolute_score", "pairwise_preference", "rubric_score"):
+        for path in sorted((root / stage / "records").glob("*.json")):
+            record = json.loads(path.read_text())
+            model = record.get("model")
+            if not isinstance(model, str) or not model:
+                raise RuntimeError(f"saved record has no model: {path}")
+            counts[(model, stage)] += 1
+    for stage in (
+        "direct_full_trajectory",
+        "direct_post_update",
+        "direct_final_artifact",
+        "direct_final_revision",
+    ):
+        evaluations = root / stage / "evaluations"
+        for path in sorted(evaluations.glob("*/cases/*/*/score.json")):
+            record = json.loads(path.read_text())
+            model = record.get("model")
+            if not isinstance(model, str) or not model:
+                raise RuntimeError(f"saved direct score has no model: {path}")
+            counts[(model, stage)] += 1
+    result: dict[str, dict[str, int]] = {}
+    for (model, stage), count in sorted(counts.items()):
+        result.setdefault(model, {})[stage] = count
+    return result
+
+
+def model_coverage(
+    counts: dict[str, dict[str, int]],
+    model: str,
+) -> dict[str, object]:
+    saved = counts.get(model, {})
+    stages = {}
+    for stage, expected in STAGE_EXPECTED_PER_MODEL.items():
+        observed = int(saved.get(stage, 0))
+        if observed > expected:
+            raise RuntimeError(
+                f"saved {model} {stage} count exceeds plan: {observed}>{expected}"
+            )
+        stages[stage] = {
+            "expected": expected,
+            "saved": observed,
+            "missing": expected - observed,
+        }
+    return {
+        "expected": sum(STAGE_EXPECTED_PER_MODEL.values()),
+        "saved": sum(int(row["saved"]) for row in stages.values()),
+        "missing": sum(int(row["missing"]) for row in stages.values()),
+        "stages": stages,
+    }
+
+
 def inventory() -> dict[str, object]:
     sys_path = str(ROOT / "scripts/diagnostics")
     import sys
@@ -58,6 +125,7 @@ def inventory() -> dict[str, object]:
         study = Path(experiment.dag["revise"]["output_dir"])
         historical = Path(experiment.dag["detect"]["output_dir"])
         material = provider_material(historical)
+        historical_counts = saved_model_counts(historical)
         if task == SMOKE_TASK:
             coverage = check(
                 study, historical, expected_models=HISTORICAL_PANEL
@@ -69,21 +137,32 @@ def inventory() -> dict[str, object]:
                 "coverage": coverage,
                 "reuse_model": "gpt-5.6-sol",
                 "excluded_historical_model": "gemini-3.8-flash",
+                "models": {
+                    model: model_coverage(historical_counts, model)
+                    for model in HISTORICAL_PANEL
+                },
             }
         else:
-            if material:
-                raise RuntimeError(
-                    f"unexpected partial historical audit requires review: {task}"
-                )
-            historical_state = {"panel": [], "provider_material": 0}
+            historical_state = {
+                "panel": list(HISTORICAL_PANEL),
+                "provider_material": len(material),
+                "models": {
+                    model: model_coverage(historical_counts, model)
+                    for model in HISTORICAL_PANEL
+                },
+                "reuse_model": "gpt-5.6-sol",
+                "excluded_historical_model": "gemini-3.8-flash",
+            }
         supplements = {}
         for provider, (model, _credential) in PROVIDERS.items():
             root = audit_dir(task, provider, experiment.experiment_id)
+            counts = saved_model_counts(root)
             supplements[provider] = {
                 "model": model,
                 "audit_dir": str(root),
                 "exists": root.exists(),
                 "provider_material": len(provider_material(root)),
+                "coverage": model_coverage(counts, model),
                 "required": (task, provider) in planned_scopes(),
             }
         tasks[task] = {
