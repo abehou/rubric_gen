@@ -33,6 +33,7 @@ UV = Path("/home/aydanh/tools/uv/uv")
 PYTHON = Path("/home/aydanh/repos/rubric_gen/.venv/bin/python")
 SOL_PANEL = ("gpt-5.6-sol",)
 GEMINI_PANEL = ("gemini-3.8-flash",)
+OPUS_PANEL = ("claude-opus-5",)
 
 
 def now() -> str:
@@ -46,6 +47,8 @@ def credential_keys(mode: str) -> tuple[str, ...]:
         return ("OPENAI_API_KEY",)
     if mode == "audit":
         return ("OPENAI_API_KEY", "GEMINI_API_KEY")
+    if mode == "audit-opus-complete":
+        return ("ANTHROPIC_API_KEY",)
     raise ValueError(f"unsupported credential mode: {mode}")
 
 
@@ -479,15 +482,91 @@ def audit(path: Path) -> None:
     })
 
 
+def audit_opus_complete(path: Path) -> None:
+    """Audit only native-complete shards while revision recovery is blocked."""
+
+    completed = []
+    skipped = []
+    for task, kind in SHARDS:
+        exp = experiment(task, kind)
+        study = Path(exp.dag["revise"]["output_dir"])
+        if not (study / "study.json").is_file():
+            skipped.append((task, kind))
+            continue
+        ledger = json.loads((study / "study.json").read_text())
+        rows = terminal_records(exp, ledger)
+        if len(rows) != 6 or any(row.get("status") != "completed" for row in rows):
+            skipped.append((task, kind))
+            continue
+        complete_shard(task, kind)
+        completed.append((task, kind))
+    if not completed:
+        raise RuntimeError("no native-complete Results40 feedback shard is available for Opus audit")
+
+    status_path = RUN / "audit-opus-partial-status.json"
+    status = {
+        "job_id": os.environ["SLURM_JOB_ID"],
+        "started_at": now(),
+        "model": OPUS_PANEL[0],
+        "completed_revision_shards": [f"{task}-{kind}" for task, kind in completed],
+        "skipped_incomplete_shards": [f"{task}-{kind}" for task, kind in skipped],
+        "assignment_count": len(completed) * 6,
+        "scopes": {},
+    }
+    write_json_atomic(status_path, status)
+    failures = []
+    coverage = {}
+    for task, kind in completed:
+        source = config(task, kind)
+        exp = scoped_experiment(
+            source,
+            OPUS_PANEL,
+            RUN / "audit-opus" / task / kind / experiment(task, kind).experiment_id,
+        )
+        name = f"new20-{task}-{kind}-opus"
+        result = audit_stage(name, exp, 60, path / f"detect-{name}.log")
+        status["scopes"][name] = result
+        write_json_atomic(status_path, status)
+        print(json.dumps(result), flush=True)
+        if result["exit_code"]:
+            failures.append(name)
+            break
+        sys.path.insert(0, str(ROOT / "scripts/diagnostics"))
+        from check_audit_coverage import check
+        coverage[name] = check(
+            Path(exp.dag["revise"]["output_dir"]),
+            Path(exp.dag["detect"]["output_dir"]),
+            expected_models=OPUS_PANEL,
+        )
+        if coverage[name].get("assignment_count") != 6:
+            raise RuntimeError(f"{name} Opus audit assignment coverage differs from 6")
+    status["finished_at"] = now()
+    status["complete_for_native_complete_shards"] = not failures
+    write_json_atomic(status_path, status)
+    if failures:
+        raise RuntimeError(f"Results40 partial Opus audit retained incomplete scopes: {failures}")
+    write_json_atomic(RUN / "audit-opus-partial-completion.json", {
+        "success": True,
+        "job_id": os.environ["SLURM_JOB_ID"],
+        "source_commit": clean_commit(),
+        "model": OPUS_PANEL[0],
+        "completed_revision_shards": [f"{task}-{kind}" for task, kind in completed],
+        "skipped_incomplete_shards": [f"{task}-{kind}" for task, kind in skipped],
+        "assignment_count": len(completed) * 6,
+        "coverage": coverage,
+        "finished_at": now(),
+    })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("execute", "audit"))
+    parser.add_argument("mode", choices=("execute", "audit", "audit-opus-complete"))
     args = parser.parse_args()
     expected_cpus = int(os.environ.get("RESULT40_EXPECTED_CPUS", "32"))
     if not os.environ.get("SLURM_JOB_ID") or int(os.environ.get("SLURM_CPUS_PER_TASK", "0")) != expected_cpus:
         raise RuntimeError(f"Results40 production requires one {expected_cpus}-CPU Slurm allocation")
     commit = clean_commit()
-    capacity = runtime(args.mode)
+    capacity = runtime("execute" if args.mode == "execute" else "audit")
     runtime_write_probe()
     for task, kind in SHARDS:
         exp = experiment(task, kind)
@@ -495,7 +574,12 @@ def main() -> None:
             raise RuntimeError(f"frozen Results40 task shard changed: {task}/{kind}")
     credentials(args.mode)
     path = owner(args.mode, commit, capacity)
-    (execute if args.mode == "execute" else audit)(path)
+    if args.mode == "execute":
+        execute(path)
+    elif args.mode == "audit":
+        audit(path)
+    else:
+        audit_opus_complete(path)
     write_json_atomic(path / "completed.json", {"success": True, "finished_at": now()})
 
 

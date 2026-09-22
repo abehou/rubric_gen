@@ -91,6 +91,14 @@ def test_execution_and_audit_credentials_are_scoped(monkeypatch) -> None:
     spec.loader.exec_module(module)
     assert module.credential_keys("execute") == ("OPENAI_API_KEY",)
     assert module.credential_keys("audit") == ("OPENAI_API_KEY", "GEMINI_API_KEY")
+    assert module.credential_keys("audit-opus-complete") == ("ANTHROPIC_API_KEY",)
+    assert module.OPUS_PANEL == ("claude-opus-5",)
+
+
+def test_partial_opus_launcher_uses_frozen_runner() -> None:
+    launcher = (BUNDLE / "opus-complete.sbatch").read_text()
+    assert "#SBATCH --cpus-per-task=32" in launcher
+    assert "run.py audit-opus-complete" in launcher
 
 
 def test_revision_recovery_is_bounded_and_uses_local_codex_cache(monkeypatch) -> None:
