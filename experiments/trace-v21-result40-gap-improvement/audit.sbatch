@@ -12,8 +12,9 @@
 #SBATCH --job-name=r40-gap-audit
 #SBATCH --output=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-gap-improvement-pilot-20260921/logs/audit-%j.out
 #SBATCH --error=/data/user_data/aydanh/rubric_gen/runs/rtt-result40-gap-improvement-pilot-20260921/logs/audit-%j.err
-if [[ $# -ne 2 ]]; then
-  echo "usage: sbatch audit.sbatch TASK {sol|opus}" >&2
+if [[ $# -ne 2 || "$2" != "opus" ]]; then
+  echo "usage: sbatch audit.sbatch TASK opus" >&2
+  echo "Sol must use recover-sol.sbatch to preserve historical successes" >&2
   exit 2
 fi
 source experiments/trace-v21-result40-gap-improvement/common.sbatch

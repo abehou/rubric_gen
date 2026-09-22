@@ -119,6 +119,9 @@ def inventory() -> dict[str, object]:
     from check_audit_coverage import check
 
     tasks = {}
+    historical_sol_missing = 0
+    opus_missing = 0
+    sol_recovery_tasks = []
     for task in TASKS:
         validate_revision(task)
         experiment = load_experiment(config_path(task))
@@ -126,6 +129,10 @@ def inventory() -> dict[str, object]:
         historical = Path(experiment.dag["detect"]["output_dir"])
         material = provider_material(historical)
         historical_counts = saved_model_counts(historical)
+        sol_coverage = model_coverage(historical_counts, "gpt-5.6-sol")
+        historical_sol_missing += int(sol_coverage["missing"])
+        if int(sol_coverage["missing"]):
+            sol_recovery_tasks.append(task)
         if task == SMOKE_TASK:
             coverage = check(
                 study, historical, expected_models=HISTORICAL_PANEL
@@ -157,12 +164,15 @@ def inventory() -> dict[str, object]:
         for provider, (model, _credential) in PROVIDERS.items():
             root = audit_dir(task, provider, experiment.experiment_id)
             counts = saved_model_counts(root)
+            coverage = model_coverage(counts, model)
+            if provider == "opus":
+                opus_missing += int(coverage["missing"])
             supplements[provider] = {
                 "model": model,
                 "audit_dir": str(root),
                 "exists": root.exists(),
                 "provider_material": len(provider_material(root)),
-                "coverage": model_coverage(counts, model),
+                "coverage": coverage,
                 "required": (task, provider) in planned_scopes(),
             }
         tasks[task] = {
@@ -178,6 +188,12 @@ def inventory() -> dict[str, object]:
         "historical_gemini_in_main_panel": False,
         "planned_missing_scopes": [list(scope) for scope in planned_scopes()],
         "planned_missing_scope_count": len(planned_scopes()),
+        "priority": "finish Opus before credit-blocked Sol",
+        "planned_opus_missing_judgments": opus_missing,
+        "planned_historical_sol_recovery_tasks": sol_recovery_tasks,
+        "planned_historical_sol_missing_judgments": historical_sol_missing,
+        "sol_dispatch_paused_for_openai_credit": True,
+        "new_gemini_calls": 0,
         "maximum_parallel_audit_owners": 3,
         "per_scope_max_concurrency": 60,
         "tasks": tasks,

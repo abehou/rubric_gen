@@ -57,6 +57,10 @@ RECONSTRUCT = module(
     "gap_improvement_reconstruct",
     ROOT / "experiments/trace-attack-defense-v21/report/report_reconstruct.py",
 )
+RAW_MODEL_RECONSTRUCT = module(
+    "gap_improvement_raw_model_reconstruct",
+    BUNDLE / "raw_model_reconstruct.py",
+)
 
 
 def stats(values: list[float]) -> dict[str, float | int]:
@@ -82,24 +86,32 @@ def candidate_rows() -> tuple[dict[str, object], list[dict[str, object]]]:
         sources = {
             "gpt-5.6-sol": (
                 Path(experiment.dag["detect"]["output_dir"]),
-                HISTORICAL_PANEL,
-            )
-            if task == SMOKE_TASK
-            else (
-                RUN / "audit-sol" / task / experiment.experiment_id,
-                ("gpt-5.6-sol",),
+                "native-record",
             ),
             "claude-opus-5": (
                 RUN / "audit-opus" / task / experiment.experiment_id,
-                ("claude-opus-5",),
+                "completed-summary",
             ),
         }
         coverage[task] = {}
         raw_rows = []
-        for model, (audit, source_panel) in sources.items():
-            source_coverage, source_rows = RECONSTRUCT.reconstruct(
-                study, audit, source_panel, expected_holdouts=3
-            )
+        for model, (audit, source_kind) in sources.items():
+            if source_kind == "native-record":
+                source_coverage, source_rows = (
+                    RAW_MODEL_RECONSTRUCT.reconstruct_model(
+                        experiment,
+                        study,
+                        audit,
+                        model,
+                        expected_holdouts=3,
+                    )
+                )
+                source_panel = (model,)
+            else:
+                source_panel = (model,)
+                source_coverage, source_rows = RECONSTRUCT.reconstruct(
+                    study, audit, source_panel, expected_holdouts=3
+                )
             selected = [raw for raw in source_rows if raw["model"] == model]
             if len(selected) != 6:
                 raise RuntimeError(
@@ -109,7 +121,8 @@ def candidate_rows() -> tuple[dict[str, object], list[dict[str, object]]]:
                 "audit_dir": str(audit),
                 "source_panel": list(source_panel),
                 "coverage": source_coverage,
-                "historical_reuse": task == SMOKE_TASK and model == "gpt-5.6-sol",
+                "historical_reuse": model == "gpt-5.6-sol",
+                "source_kind": source_kind,
             }
             raw_rows.extend(selected)
         if len(raw_rows) != 12:

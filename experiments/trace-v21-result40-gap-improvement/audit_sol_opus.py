@@ -59,12 +59,7 @@ def clean_commit() -> str:
 
 
 def planned_scopes() -> tuple[tuple[str, str], ...]:
-    return tuple(
-        (task, provider)
-        for task in TASKS
-        for provider in PROVIDERS
-        if not (task == SMOKE_TASK and provider == "sol")
-    )
+    return tuple((task, "opus") for task in TASKS)
 
 
 def audit_dir(task: str, provider: str, experiment_id: str) -> Path:
@@ -126,10 +121,13 @@ def validate_runtime() -> dict[str, object]:
 
 
 def run_scope(task: str, provider: str, workers: int) -> dict[str, object]:
-    if (task, provider) not in planned_scopes():
+    if provider == "sol":
         raise RuntimeError(
-            "historical da-26-2 Sol must be reused; duplicate calls are forbidden"
+            "partial historical Sol records require recover_historical_sol.py; "
+            "a fresh Sol supplement would duplicate valid judgments"
         )
+    if (task, provider) not in planned_scopes():
+        raise RuntimeError("provider/task scope is outside the formal audit plan")
     experiment = scoped_experiment(task, provider)
     output_dir = Path(experiment.dag["detect"]["output_dir"])
     args = argparse.Namespace(max_concurrency=workers, resume=True)
@@ -173,7 +171,7 @@ def run_scope(task: str, provider: str, workers: int) -> dict[str, object]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", choices=TASKS, required=True)
-    parser.add_argument("--provider", choices=tuple(PROVIDERS), required=True)
+    parser.add_argument("--provider", choices=("opus",), required=True)
     parser.add_argument(
         "--max-concurrency", type=int, default=MAX_CONCURRENCY
     )

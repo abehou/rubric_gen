@@ -25,14 +25,15 @@ def load_module(name: str, filename: str):
     return module
 
 
-def test_formal_audit_has_nine_missing_provider_task_scopes() -> None:
+def test_formal_supplement_has_five_opus_task_scopes() -> None:
     module = load_module("gap_sol_opus_audit", "audit_sol_opus.py")
     scopes = module.planned_scopes()
-    assert len(scopes) == 9
-    assert (module.SMOKE_TASK, "sol") not in scopes
+    assert len(scopes) == 5
     assert (module.SMOKE_TASK, "opus") in scopes
-    assert sum(provider == "sol" for _task, provider in scopes) == 4
+    assert sum(provider == "sol" for _task, provider in scopes) == 0
     assert sum(provider == "opus" for _task, provider in scopes) == 5
+    text = (BUNDLE / "audit_sol_opus.py").read_text()
+    assert 'choices=("opus",)' in text
 
 
 def test_provider_scope_preserves_revision_identity_and_separates_outputs(
@@ -129,6 +130,14 @@ def test_audit_launcher_uses_authorized_cpu_only_a6000_profile() -> None:
     assert "#SBATCH --gres=gpu:A6000:1" in inventory
     assert "#SBATCH --cpus-per-task=4" in inventory
     assert "#SBATCH --mem=32G" in inventory
+    recovery = (BUNDLE / "recover-sol.sbatch").read_text()
+    assert "#SBATCH --partition=general" in recovery
+    assert "#SBATCH --qos=normal" in recovery
+    assert "#SBATCH --gres=gpu:A6000:1" in recovery
+    assert "#SBATCH --cpus-per-task=4" in recovery
+    assert "#SBATCH --mem=32G" in recovery
+    assert "#SBATCH --time=02:00:00" in recovery
+    assert "--max-concurrency 60" in recovery
 
 
 def test_provider_audit_records_runtime_topology_and_sub_two_hour_eta() -> None:
@@ -148,6 +157,9 @@ def test_provider_audit_records_runtime_topology_and_sub_two_hour_eta() -> None:
 def test_historical_sol_gemini_dispatch_is_disabled() -> None:
     text = (BUNDLE / "run.py").read_text()
     assert "historical Sol+Gemini audit dispatch is disabled" in text
+    audit = (BUNDLE / "audit.sbatch").read_text()
+    assert '"$2" != "opus"' in audit
+    assert "recover-sol.sbatch" in audit
 
 
 def test_revision_resume_reuses_only_unchanged_sealed_tree_hashes(
@@ -187,3 +199,28 @@ def test_analysis_uses_sol_opus_and_excludes_historical_gemini() -> None:
     module = load_module("gap_sol_opus_analysis", "analyze.py")
     assert module.PANEL == ("gpt-5.6-sol", "claude-opus-5")
     assert module.HISTORICAL_PANEL == ("gpt-5.6-sol", "gemini-3.8-flash")
+
+
+def test_historical_sol_recovery_never_dispatches_gemini() -> None:
+    text = (BUNDLE / "recover_historical_sol.py").read_text()
+    assert 'SOL = "gpt-5.6-sol"' in text
+    assert 'AuditExecutor(\n        args.max_concurrency, (SOL,)' in text
+    assert '"gemini_dispatches": 0' in text
+    assert "_run_detect_owned" not in text
+    assert "gemini-3.8-flash" not in text
+
+
+def test_historical_sol_recovery_uses_native_stage_methods() -> None:
+    text = (BUNDLE / "recover_historical_sol.py").read_text()
+    assert "runner._run_job(job)" in text
+    assert "runner._run_absolute_job(job)" in text
+    assert "runner._run_pairwise_job(job)" in text
+    assert "runner.execute(job)" in text
+
+
+def test_analysis_reconstructs_sol_from_native_partial_panel_records() -> None:
+    text = (BUNDLE / "analyze.py").read_text()
+    assert "RAW_MODEL_RECONSTRUCT.reconstruct_model" in text
+    assert '"gpt-5.6-sol": (\n                Path(experiment.dag["detect"]["output_dir"]),' in text
+    assert '"native-record"' in text
+    assert '"historical_reuse": model == "gpt-5.6-sol"' in text
