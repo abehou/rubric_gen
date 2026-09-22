@@ -54,3 +54,14 @@ do not duplicate text, routine checks, or repeated commands across the logs.
 - All new large datasets, shared pools, revision workspaces, and caches use absolute paths under `/data/user_data/aydanh/rubric_gen/`. This is persistent compute-only NFS: access and validate it through Slurm; login-node invisibility is not a blocker.
 - New sbatch configurations must resolve large input/output/cache paths to that root. Keep only code, configuration, manifests, provenance receipts, and small reports in the home repository. Preserve existing validated home-based Results20 datasets and historical outputs.
 - Current verified coverage and receipts: `docs/reports/2026-09-09/shared-storage-policy.md`.
+
+## Experiment runtime
+
+- Design every new experiment, recovery, and audit stage for an expected wall
+  time of at most two hours. Before launch, report outer shard workers,
+  per-shard assignment workers, aggregate provider caps, internal fanout, audit
+  concurrency, CPU/RAM, and the evidence-based ETA.
+- A high provider cap does not compensate for serialized shards. If saved
+  throughput predicts more than two hours, first optimize or split the execution
+  plumbing; otherwise report the concrete exception before launch rather than
+  allowing an unannounced overrun.

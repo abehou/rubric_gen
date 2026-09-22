@@ -81,11 +81,22 @@ def experiment(task: str):
 
 def stage(task: str, mode: str, workers: int, log: Path) -> dict[str, object]:
     verb = "revise" if mode == "execute" else "detect"
-    command = [
-        str(UV), "run", "--no-sync", "rubric-gen", verb,
-        "--experiment", str(config_path(task)),
-        "--max-concurrency", str(workers), "--resume",
-    ]
+    if mode == "execute":
+        command = [
+            str(PYTHON),
+            str(BUNDLE / "revision_cli.py"),
+            "--experiment",
+            str(config_path(task)),
+            "--max-concurrency",
+            str(workers),
+            "--resume",
+        ]
+    else:
+        command = [
+            str(UV), "run", "--no-sync", "rubric-gen", verb,
+            "--experiment", str(config_path(task)),
+            "--max-concurrency", str(workers), "--resume",
+        ]
     started = now()
     with log.open("a") as output:
         result = subprocess.run(
@@ -138,6 +149,11 @@ def main() -> None:
     args = parser.parse_args()
     if not os.environ.get("SLURM_JOB_ID"):
         raise RuntimeError("pilot execution requires a Slurm compute node")
+    if args.mode == "audit":
+        raise RuntimeError(
+            "historical Sol+Gemini audit dispatch is disabled; use the formal "
+            "provider-scoped Sol+Opus audit"
+        )
     commit = clean_commit()
     runtime = policy()
     if runtime["aggregate_concurrency"] != 60 or runtime["audit_studies"] != 3:

@@ -1417,6 +1417,14 @@ The 160-GiB chain `10495117/10495209/10495225/10495226` also made no call and wa
 
 Recovery `10498336` uses 8 CPUs/64 GiB, two task shards and one assignment worker per shard; it preserved the 233 completed assignments and completed at least the missing `da-4-1` trace cell while retaining three exact checkpoint failures. Execution-only commit `36335cf` adds fail-closed native recovery for those observed interruption boundaries and queues missing-only recovery `10499500` after the active owner, followed by concurrent Sol+Opus audit `10499502` and provider-free report/cost jobs `10499503`/`10499504`.
 
+## 2026-09-22 — Result40 five-task gap-improvement recovery
+
+The pilot root is `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-gap-improvement-pilot-20260921/` and its isolated source is `/home/aydanh/repos/rubric_gen/runs/babel-code/result40-gap-improvement-20260921`. Commit `b0d23a1` passed provider-free scope inspection `10528510`; exact rearm `10528546` archived three request directories and two failure records with zero provider calls, and missing-only revision `10528592` uses `general/normal`, one allocated but unused A6000, 4 CPUs and 32 GiB.
+
+Formal audit supplements write to `audit-sol/<task>/<experiment_id>` and `audit-opus/<task>/<experiment_id>`, while the completed historical `da-26-2` Sol row remains in `audit/da-26-2/<experiment_id>`. Each task/provider job uses one provider, 60 request workers and the shared three-owner audit policy; no new Gemini request is in scope.
+
+Before launch, each provider/task scope declares one outer shard, 60 assignment workers, provider cap 60, no revision fanout, at most three parallel audit owners, 4 CPUs/32 GiB and a 90-minute ETA enforced by a two-hour Slurm limit. Audit owners are replenished only after a slot completes, so queued GPU allocations do not substitute for real request concurrency.
+
 ## 2026-09-21 — Result40 development-rubric gap diagnostic
 
 - 16:12 JST: Dedicated branch `codex/result40-development-gap-diagnostic` starts from current Result40 source `fea3ac934f33a3bd52701ff895d094bd96cbe1e6`; independent output root is `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-development-score-pilot-20260921/`. Preparation fixes five tasks, four condition arms, three replicates, final artifacts only, rubric variant 1, Sol+Gemini, 120 semantic judgments, missing-only resume, shared runtime coordination, audit concurrency 12, and zero revision calls; paid work remains gated on focused tests and a Babel provider-free preflight.
