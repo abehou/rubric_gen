@@ -57,7 +57,9 @@ def rubric_actions(runner: RubricScoreRunner, archive: Path) -> list[dict[str, o
         job for job in prepared.unique_jobs
         if job.key not in runner._reused_records
     ]
-    if not pending or any(job.model != MODEL for job in pending):
+    if not pending:
+        return []
+    if any(job.model != MODEL for job in pending):
         raise RuntimeError("native pending rubric scope is not exclusively missing Opus work")
     actions: list[dict[str, object]] = []
     for job in pending:

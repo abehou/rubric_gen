@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 
 
@@ -62,3 +63,12 @@ def test_rubric_failure_allowlist_is_narrow():
         "failure_category": "structural",
         "error": "different scientific failure",
     })
+
+
+def test_rubric_actions_allow_direct_only_recovery(tmp_path):
+    runner = SimpleNamespace(
+        _prepared=SimpleNamespace(unique_jobs=()),
+        _saved_response_replays=set(),
+        _reused_records={},
+    )
+    assert MODULE.rubric_actions(runner, tmp_path / "archive") == []
