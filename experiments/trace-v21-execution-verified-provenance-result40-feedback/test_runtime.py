@@ -97,7 +97,8 @@ def test_execution_and_audit_credentials_are_scoped(monkeypatch) -> None:
 
 def test_partial_opus_launcher_uses_frozen_runner() -> None:
     launcher = (BUNDLE / "opus-complete.sbatch").read_text()
-    assert "#SBATCH --cpus-per-task=32" in launcher
+    assert "#SBATCH --cpus-per-task=8" in launcher
+    assert "export RESULT40_EXPECTED_CPUS=8" in launcher
     assert "run.py audit-opus-complete" in launcher
 
 
