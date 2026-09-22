@@ -30,10 +30,11 @@ def fixture(tmp_path: Path):
     studies = {}
     for case in module.CASES:
         study = tmp_path / case.task_id
+        study.mkdir()
         studies[case.task_id] = study
         experiment = study / "experiments" / "case"
-        request = experiment / "trace-defense-v2-requests" / case.request_key
-        request.mkdir(parents=True)
+        request_root = experiment / "trace-defense-v2-requests"
+        failed_request = request_root / case.failed_request_key
         assignment = {
             "assignment_id": case.assignment_id,
             "experiment_dir": "experiments/case",
@@ -41,38 +42,55 @@ def fixture(tmp_path: Path):
             "automatic_recovery_exhausted": True,
             "automatic_attempt_count": 1,
             "error_type": "RubricProposerProviderError",
-            "error": f"{case.stage}: provider failure at {request}",
+            "error": (
+                f"{next(request.stage for request in case.requests if request.request_key == case.failed_request_key)}: "
+                f"provider failure at {failed_request}"
+            ),
         }
         (study / "study.json").write_text(json.dumps({"records": [assignment]}))
-        for index, (error_type, error) in enumerate(case.expected_errors, start=1):
-            (request / f"attempt-{index:03d}.json").write_text(
-                json.dumps(
-                    {
-                        "attempt": index,
-                        "request_sha256": case.request_key,
-                        "stage": case.stage,
-                        "status": "provider_failure",
-                        "permanent": False,
-                        "error_type": error_type,
-                        "error": error,
-                    }
+        for request in case.requests:
+            request_dir = request_root / request.request_key
+            request_dir.mkdir(parents=True)
+            for index, (error_type, error) in enumerate(
+                request.expected_errors, start=1
+            ):
+                (request_dir / f"attempt-{index:03d}.json").write_text(
+                    json.dumps(
+                        {
+                            "attempt": index,
+                            "request_sha256": request.request_key,
+                            "stage": request.stage,
+                            "status": "provider_failure",
+                            "permanent": False,
+                            "error_type": error_type,
+                            "error": error,
+                        }
+                    )
                 )
-            )
     return module, studies
 
 
-def test_inspect_and_rearm_exact_two_response_free_failures(tmp_path: Path) -> None:
+def test_inspect_and_rearm_exact_three_response_free_requests(tmp_path: Path) -> None:
     module, studies = fixture(tmp_path)
     inspected = module.inspect_all(studies=studies)
     assert len(inspected) == 2
-    assert sum(len(case["attempts"]) for case in inspected) == 8
+    assert sum(len(case["requests"]) for case in inspected) == 3
+    assert sum(
+        len(request["attempts"])
+        for case in inspected
+        for request in case["requests"]
+    ) == 12
     assert {case["provider_responses"] for case in inspected} == {0}
 
     recovered = module.rearm_all(studies=studies, stamp="fixture")
     assert len(recovered) == 2
     for case, result in zip(module.CASES, recovered, strict=True):
-        assert not Path(result["request_dir"]).exists()
-        assert Path(result["archived_request"]).is_dir()
+        assert all(
+            not Path(request["request_dir"]).exists()
+            for request in result["requests"]
+        )
+        assert len(result["archived_requests"]) == len(case.requests)
+        assert all(Path(path).is_dir() for path in result["archived_requests"])
         assert Path(result["assignment_failure"]["path"]).is_file()
         ledger = json.loads((studies[case.task_id] / "study.json").read_text())
         record = ledger["records"][0]
@@ -87,10 +105,11 @@ def test_rearm_refuses_any_returned_provider_material(
 ) -> None:
     module, studies = fixture(tmp_path)
     case = module.CASES[0]
+    request_spec = case.requests[0]
     request = (
         studies[case.task_id]
         / "experiments/case/trace-defense-v2-requests"
-        / case.request_key
+        / request_spec.request_key
     )
     attempt = request / "attempt-001.json"
     value = json.loads(attempt.read_text())
@@ -102,7 +121,7 @@ def test_rearm_refuses_any_returned_provider_material(
 
 def test_rearm_refuses_extra_incomplete_request(tmp_path: Path) -> None:
     module, studies = fixture(tmp_path)
-    case = module.CASES[1]
+    case = module.CASES[0]
     extra = (
         studies[case.task_id]
         / "experiments/case/trace-defense-v2-requests/extra"
@@ -111,7 +130,8 @@ def test_rearm_refuses_extra_incomplete_request(tmp_path: Path) -> None:
     (extra / "attempt-001.json").write_text("{}")
     discovered = module.discover_case(studies[case.task_id], case)
     assert [item["request_key"] for item in discovered["incomplete_requests"]] == [
-        case.request_key,
+        case.requests[0].request_key,
+        case.requests[1].request_key,
         "extra",
     ]
     with pytest.raises(RuntimeError, match="unexpected incomplete request scope"):
