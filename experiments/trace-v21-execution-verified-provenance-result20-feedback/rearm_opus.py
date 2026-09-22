@@ -22,6 +22,7 @@ MODEL = "claude-opus-5"
 CREDIT = "credit balance is too low"
 CARDINALITY = "rubric criteria_text must contain exactly"
 INCOMPLETE = "Anthropic response stopped before a complete answer"
+OVERLOADED = "'type': 'overloaded_error'"
 EXHAUSTED_DIRECT = {
     "model response contains no JSON object",
     "Anthropic returned an empty response",
@@ -43,6 +44,7 @@ def allowed_rubric_failure(state: dict[str, object]) -> bool:
     return (
         (category == "invalid_response" and CARDINALITY in error)
         or (category in {"configuration", "structural"} and CREDIT in error)
+        or (category == "structural" and OVERLOADED in error)
         or (category == "transient_connection" and INCOMPLETE in error)
     )
 

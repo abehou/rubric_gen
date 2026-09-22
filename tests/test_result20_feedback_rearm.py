@@ -12,6 +12,8 @@ SPEC = importlib.util.spec_from_file_location("result20_feedback_opus_rearm", BU
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 sys.path.remove(str(BUNDLE))
+for _name in ("prepare", "run"):
+    sys.modules.pop(_name, None)
 
 
 def direct_fixture(tmp_path: Path, *, completed: bool) -> Path:
@@ -58,6 +60,10 @@ def test_rubric_failure_allowlist_is_narrow():
     assert MODULE.allowed_rubric_failure({
         "failure_category": "invalid_response",
         "error": "rubric criteria_text must contain exactly 6 criterion lines",
+    })
+    assert MODULE.allowed_rubric_failure({
+        "failure_category": "structural",
+        "error": "APIStatusError: {'type': 'error', 'error': {'type': 'overloaded_error'}}",
     })
     assert not MODULE.allowed_rubric_failure({
         "failure_category": "structural",
