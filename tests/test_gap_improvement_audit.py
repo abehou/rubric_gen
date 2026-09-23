@@ -218,6 +218,12 @@ def test_historical_sol_recovery_uses_native_stage_methods() -> None:
     assert "runner.execute(job)" in text
 
 
+def test_historical_sol_recovery_loads_credentials_before_planning() -> None:
+    text = (BUNDLE / "recover_historical_sol.py").read_text()
+    main = text[text.index("def main() -> None:") :]
+    assert main.index("credentials()") < main.index("missing_plan(")
+
+
 def test_analysis_reconstructs_sol_from_native_partial_panel_records() -> None:
     text = (BUNDLE / "analyze.py").read_text()
     assert "RAW_MODEL_RECONSTRUCT.reconstruct_model" in text

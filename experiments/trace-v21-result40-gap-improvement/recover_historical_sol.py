@@ -197,6 +197,7 @@ def main() -> None:
     commit = clean_commit()
     runtime = validate_runtime()
     validate_revision(args.task)
+    credentials()
     audit, plan = missing_plan(args.task, args.max_concurrency)
     before = model_coverage(saved_model_counts(audit), SOL)
     if int(before["missing"]) != len(plan):
@@ -206,7 +207,6 @@ def main() -> None:
     if not plan:
         print(json.dumps({"task_id": args.task, "missing": 0}), flush=True)
         return
-    credentials()
     owner = (
         RUN
         / "owners"
