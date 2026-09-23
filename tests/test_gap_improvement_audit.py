@@ -138,6 +138,12 @@ def test_audit_launcher_uses_authorized_cpu_only_a6000_profile() -> None:
     assert "#SBATCH --mem=32G" in recovery
     assert "#SBATCH --time=02:00:00" in recovery
     assert "--max-concurrency 60" in recovery
+    rearm = (BUNDLE / "rearm-sol-audit.sbatch").read_text()
+    assert "#SBATCH --partition=general" in rearm
+    assert "#SBATCH --qos=normal" in rearm
+    assert "#SBATCH --gres=gpu:A6000:1" in rearm
+    assert "#SBATCH --cpus-per-task=4" in rearm
+    assert "#SBATCH --mem=32G" in rearm
 
 
 def test_provider_audit_records_runtime_topology_and_sub_two_hour_eta() -> None:

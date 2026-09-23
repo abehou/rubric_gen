@@ -709,3 +709,4 @@
 ## 2026-09-23 — Gap-pilot Sol recovery preflight
 
 - 14:50 PDT: `recover_historical_sol.py` loaded the existing OpenAI credential only after native direct-RH planning, but token-cost preflight itself requires that credential; owner `10543996` therefore failed before provider calls. Load the same credential before planning and keep the later execution path unchanged; a focused ordering regression prevents recurrence.
+- 15:06 PDT: Native audit resume correctly treats saved billing failures as an exhausted request budget, so `10544046` could not reuse the restored balance without explicit evidence-preserving rearm. The pilot-private rearm refuses completed/provider-bearing attempts and refuses any action set that differs by stage from the current missing-record inventory, then archives only response-free billing/transport state before the existing recovery path runs.
