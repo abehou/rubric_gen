@@ -60,27 +60,6 @@ def coverage(*stages: str) -> dict[str, object]:
     }
 
 
-def rubric_manifest(root: Path, keys: list[str]) -> None:
-    stage = root / "rubric_score"
-    stage.mkdir(parents=True, exist_ok=True)
-    jobs = [
-        {"semantic_key": key, "model": "gpt-5.6-sol"}
-        for key in keys
-    ]
-    jobs.extend(
-        {"semantic_key": f"gemini-{index}", "model": "gemini-3.8-flash"}
-        for index in range(55)
-    )
-    while sum(job["model"] == "gpt-5.6-sol" for job in jobs) < 55:
-        index = sum(job["model"] == "gpt-5.6-sol" for job in jobs)
-        key = f"saved-{index}"
-        jobs.append({"semantic_key": key, "model": "gpt-5.6-sol"})
-        records = stage / "records"
-        records.mkdir(exist_ok=True)
-        (records / f"{key}.json").write_text("{}")
-    (stage / "manifest.json").write_text(json.dumps({"predispatch_plan": {"jobs": jobs}}))
-
-
 def test_plans_exact_nested_flat_and_direct_response_free_failures(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -90,7 +69,6 @@ def test_plans_exact_nested_flat_and_direct_response_free_failures(
         root
         / "rubric_score/artifacts/rubric-key/evaluations/s/r/a.attempts/attempt-001.json"
     )
-    rubric_manifest(root, ["rubric-key"])
     attempt(root / "absolute_score/attempts/absolute-key/attempt-001.json")
     attempt(
         root
@@ -106,7 +84,7 @@ def test_plans_exact_nested_flat_and_direct_response_free_failures(
             "rubric_score", "absolute_score", "direct_final_artifact"
         ),
     )
-    actions, missing, attempt_free = module.plan(root, tmp_path / "archive")
+    actions, missing, untouched = module.plan(root, tmp_path / "archive")
     assert missing["rubric_score"] == 1
     assert [action["stage"] for action in actions] == [
         "rubric_score",
@@ -114,7 +92,7 @@ def test_plans_exact_nested_flat_and_direct_response_free_failures(
         "direct_final_artifact",
     ]
     assert sum(action["saved_attempts"] for action in actions) == 3
-    assert attempt_free == {"rubric_score": []}
+    assert untouched == {}
     assert all(
         attempt_row["provider_material"] is False
         for action in actions
@@ -170,8 +148,7 @@ def test_direct_plan_preserves_confirmed_generation_and_rearms_only_failure(
         "model_coverage",
         lambda _counts, _model: coverage("direct_final_artifact"),
     )
-    rubric_manifest(root, [])
-    actions, _missing, _attempt_free = module.plan(root, tmp_path / "archive")
+    actions, _missing, _untouched = module.plan(root, tmp_path / "archive")
     assert len(actions) == 1
     assert actions[0]["preserved_provider_attempts"] == 1
     assert actions[0]["sources"] == [
@@ -179,41 +156,38 @@ def test_direct_plan_preserves_confirmed_generation_and_rearms_only_failure(
     ]
 
 
-def test_refuses_scope_that_does_not_equal_missing_inventory(
+def test_leaves_unattempted_missing_work_for_native_resume(
     tmp_path: Path, monkeypatch
 ) -> None:
     module = load_module()
     root = tmp_path / "audit"
     root.mkdir()
-    rubric_manifest(root, ["never-attempted"])
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
         lambda _counts, _model: coverage("rubric_score"),
     )
-    actions, _missing, attempt_free = module.plan(root, tmp_path / "archive")
+    actions, _missing, untouched = module.plan(root, tmp_path / "archive")
     assert actions == []
-    assert attempt_free == {"rubric_score": ["never-attempted"]}
+    assert untouched == {"rubric_score": 1}
 
 
-def test_refuses_residual_rubric_key_with_unreviewed_attempt(
+def test_refuses_more_rearm_actions_than_missing_inventory(
     tmp_path: Path, monkeypatch
 ) -> None:
     module = load_module()
     root = tmp_path / "audit"
-    rubric_manifest(root, ["residual"])
-    path = (
-        root
-        / "rubric_score/artifacts/residual/evaluations/x/r/y.attempts/attempt-001.json"
-    )
-    path.parent.mkdir(parents=True)
-    path.write_text(json.dumps({"identity": {"model": "other-model"}}))
+    for key in ("first", "second"):
+        attempt(
+            root
+            / f"rubric_score/artifacts/{key}/evaluations/x/r/y.attempts/attempt-001.json"
+        )
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
         lambda _counts, _model: coverage("rubric_score"),
     )
-    with pytest.raises(RuntimeError, match="not attempt-free"):
+    with pytest.raises(RuntimeError, match="differs from missing Sol inventory"):
         module.plan(root, tmp_path / "archive")

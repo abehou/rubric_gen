@@ -224,49 +224,10 @@ def _direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
     return actions
 
 
-def _attempt_free_rubric_missing(
-    root: Path,
-    action_keys: set[str],
-    expected_missing: int,
-) -> list[str]:
-    stage = root / "rubric_score"
-    manifest = read_object(stage / "manifest.json", "rubric-score manifest")
-    predispatch = manifest.get("predispatch_plan")
-    jobs = predispatch.get("jobs") if isinstance(predispatch, dict) else None
-    if not isinstance(jobs, list):
-        raise RuntimeError("rubric-score manifest has no accepted job plan")
-    planned = [
-        str(job.get("semantic_key"))
-        for job in jobs
-        if isinstance(job, dict) and job.get("model") == MODEL
-    ]
-    if len(planned) != len(set(planned)) or len(planned) != 55:
-        raise RuntimeError("historical Sol rubric-score plan changed")
-    completed = {path.stem for path in (stage / "records").glob("*.json")}
-    missing = set(planned) - completed
-    if len(missing) != expected_missing or not action_keys <= missing:
-        raise RuntimeError("rubric-score manifest differs from missing Sol inventory")
-    attempt_free = sorted(missing - action_keys)
-    for key in attempt_free:
-        artifact = stage / "artifacts" / key
-        if artifact.is_symlink():
-            raise RuntimeError(f"attempt-free Sol artifact is a symlink: {artifact}")
-        if artifact.exists() and (
-            not artifact.is_dir()
-            or list(artifact.rglob("attempt-*.json"))
-            or list(artifact.rglob("*.response.json"))
-            or list(artifact.rglob("evaluation.json"))
-        ):
-            raise RuntimeError(
-                f"residual missing Sol rubric judgment is not attempt-free: {artifact}"
-            )
-    return attempt_free
-
-
 def plan(
     root: Path,
     archive: Path,
-) -> tuple[list[dict[str, object]], dict[str, int], dict[str, list[str]]]:
+) -> tuple[list[dict[str, object]], dict[str, int], dict[str, int]]:
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"historical audit root is unavailable: {root}")
     coverage = model_coverage(saved_model_counts(root), MODEL)
@@ -281,44 +242,39 @@ def plan(
     )
     observed = Counter(str(action["stage"]) for action in actions)
     expected = Counter({stage: count for stage, count in missing.items() if count})
-    if any(
-        observed[stage] != count
-        for stage, count in expected.items()
-        if stage != "rubric_score"
-    ) or any(stage not in expected for stage in observed):
+    if any(observed[stage] > count for stage, count in expected.items()) or any(
+        stage not in expected for stage in observed
+    ):
         raise RuntimeError(
             f"response-free rearm scope differs from missing Sol inventory: "
             f"actions={dict(observed)}, missing={dict(expected)}"
         )
-    rubric_actions = {
-        str(action["judgment_key"])
-        for action in actions
-        if action["stage"] == "rubric_score"
+    untouched = {
+        stage: count - observed[stage]
+        for stage, count in expected.items()
+        if count - observed[stage]
     }
-    attempt_free = _attempt_free_rubric_missing(
-        root,
-        rubric_actions,
-        int(missing["rubric_score"]),
-    )
-    if observed["rubric_score"] + len(attempt_free) != expected["rubric_score"]:
-        raise RuntimeError("rubric-score rearm plus attempt-free scope is incomplete")
-    return actions, missing, {"rubric_score": attempt_free}
+    return actions, missing, untouched
 
 
 def inspect_task(task: str, stamp: str) -> dict[str, object]:
     experiment = load_experiment(config_path(task))
     root = Path(experiment.dag["detect"]["output_dir"])
     archive = root / "recovery-evidence" / f"sol-audit-rearm-{stamp}"
-    actions, missing, attempt_free = plan(root, archive)
+    actions, missing, untouched = plan(root, archive)
     return {
         "task_id": task,
         "audit_root": str(root),
         "config_sha256": sha256_file(config_path(task)),
         "missing_by_stage": missing,
-        "attempt_free_missing_by_stage": attempt_free,
+        "untouched_missing_by_stage": untouched,
         "rearm_judgments": len(actions),
         "saved_attempts": sum(int(action["saved_attempts"]) for action in actions),
-        "provider_material_preserved": 0,
+        "archived_provider_material": 0,
+        "preserved_provider_attempts": sum(
+            int(action.get("preserved_provider_attempts", 0))
+            for action in actions
+        ),
         "actions": actions,
     }
 
