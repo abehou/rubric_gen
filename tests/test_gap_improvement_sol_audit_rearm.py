@@ -28,14 +28,14 @@ def load_module():
     return module
 
 
-def attempt(path: Path, *, category="billing", material=False) -> None:
+def attempt(path: Path, *, category="billing", material=False, error=None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     value = {
         "attempt": 1,
         "identity": {"model": "gpt-5.6-sol"},
         "category": category,
         "error_type": "APIError",
-        "error": "You have no credits remaining: credit_balance_exhausted",
+        "error": error or "You have no credits remaining: credit_balance_exhausted",
         "remote_completion": "unknown",
     }
     if material:
@@ -112,8 +112,47 @@ def test_refuses_attempt_with_provider_material(tmp_path: Path, monkeypatch) -> 
         "model_coverage",
         lambda _counts, _model: coverage("absolute_score"),
     )
-    with pytest.raises(RuntimeError, match="not a reviewed response-free"):
+    with pytest.raises(RuntimeError, match="provider material"):
         module.plan(root, tmp_path / "archive")
+
+
+def test_accepts_only_exact_credit_error_when_category_is_structural(
+    tmp_path: Path,
+) -> None:
+    module = load_module()
+    accepted = tmp_path / "accepted.json"
+    attempt(accepted, category="structural")
+    assert module.response_free_operational_attempt(accepted)["category"] == "structural"
+    refused = tmp_path / "refused.json"
+    attempt(refused, category="structural", error="unrelated implementation failure")
+    with pytest.raises(RuntimeError, match="not a reviewed response-free"):
+        module.response_free_operational_attempt(refused)
+
+
+def test_direct_plan_preserves_confirmed_generation_and_rearms_only_failure(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = load_module()
+    root = tmp_path / "audit"
+    model_root = (
+        root
+        / "direct_final_artifact/evaluations/run/cases/revision-000001"
+        / "gpt-5.6-sol"
+    )
+    attempt(model_root / "chunk-0/attempt-001.json", material=True)
+    attempt(model_root / "chunk-1/attempt-001.json")
+    monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
+    monkeypatch.setattr(
+        module,
+        "model_coverage",
+        lambda _counts, _model: coverage("direct_final_artifact"),
+    )
+    actions, _missing = module.plan(root, tmp_path / "archive")
+    assert len(actions) == 1
+    assert actions[0]["preserved_provider_attempts"] == 1
+    assert actions[0]["sources"] == [
+        str(model_root / "chunk-1/attempt-001.json")
+    ]
 
 
 def test_refuses_scope_that_does_not_equal_missing_inventory(

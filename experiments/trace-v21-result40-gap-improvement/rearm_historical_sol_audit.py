@@ -37,9 +37,9 @@ STAGES = (
     "direct_final_revision",
 )
 RETRYABLE_CATEGORIES = {"billing", "transient_connection", "transient_provider"}
+EXACT_CREDIT_MARKERS = ("credit_balance_exhausted", "no credits remaining")
 RETRYABLE_ERROR_MARKERS = (
-    "credit_balance_exhausted",
-    "no credits remaining",
+    *EXACT_CREDIT_MARKERS,
     "connection error",
     "connection reset",
     "connection refused",
@@ -85,11 +85,16 @@ def response_free_operational_attempt(path: Path) -> dict[str, object]:
     value = read_object(path, "Sol audit attempt")
     category = _category(value)
     error = str(value.get("error", ""))
+    error_lower = error.lower()
+    category_allowed = category in RETRYABLE_CATEGORIES or (
+        category == "structural"
+        and any(marker in error_lower for marker in EXACT_CREDIT_MARKERS)
+    )
     if (
         _attempt_model(value) != MODEL
-        or category not in RETRYABLE_CATEGORIES
+        or not category_allowed
         or not error
-        or not any(marker in error.lower() for marker in RETRYABLE_ERROR_MARKERS)
+        or not any(marker in error_lower for marker in RETRYABLE_ERROR_MARKERS)
         or _has_provider_material(value)
     ):
         raise RuntimeError(f"attempt is not a reviewed response-free operational failure: {path}")
@@ -155,15 +160,27 @@ def _flat_semantic_actions(root: Path, archive: Path) -> list[dict[str, object]]
                 continue
             if _attempt_model(read_object(attempts[0], "Sol audit attempt")) != MODEL:
                 continue
-            evidence = [response_free_operational_attempt(path) for path in attempts]
+            states = [read_object(path, "Sol audit attempt") for path in attempts]
+            failed = [
+                path for path, value in zip(attempts, states, strict=True)
+                if not _has_provider_material(value)
+            ]
+            if not failed:
+                raise RuntimeError(
+                    f"missing Sol judgment has provider material but no "
+                    f"response-free failure: {attempt_root}"
+                )
+            evidence = [response_free_operational_attempt(path) for path in failed]
             destination = archive / stage_name / key
             actions.append({
                 "stage": stage_name,
                 "judgment_key": key,
-                "sources": [str(attempt_root)],
+                "source_root": str(attempt_root),
+                "sources": [str(path) for path in failed],
                 "archive": str(destination),
                 "attempts": evidence,
                 "saved_attempts": len(evidence),
+                "preserved_provider_attempts": len(attempts) - len(failed),
             })
     return actions
 
@@ -181,9 +198,19 @@ def _direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
             attempts = sorted(model_root.glob("*/attempt-*.json"))
             if not attempts:
                 continue
-            evidence = [response_free_operational_attempt(path) for path in attempts]
+            states = [read_object(path, "Sol audit attempt") for path in attempts]
+            failed = [
+                path for path, value in zip(attempts, states, strict=True)
+                if not _has_provider_material(value)
+            ]
+            if not failed:
+                raise RuntimeError(
+                    f"missing Sol direct judgment has provider material but no "
+                    f"response-free failure: {model_root}"
+                )
+            evidence = [response_free_operational_attempt(path) for path in failed]
             case_id = model_root.parent.name
-            sources = [str(path) for path in attempts]
+            sources = [str(path) for path in failed]
             actions.append({
                 "stage": stage_name,
                 "judgment_key": case_id,
@@ -192,6 +219,7 @@ def _direct_actions(root: Path, archive: Path) -> list[dict[str, object]]:
                 "archive": str(archive / stage_name / case_id / MODEL),
                 "attempts": evidence,
                 "saved_attempts": len(evidence),
+                "preserved_provider_attempts": len(attempts) - len(failed),
             })
     return actions
 
