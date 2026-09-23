@@ -21,7 +21,7 @@ from rubric_gen.artifacts.serialization import write_json_atomic
 from rubric_gen.runtime.audit_execution import audit_output_owner
 from rubric_gen.submission_revision.experiment import load_experiment
 
-from audit_inventory import model_coverage, saved_model_counts
+from audit_inventory import model_coverage, saved_model_counts, stage_expected_counts
 from audit_sol_opus import clean_commit, validate_revision
 from make_configs import RUN, SMOKE_TASK, TASKS, config_path
 
@@ -230,7 +230,11 @@ def plan(
 ) -> tuple[list[dict[str, object]], dict[str, int], dict[str, int]]:
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError(f"historical audit root is unavailable: {root}")
-    coverage = model_coverage(saved_model_counts(root), MODEL)
+    coverage = model_coverage(
+        saved_model_counts(root),
+        MODEL,
+        stage_expected_counts(root, MODEL),
+    )
     missing = {
         stage: int(row["missing"])
         for stage, row in coverage["stages"].items()

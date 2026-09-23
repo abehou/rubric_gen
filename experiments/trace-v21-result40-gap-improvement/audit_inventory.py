@@ -86,13 +86,44 @@ def saved_model_counts(root: Path) -> dict[str, dict[str, int]]:
     return result
 
 
+def stage_expected_counts(root: Path, model: str) -> dict[str, int]:
+    """Read task-specific semantic cardinality from the accepted native plan."""
+
+    expected = dict(STAGE_EXPECTED_PER_MODEL)
+    manifest = root / "rubric_score" / "manifest.json"
+    if manifest.is_symlink() or not manifest.is_file():
+        raise RuntimeError(f"historical rubric manifest is unavailable: {manifest}")
+    value = json.loads(manifest.read_text())
+    predispatch = value.get("predispatch_plan") if isinstance(value, dict) else None
+    jobs = predispatch.get("jobs") if isinstance(predispatch, dict) else None
+    if not isinstance(jobs, list):
+        raise RuntimeError(f"historical rubric manifest has no job plan: {manifest}")
+    keys = [
+        job.get("semantic_key")
+        for job in jobs
+        if isinstance(job, dict) and job.get("model") == model
+    ]
+    if (
+        not keys
+        or any(type(key) is not str or not key for key in keys)
+        or len(keys) != len(set(keys))
+    ):
+        raise RuntimeError(f"historical rubric manifest model plan is invalid: {manifest}")
+    expected["rubric_score"] = len(keys)
+    return expected
+
+
 def model_coverage(
     counts: dict[str, dict[str, int]],
     model: str,
+    expected_by_stage: dict[str, int] | None = None,
 ) -> dict[str, object]:
     saved = counts.get(model, {})
+    expected_counts = expected_by_stage or STAGE_EXPECTED_PER_MODEL
+    if set(expected_counts) != set(STAGE_EXPECTED_PER_MODEL):
+        raise RuntimeError("audit stage expectation set changed")
     stages = {}
-    for stage, expected in STAGE_EXPECTED_PER_MODEL.items():
+    for stage, expected in expected_counts.items():
         observed = int(saved.get(stage, 0))
         if observed > expected:
             raise RuntimeError(
@@ -104,7 +135,7 @@ def model_coverage(
             "missing": expected - observed,
         }
     return {
-        "expected": sum(STAGE_EXPECTED_PER_MODEL.values()),
+        "expected": sum(expected_counts.values()),
         "saved": sum(int(row["saved"]) for row in stages.values()),
         "missing": sum(int(row["missing"]) for row in stages.values()),
         "stages": stages,
@@ -129,7 +160,12 @@ def inventory() -> dict[str, object]:
         historical = Path(experiment.dag["detect"]["output_dir"])
         material = provider_material(historical)
         historical_counts = saved_model_counts(historical)
-        sol_coverage = model_coverage(historical_counts, "gpt-5.6-sol")
+        expected = stage_expected_counts(historical, "gpt-5.6-sol")
+        sol_coverage = model_coverage(
+            historical_counts,
+            "gpt-5.6-sol",
+            expected,
+        )
         historical_sol_missing += int(sol_coverage["missing"])
         if int(sol_coverage["missing"]):
             sol_recovery_tasks.append(task)
@@ -145,7 +181,11 @@ def inventory() -> dict[str, object]:
                 "reuse_model": "gpt-5.6-sol",
                 "excluded_historical_model": "gemini-3.8-flash",
                 "models": {
-                    model: model_coverage(historical_counts, model)
+                    model: model_coverage(
+                        historical_counts,
+                        model,
+                        stage_expected_counts(historical, model),
+                    )
                     for model in HISTORICAL_PANEL
                 },
             }
@@ -154,7 +194,11 @@ def inventory() -> dict[str, object]:
                 "panel": list(HISTORICAL_PANEL),
                 "provider_material": len(material),
                 "models": {
-                    model: model_coverage(historical_counts, model)
+                    model: model_coverage(
+                        historical_counts,
+                        model,
+                        stage_expected_counts(historical, model),
+                    )
                     for model in HISTORICAL_PANEL
                 },
                 "reuse_model": "gpt-5.6-sol",
@@ -164,7 +208,7 @@ def inventory() -> dict[str, object]:
         for provider, (model, _credential) in PROVIDERS.items():
             root = audit_dir(task, provider, experiment.experiment_id)
             counts = saved_model_counts(root)
-            coverage = model_coverage(counts, model)
+            coverage = model_coverage(counts, model, expected)
             if provider == "opus":
                 opus_missing += int(coverage["missing"])
             supplements[provider] = {

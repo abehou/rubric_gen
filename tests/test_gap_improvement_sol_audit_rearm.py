@@ -77,10 +77,11 @@ def test_plans_exact_nested_flat_and_direct_response_free_failures(
         category="transient_provider",
     )
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
+    monkeypatch.setattr(module, "stage_expected_counts", lambda *_args: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
-        lambda _counts, _model: coverage(
+        lambda _counts, _model, _expected=None: coverage(
             "rubric_score", "absolute_score", "direct_final_artifact"
         ),
     )
@@ -108,10 +109,11 @@ def test_refuses_attempt_with_provider_material(tmp_path: Path, monkeypatch) -> 
         material=True,
     )
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
+    monkeypatch.setattr(module, "stage_expected_counts", lambda *_args: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
-        lambda _counts, _model: coverage("absolute_score"),
+        lambda _counts, _model, _expected=None: coverage("absolute_score"),
     )
     with pytest.raises(RuntimeError, match="provider material"):
         module.plan(root, tmp_path / "archive")
@@ -143,10 +145,11 @@ def test_direct_plan_preserves_confirmed_generation_and_rearms_only_failure(
     attempt(model_root / "chunk-0/attempt-001.json", material=True)
     attempt(model_root / "chunk-1/attempt-001.json")
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
+    monkeypatch.setattr(module, "stage_expected_counts", lambda *_args: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
-        lambda _counts, _model: coverage("direct_final_artifact"),
+        lambda _counts, _model, _expected=None: coverage("direct_final_artifact"),
     )
     actions, _missing, _untouched = module.plan(root, tmp_path / "archive")
     assert len(actions) == 1
@@ -163,10 +166,11 @@ def test_leaves_unattempted_missing_work_for_native_resume(
     root = tmp_path / "audit"
     root.mkdir()
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
+    monkeypatch.setattr(module, "stage_expected_counts", lambda *_args: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
-        lambda _counts, _model: coverage("rubric_score"),
+        lambda _counts, _model, _expected=None: coverage("rubric_score"),
     )
     actions, _missing, untouched = module.plan(root, tmp_path / "archive")
     assert actions == []
@@ -184,10 +188,11 @@ def test_refuses_more_rearm_actions_than_missing_inventory(
             / f"rubric_score/artifacts/{key}/evaluations/x/r/y.attempts/attempt-001.json"
         )
     monkeypatch.setattr(module, "saved_model_counts", lambda _root: {})
+    monkeypatch.setattr(module, "stage_expected_counts", lambda *_args: {})
     monkeypatch.setattr(
         module,
         "model_coverage",
-        lambda _counts, _model: coverage("rubric_score"),
+        lambda _counts, _model, _expected=None: coverage("rubric_score"),
     )
     with pytest.raises(RuntimeError, match="differs from missing Sol inventory"):
         module.plan(root, tmp_path / "archive")

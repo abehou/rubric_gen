@@ -84,6 +84,28 @@ def test_inventory_counts_only_saved_provider_material(tmp_path: Path) -> None:
     ]
 
 
+def test_task_specific_rubric_cardinality_comes_from_native_manifest(
+    tmp_path: Path,
+) -> None:
+    module = load_module("gap_audit_inventory_expected", "audit_inventory.py")
+    root = tmp_path / "audit"
+    manifest = root / "rubric_score/manifest.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        '{"predispatch_plan":{"jobs":['
+        '{"semantic_key":"sol-a","model":"gpt-5.6-sol"},'
+        '{"semantic_key":"sol-b","model":"gpt-5.6-sol"},'
+        '{"semantic_key":"gemini-a","model":"gemini-3.8-flash"}'
+        ']}}'
+    )
+    expected = module.stage_expected_counts(root, "gpt-5.6-sol")
+    assert expected["rubric_score"] == 2
+    assert sum(expected.values()) == 41
+    coverage = module.model_coverage({}, "gpt-5.6-sol", expected)
+    assert coverage["expected"] == 41
+    assert coverage["missing"] == 41
+
+
 def test_inventory_counts_published_judgments_by_model_and_stage(
     tmp_path: Path,
 ) -> None:
@@ -228,6 +250,12 @@ def test_historical_sol_recovery_loads_credentials_before_planning() -> None:
     text = (BUNDLE / "recover_historical_sol.py").read_text()
     main = text[text.index("def main() -> None:") :]
     assert main.index("credentials()") < main.index("missing_plan(")
+
+
+def test_historical_sol_recovery_uses_task_specific_native_cardinality() -> None:
+    text = (BUNDLE / "recover_historical_sol.py").read_text()
+    assert "expected = stage_expected_counts(audit, SOL)" in text
+    assert "model_coverage(saved_model_counts(audit), SOL, expected)" in text
 
 
 def test_analysis_reconstructs_sol_from_native_partial_panel_records() -> None:

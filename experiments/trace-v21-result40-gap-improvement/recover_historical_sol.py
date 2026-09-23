@@ -36,7 +36,7 @@ from rubric_gen.submission_revision.source_resolution import (
     resolve_study_sources,
 )
 
-from audit_inventory import model_coverage, saved_model_counts
+from audit_inventory import model_coverage, saved_model_counts, stage_expected_counts
 from audit_sol_opus import clean_commit, validate_revision, validate_runtime
 from make_configs import (
     PANEL as HISTORICAL_PANEL,
@@ -199,7 +199,8 @@ def main() -> None:
     validate_revision(args.task)
     credentials()
     audit, plan = missing_plan(args.task, args.max_concurrency)
-    before = model_coverage(saved_model_counts(audit), SOL)
+    expected = stage_expected_counts(audit, SOL)
+    before = model_coverage(saved_model_counts(audit), SOL, expected)
     if int(before["missing"]) != len(plan):
         raise RuntimeError(
             "native missing Sol plan differs from published-record inventory"
@@ -262,7 +263,7 @@ def main() -> None:
                     "error_type": type(error).__name__,
                     "error": _safe_error(error),
                 })
-    after = model_coverage(saved_model_counts(audit), SOL)
+    after = model_coverage(saved_model_counts(audit), SOL, expected)
     receipt = {
         **launch,
         "successful": len(successes),
