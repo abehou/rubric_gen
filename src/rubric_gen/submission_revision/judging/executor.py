@@ -542,7 +542,12 @@ class JudgeExecutor:
                 ("benchmarks/registry.py", package_dir / "benchmarks" / "registry.py"),
             )
         )
-        if resolved is SubmissionBenchmarkId.BIOMNIBENCH_DA:
+        if resolved in {SubmissionBenchmarkId.HEALTHBENCH_HARD, SubmissionBenchmarkId.RESEARCHQA}:
+            sources.append((
+                "benchmarks/answer_only/contract.py",
+                package_dir / "benchmarks" / "answer_only" / "contract.py",
+            ))
+        elif resolved is SubmissionBenchmarkId.BIOMNIBENCH_DA:
             sources.append(
                 (
                     "benchmarks/biomnibench_da/contract.py",

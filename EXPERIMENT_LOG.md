@@ -1,3 +1,7 @@
+## 2026-09-25 — Answer-only benchmark preparation
+
+- 13:35 PDT: User approves HealthBench Hard and ResearchQA parametric, all-Luna preparation with no paid launch; added dataset downloaders, native answer contracts and 18-assignment/three-round Dev3 configs, plus optional existing-policy matrix configs. Public pool checks cover 1,000 Hard, 703 ResearchQA validation and 3,750 test tasks, with zero ResearchQA split-ID overlap; signed native scoring remains distinct from clipped project scores.
+
 ## 2026-09-19 — Gemini 3.8 Flash no-dropout Dev3
 
 - 13:19 JST: Added native `gemini-3.8-flash` solver/proposer routing with solver effort `low`, proposer diagnosis `high` and all other proposer stages `low`; the separate 36-assignment config retains the promoted no-dropout Dev3 design and unchanged `gpt-5.6-sol`/`claude-opus-5` audit panel. The first real solver attempt exposed and retained a macOS `os.waitid`/headless-trust infrastructure failure; after the generic driver fix, the solver and structured diagnosis smoke both passed with exact effective model identity, costing an estimated `$0.034128` and `$0.0547455` respectively.

@@ -13,6 +13,8 @@ class SubmissionBenchmarkId(StrEnum):
 
     BIOMNIBENCH_DA = "biomnibench-da"
     PAPERBENCH_CODE_DEV = "paperbench-code-dev"
+    HEALTHBENCH_HARD = "healthbench-hard"
+    RESEARCHQA = "researchqa-parametric"
 
 
 @dataclass(frozen=True)

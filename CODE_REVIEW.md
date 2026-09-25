@@ -1,3 +1,7 @@
+## 2026-09-25 — Answer-only benchmark integration
+
+- 13:35 PDT: Preserve the existing file-backed Codex runtime and observable revision ledger, with only answer.txt required; no retrieval is permitted, but filesystem tools remain available and live protocol compliance must be checked. Same-Luna audits are exploratory; offline tests cannot establish provider access, RH prevalence or official leaderboard equivalence.
+
 ## 2026-09-12 — PaperBench audit closure
 
 - 12:21 EDT: Resolved static saved-v8 delimiter replay and historical/current plan discovery with strict complete-index validation;686 tests pass on pin8226495 and current core. The private coverage checker now uses existing same_scoring_semantics while retaining exact evidence/provenance checks;23 focused tests and9 pinned-runtime checks pass.

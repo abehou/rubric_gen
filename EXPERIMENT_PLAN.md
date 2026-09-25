@@ -1,3 +1,7 @@
+## 2026-09-25 — HealthBench Hard and ResearchQA preparation
+
+- 13:35 PDT: Prepare the two answer-only benchmark plugins on a new branch, using gpt-5.6-luna for every initial role and existing feedback/rubric policies. First-run configs contain Dev3, three replicates, Full/User static conditions and three revisions; paid runs, full-policy collection and held-out scale-up remain deferred until budget/access and Dev3 review.
+
 ## 2026-09-19 — Gemini/Qwen solver experiments retired
 
 - 20:32 JST: User cancels all Gemini 3.8 Flash and Qwen solver experiments until current higher-priority work is complete. Do not resume, reconstruct, or rerun their smoke, Dev3, or audit workflows; completed Gemini-as-auditor Result20 evidence is outside this retirement and remains preserved.

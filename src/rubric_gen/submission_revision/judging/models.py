@@ -65,6 +65,8 @@ def grading_engine_for_benchmark(
     if resolved in {
         SubmissionBenchmarkId.BIOMNIBENCH_DA,
         SubmissionBenchmarkId.PAPERBENCH_CODE_DEV,
+        SubmissionBenchmarkId.HEALTHBENCH_HARD,
+        SubmissionBenchmarkId.RESEARCHQA,
     }:
         return GradingEngine.FULL_RUBRIC_STRUCTURED
     raise ValueError(f"no grading engine is registered for {resolved.value}")
