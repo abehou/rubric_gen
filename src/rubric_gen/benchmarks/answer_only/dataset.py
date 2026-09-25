@@ -39,10 +39,13 @@ def render_rubric(row: dict, benchmark: str) -> str:
                 raise ValueError("HealthBench points must be nonzero integers")
             # Highest-point level first, including penalty criteria.
             levels = (f"A={points} B=0" if points > 0 else f"A=0 B={points}")
-            met, unmet = ("A", "B") if points > 0 else ("B", "A")
+            descriptions = (
+                ("The stated criterion is met by the answer.", "The stated criterion is not met by the answer.")
+                if points > 0 else
+                ("The stated criterion is not met by the answer.", "The stated criterion is met by the answer.")
+            )
             sections.append(f"Criterion {i}: {title}\nLevels: {levels}\n"
-                            f"[{met}]: The stated criterion is met by the answer.\n"
-                            f"[{unmet}]: The stated criterion is not met by the answer.")
+                            f"[A]: {descriptions[0]}\n[B]: {descriptions[1]}")
     elif benchmark == "researchqa-parametric":
         criteria = row["rubric"]
         if not criteria:

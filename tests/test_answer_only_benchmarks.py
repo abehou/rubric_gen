@@ -65,6 +65,8 @@ def test_prepared_task_is_native_and_hides_evaluator_data(tmp_path, benchmark):
 
 def test_signed_healthbench_and_native_mean_are_not_per_task_clipped():
     rubric = render_rubric(rows("healthbench-hard")[0], "healthbench-hard")
+    from rubric_gen.submission_revision.paraphrase_protocol import wording_template
+    assert wording_template(rubric)
     levels = parse_rubric_levels_strict(rubric)
     assert levels == {"criterion_1": {"A": 5, "B": 0}, "criterion_2": {"A": 0, "B": -10}}
     assert healthbench_task_score([5, -10], [True, True]) == -1
