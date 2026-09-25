@@ -17,7 +17,8 @@ The first smoke exposed penalty-level ordering in dataset conversion (fixed in
 1ee9e12a); the second exposed missing app-server login (fixed in b89b638b).
 Previous attempts remain preserved. Smoke invocation 20260925T210750Z completed
 three revisions (219 seconds) and all seven audit stages with zero missing or
-failed judgments. Main invocation 20260925T211220Z launches all 36 assignments.
+failed judgments. Main invocation 20260925T211220Z completed all 36 assignments
+and all seven audits. See [RESULTS.md](RESULTS.md) for coverage and measured cost.
 
 After credential correction and a successful minimal end-to-end acceptance run:
 
