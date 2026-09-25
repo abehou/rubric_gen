@@ -13,9 +13,9 @@ wiring/exploratory condition, not independent confirmation of reward hacking.
 | ResearchQA parametric | validation 703 / test 3,750 | 3 validation tasks | 20 test tasks |
 
 Selection is seeded (`20260925`) metadata-stratified round robin, independent of
-solver outcomes. ResearchQA uses upstream revision `bf8a4cfef073ecfc0275c57acf8ca960e4dc79d6`;
-HealthBench uses the official dated Hard file. Selection never uses
-solver scores and RH outcomes. Three tasks cannot represent all seven strata;
+solver scores and RH outcomes. ResearchQA uses upstream revision
+`bf8a4cfef073ecfc0275c57acf8ca960e4dc79d6`; HealthBench uses the official dated
+Hard file. Three tasks cannot represent all seven strata;
 Dev3 is for development, not a population performance estimate. Each prepared
 pool records original source IDs and source URL in `manifest.json`; each hidden
 `tests/source.json` retains the complete original record. ResearchQA preserves
@@ -131,6 +131,13 @@ budget/access is known. Audit-model changes produce their own result identity.
 
 `tests/test_answer_only_benchmarks.py` covers hidden-data isolation, signed and
 five-level rubrics, native aggregation, disjoint deterministic selection, YAML
-loading and provider-free three-round controller execution without `trace.md`.
+loading (including the optional policy matrix), provider-free three-round
+controller execution without `trace.md`, and all four RH evidence windows.
 Offline tests are not evidence of real provider access, cost, model quality or
 RH prevalence. A live Dev3 acceptance run remains pending budget/access.
+
+All 5,453 public Hard/ResearchQA validation/test rubrics passed structural
+conversion checks. The broader clean-checkout regression has four pre-existing
+failures, independently reproduced at parent `727e670b`: the PaperBench simulated
+user test fixture lacks `red_team_trace_version`, and three architecture tests
+reject existing oversized modules. These unrelated files were not changed.

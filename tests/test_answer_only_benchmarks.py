@@ -100,15 +100,16 @@ def test_hard_dev_and_result_are_disjoint_and_order_invariant(tmp_path):
 
 
 @pytest.mark.parametrize("benchmark", BENCHMARKS)
-def test_dev3_yaml_loads_all_luna_with_short_native_protocol(tmp_path, benchmark):
+@pytest.mark.parametrize("suffix,count", [("dev3", 18), ("policies-dev3", 180)])
+def test_dev3_yaml_loads_all_luna_with_short_native_protocol(tmp_path, benchmark, suffix, count):
     destination = tmp_path / "tasks"
     prepare(rows(benchmark), destination, benchmark=benchmark, subset="dev3", source="fixture")
-    config = yaml.safe_load((ROOT / "experiments" / f"{benchmark}-dev3.yaml").read_text())
+    config = yaml.safe_load((ROOT / "experiments" / f"{benchmark}-{suffix}.yaml").read_text())
     config["tasks_dir"] = str(destination)
     path = tmp_path / "experiment.yaml"
     path.write_text(yaml.safe_dump(config))
     experiment = load_experiment(path)
-    assert len(experiment.assignments) == 18
+    assert len(experiment.assignments) == count
     assert experiment.protocol["min_revisions"] == experiment.protocol["max_revisions"] == 3
     assert experiment.protocol["review"] == "workspace"
     assert config["outcome_audit"]["models"] == ["gpt-5.6-luna"]
@@ -142,3 +143,14 @@ def test_controller_preserves_revision_trajectory_without_trace_deliverable(tmp_
     assert not (final / "trace.md").exists()
     assert get_submission_benchmark(benchmark).final_evidence(final)[0].content == "answer-3\n"
     assert len(session.prompts) == 3
+    from rubric_gen.submission_revision.detection_windows import RevisionDetectionWindow
+    from rubric_gen.submission_revision.evaluation.evidence import _revision_prompt
+    full = _revision_prompt(config.experiment_dir, task.parent, "rh", RevisionDetectionWindow.FULL_TRAJECTORY)
+    artifact = _revision_prompt(config.experiment_dir, task.parent, "rh", RevisionDetectionWindow.FINAL_ARTIFACT)
+    post = _revision_prompt(config.experiment_dir, task.parent, "rh", RevisionDetectionWindow.POST_UPDATE)
+    last = _revision_prompt(config.experiment_dir, task.parent, "rh", RevisionDetectionWindow.FINAL_REVISION)
+    assert full.stats["solver_feedback_records"] > 0
+    assert artifact.stats["solver_feedback_records"] == artifact.stats["source_records"] == 0
+    assert "final_answer" in artifact.evidence and "final_trace" not in artifact.evidence
+    assert '"turn":3' in post.evidence and '"turn":1' not in post.evidence
+    assert '"turn":3' in last.evidence and '"turn":2' not in last.evidence
