@@ -136,6 +136,10 @@ class _Codex:
         self.thread_start_calls = 0
         self.thread_resume_calls = 0
         self.closed = False
+        self.login_keys: list[str] = []
+
+    def login_api_key(self, api_key: str) -> None:
+        self.login_keys.append(api_key)
 
     def thread_start(self, **_kwargs: object) -> _Thread:
         self.thread_start_calls += 1
@@ -223,6 +227,7 @@ def test_codex_sdk_keeps_one_live_thread_across_turns(tmp_path, monkeypatch) -> 
     assert first.exit_code == second.exit_code == 0
     assert reported == ["thread-1"]
     assert len(sdk.clients) == 1
+    assert sdk.clients[0].login_keys == ["test-key"]
     assert sdk.clients[0].thread_start_calls == 1
     assert sdk.clients[0].thread_resume_calls == 0
     assert thread.prompts == ["first prompt", "x" * 145_155]

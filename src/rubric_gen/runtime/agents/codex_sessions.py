@@ -242,6 +242,15 @@ class CodexSdkSessionDriver:
             lambda: sdk.Codex(sdk_config),
             phase="app-server start",
         )
+        # Unlike `codex exec`, app-server needs an explicit API-key login.
+        # The isolated session home owns this login, never the user's Codex home.
+        if environment.get("CODEX_API_KEY"):
+            try:
+                self._client.login_api_key(environment["CODEX_API_KEY"])
+            except Exception:
+                self._client.close()
+                self._client = None
+                raise
 
     def _codex_executable(self) -> str:
         executable_name = self.adapter.executable(self.config)
