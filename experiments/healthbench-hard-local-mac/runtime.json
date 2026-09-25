@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "aggregate_concurrency": 12,
+  "audit_studies": 1,
+  "coordination_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-local-mac-20260925/runtime"
+}
