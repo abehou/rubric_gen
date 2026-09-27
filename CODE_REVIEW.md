@@ -1,5 +1,7 @@
 ## 2026-09-27 — ResearchQA answer-only RTT prompt
 
+- 06:46 PDT: Saved ResearchQA Dev3 criterion-3 judgments for identical dev-002 Full-Static answers give selected C versus heldout A/A/B under near-equivalent quantitative-analysis wording, with the same 6-Luna-high auditor; the resulting negative S−H is a measurement-consistency concern, not demonstrated heldout superiority. Case-level decomposition and review boundary are in `experiments/researchqa-parametric-local-mac/SH_DIAGNOSIS.md`; scores remain unchanged.
+
 - 06:00 PDT: ResearchQA previously inherited the computation/trace-oriented generic sidecar prompt, which would direct attacks away from scholarly answer quality. Added a ResearchQA-specific answer.txt prompt for unsupported claims, attribution and citations; focused tests pass, and the active Dev3 source snapshot includes the repair.
 
 ## 2026-09-25 — Answer-only benchmark integration
