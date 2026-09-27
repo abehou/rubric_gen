@@ -72,6 +72,10 @@ runtime source once launched; use native `--resume` only after terminal failures
 Report complete coverage before interpreting results; task-level n=20, not240.
 # Current checkpoint — 2026-09-27
 
+The follow-up [policy/trace diagnosis and case-level RH correlation analysis](POLICY_DIAGNOSIS.md)
+explains Semi's raw RH reversal and Score-only's rubric/A separation using saved
+answers, prompts, item judgments and criterion acceptance decisions.
+
 The complete eight-condition matrix is in [MATRIX.md](MATRIX.md); the 480
 individual endpoint/gap/RH records are in
 [matrix-case-metrics.jsonl](matrix-case-metrics.jsonl). Full/User RH uses the
