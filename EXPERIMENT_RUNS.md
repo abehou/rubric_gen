@@ -1,3 +1,9 @@
+## 2026-09-27 — ResearchQA parametric Dev3
+
+- 06:33 PDT: Invocation125831Z completed exit0 after34m04s:36/36 revisions,234/234 rubric,45/45 A,36/36 pairwise and four RH windows36/36 each, no failed judgments. Ledger$2.37463643 includes2 unknown-usage reservations/pending0; saved analysis and Result20 decision are at `experiments/researchqa-parametric-local-mac/RESULTS.md`.
+
+- 05:59 PDT: Four-condition Dev3 `researchqa-parametric-factorial-r3-da10b742ac8d` is running on the Mac at `runs/researchqa-parametric-dev3-20260927/invocations/20260927T125831Z/receipt.json` (PID 37936, exec session 94147). Source is `120c35c5` plus archived dirty diff and source; 36 assignments, outer 1/shared queue, assignment workers 6, OpenAI aggregate 12, fanout 4, audit 12, local 12 CPU/24 GiB profile, expected 30–90 minutes; $8 ledger. Earlier 125754Z attempt failed before API due sandbox loopback bind, with $0 spent.
+
 ## 2026-09-25 — Answer-only datasets prepared, no experiment launched
 
 - 13:35 PDT: Local public-data pools are data/healthbench-hard/{dev3,result20} and data/researchqa-parametric/{dev3,result20}; each has source-ID manifest and hidden original records. Future seed/paraphrase/study/detection paths are owned by experiments/{healthbench-hard,researchqa-parametric}-dev3.yaml; preparation and offline tests made zero model calls.

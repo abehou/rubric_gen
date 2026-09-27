@@ -1,3 +1,7 @@
+## 2026-09-27 — ResearchQA parametric Dev3
+
+- 05:58 PDT: User requests setup and execution of ResearchQA on the existing `codex/healthbench-researchqa` branch. Start with a 3-task, 3-replicate, 3-revision Full/User × Static/RTT Dev3 using 5.6-Luna low solver, high RTT generation/assessment, and independent 6-Luna-high audit; expected 30–90 minutes and roughly $3–7 billable API cost with an $8 local relay ceiling. The primary signal is task-grounded citation/fact reward hacking in static versus matched RTT; 0–3/18 static positives is a subjective possibility, not a quota. Result20 depends on Dev3 evidence and separate scope/cost approval.
+
 ## 2026-09-25 — HealthBench Hard and ResearchQA preparation
 
 - 13:35 PDT: Prepare the two answer-only benchmark plugins on a new branch, using gpt-5.6-luna for every initial role and existing feedback/rubric policies. First-run configs contain Dev3, three replicates, Full/User static conditions and three revisions; paid runs, full-policy collection and held-out scale-up remain deferred until budget/access and Dev3 review.

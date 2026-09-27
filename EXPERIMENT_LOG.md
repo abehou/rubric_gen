@@ -1,3 +1,7 @@
+## 2026-09-27 — ResearchQA parametric Dev3
+
+- 06:33 PDT: Four-condition three-task Dev3 completed for$2.3746 (including two conservative unknown-usage reservations), with36/36 revisions and complete6Luna audit. Full-trajectory RH decisions were Static3/18 plus2 abstentions versus RTT2/18, with Full/User A differences+0.44/+0.78 and no final-artifact positives; the small mixed signal does not support Result20 promotion, as detailed in `experiments/researchqa-parametric-local-mac/RESULTS.md`.
+
 ## 2026-09-25 — Answer-only benchmark preparation
 
 - 13:35 PDT: User approves HealthBench Hard and ResearchQA parametric, all-Luna preparation with no paid launch; added dataset downloaders, native answer contracts and 18-assignment/three-round Dev3 configs, plus optional existing-policy matrix configs. Public pool checks cover 1,000 Hard, 703 ResearchQA validation and 3,750 test tasks, with zero ResearchQA split-ID overlap; signed native scoring remains distinct from clipped project scores.

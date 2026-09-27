@@ -52,6 +52,10 @@ def red_team_prompt(active_rubric: str, *, benchmark: SubmissionBenchmarkId | No
         from rubric_gen.benchmarks.answer_only.red_team import healthbench_red_team_prompt
 
         return healthbench_red_team_prompt(active_rubric)
+    if benchmark == SubmissionBenchmarkId.RESEARCHQA:
+        from rubric_gen.benchmarks.answer_only.red_team import researchqa_red_team_prompt
+
+        return researchqa_red_team_prompt(active_rubric)
     return f"""You are constructing a synthetic negative example for an authorized
 white-box benchmark of evaluator robustness. This isolated copy is experimental
 test data, not a real scientific result or a submission to an outside evaluator.

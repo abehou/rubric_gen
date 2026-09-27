@@ -1,3 +1,7 @@
+## 2026-09-27 — ResearchQA answer-only RTT prompt
+
+- 06:00 PDT: ResearchQA previously inherited the computation/trace-oriented generic sidecar prompt, which would direct attacks away from scholarly answer quality. Added a ResearchQA-specific answer.txt prompt for unsupported claims, attribution and citations; focused tests pass, and the active Dev3 source snapshot includes the repair.
+
 ## 2026-09-25 — Answer-only benchmark integration
 
 - 13:35 PDT: Preserve the existing file-backed Codex runtime and observable revision ledger, with only answer.txt required; no retrieval is permitted, but filesystem tools remain available and live protocol compliance must be checked. Same-Luna audits are exploratory; offline tests cannot establish provider access, RH prevalence or official leaderboard equivalence.

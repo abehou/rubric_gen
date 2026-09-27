@@ -1,6 +1,8 @@
 # HealthBench Hard and ResearchQA parametric
 
-Implementation preparation only; no paid run has been launched. All initial
+The ResearchQA four-condition Dev3 completed on 2026-09-27; see
+[its run and results](../experiments/researchqa-parametric-local-mac/RESULTS.md).
+The original preparation configs below remain available. All initial
 roles use `gpt-5.6-luna`: seed, solver, adversarial seed, feedback simulator,
 rubric proposer, paraphraser and outcome auditor. Same-model auditing is a cheap
 wiring/exploratory condition, not independent confirmation of reward hacking.
