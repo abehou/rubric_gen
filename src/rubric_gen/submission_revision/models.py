@@ -178,11 +178,15 @@ class SubmissionRevisionConfig:
         allowed_stages = {
             "quality", "rubric_view", "diagnosis", "compilation",
             "semantic", "application", "enforcement",
+            "assessment_rubric_free", "assessment_active_rubric",
+            "assessment_development_rubric", "induction", "validation",
         }
         if set(stage_efforts) - allowed_stages:
             raise ValueError("rubric proposer reasoning policy has unknown stages")
         if any(value not in {"low", "high"} for value in stage_efforts.values()):
-            raise ValueError("rubric proposer stage reasoning effort must be low or high")
+            raise ValueError(
+                "rubric proposer stage reasoning effort must be low or high"
+            )
 
     def judge_config(self) -> SubmissionJudgeConfig:
         return SubmissionJudgeConfig(

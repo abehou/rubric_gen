@@ -89,6 +89,12 @@ index. Do not output criterion identifiers or level names. Do not omit or add
 items. Require concrete artifact evidence. Do not infer missing work from claims.
 If evidence falls between two levels, select the lower-point level unless evidence
 proves the higher level. Keep each reason brief and evidence-based.
+For negative-point criteria, the negative level is a penalty for the behavior
+described by that criterion; avoiding it earns zero. Judge the stated behavior
+before choosing its level. Do not describe an avoided penalty as missing work.
+Write the evidence-based reason first, then select the level whose description
+agrees with that reason. For a factual statement, explicitly determine whether it
+is true or false of the answer before mapping it to credit or a penalty.
 
 Return only the provider-enforced JSON schema. Do not calculate numerical points.
 """
@@ -133,13 +139,13 @@ def rubric_score_output_schema(
                 "items": {
                     "type": "object",
                     "properties": {
+                        "reason": {"type": "string"},
                         "level_index": {
                             "type": "integer",
                             "enum": list(range(maximum_level_count)),
                         },
-                        "reason": {"type": "string"},
                     },
-                    "required": ["level_index", "reason"],
+                    "required": ["reason", "level_index"],
                     "additionalProperties": False,
                 },
             },
@@ -338,6 +344,36 @@ class RubricScoreRunSpec(FullRubricRunSpec):
         return value
 
 
+def output_recovery_limit(binding: dict[str, object]) -> int | None:
+    """Explicit, input-scoped recovery allowance; never alters solver grading."""
+    raw = os.environ.get("RUBRIC_GEN_AUDIT_OUTPUT_RECOVERY")
+    if not raw:
+        return None
+    recovery = json.loads(raw)
+    fields = ("rubric_sha256", "review_input_sha256", "answer_input_sha256")
+    if (set(recovery) != {*fields, "max_output_tokens"}
+            or type(recovery["max_output_tokens"]) is not int
+            or not 4096 < recovery["max_output_tokens"] <= 32768):
+        raise ValueError("invalid input-scoped audit output recovery")
+    if all(binding.get(field) == recovery[field] for field in fields):
+        return recovery["max_output_tokens"]
+    return None
+
+
+def recovered_output_shape(shape, *, rubric_text, review_text, answer_text):
+    limit = output_recovery_limit({
+        "rubric_sha256": sha256_text(rubric_text),
+        "review_input_sha256": sha256_text(review_text),
+        "answer_input_sha256": sha256_text(answer_text),
+    })
+    if limit is None:
+        return shape
+    if limit < shape.max_output_tokens_per_call:
+        raise ValueError("audit recovery cannot lower the output allowance")
+    return replace(shape, max_output_tokens_per_call=limit,
+                   total_output_tokens=shape.calls * limit)
+
+
 def build_rubric_score_run_spec(
     *,
     rubric_text: str,
@@ -361,6 +397,8 @@ def build_rubric_score_run_spec(
         provider=base.provider,
         indexed_contract=indexed_contract,
     )
+    shape = recovered_output_shape(shape, rubric_text=rubric_text,
+                                   review_text=review_text, answer_text=answer_text)
     values = {
         field.name: getattr(base, field.name)
         for field in fields(FullRubricRunSpec)
@@ -369,6 +407,7 @@ def build_rubric_score_run_spec(
         "payload_bytes": shape.payload_bytes,
         "schema_bytes": shape.schema_bytes,
         "request_content_bytes_per_call": shape.request_content_bytes_per_call,
+        "max_output_tokens_per_call": shape.max_output_tokens_per_call,
     })
     return RubricScoreRunSpec(**values, indexed_contract=indexed_contract)
 
@@ -485,7 +524,6 @@ def _generate_response(
             {"role": "user", "content": payload},
         ],
         "max_output_tokens": spec.max_output_tokens_per_call,
-        "temperature": 0.0,
         "store": False,
         "text": {
             "format": {
@@ -497,8 +535,10 @@ def _generate_response(
             "verbosity": "low",
         },
     }
-    if spec.requested_model.startswith("gpt-5.6"):
-        request["reasoning"] = {"effort": "none"}
+    if request_parameters["reasoning_effort"] is not None:
+        request["reasoning"] = {"effort": request_parameters["reasoning_effort"]}
+    if request_parameters["temperature"] is not None:
+        request["temperature"] = request_parameters["temperature"]
     response = provider_streams.openai_response(
         api_key=api_key,
         timeout=FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,

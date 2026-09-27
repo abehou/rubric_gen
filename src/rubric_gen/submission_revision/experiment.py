@@ -436,6 +436,7 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
     optional_audit_keys = {
         "max_input_tokens",
         "max_output_tokens",
+        "rubric_free_models",
     }
     if not required_audit_keys <= set(audit) or not set(audit) <= (
         required_audit_keys | optional_audit_keys
@@ -469,6 +470,13 @@ def _validate(payload: dict[str, Any], path: Path) -> str:
         rubric_free_evaluation_max_request_bytes=audit["rubric_free_evaluation_max_request_bytes"],
         rubric_free_evaluation_max_output_tokens=audit["rubric_free_evaluation_max_output_tokens"],
     )
+    if "rubric_free_models" in audit:
+        free_models = audit["rubric_free_models"]
+        if (not isinstance(free_models, list) or not free_models
+                or any(type(model) is not str or not model.strip() for model in free_models)
+                or len(set(free_models)) != len(free_models)):
+            raise ValueError("rubric_free_models must be unique non-empty model IDs")
+        expected_audit["rubric_free_models"] = list(free_models)
     # The YAML is concise; stable detector mechanics are supplied by the implementation.
     payload["outcome_audit"] = expected_audit
     dag = payload["dag"]
@@ -650,15 +658,17 @@ def _validate_protocol(protocol: object) -> None:
     allowed_stages = {
         "quality", "rubric_view", "diagnosis", "compilation",
         "semantic", "application", "enforcement",
+        "assessment_rubric_free", "assessment_active_rubric",
+        "assessment_development_rubric", "induction", "validation",
     }
     if not isinstance(stage_efforts, dict):
         raise ValueError("rubric proposer stage reasoning policy must be a mapping")
     if set(stage_efforts) - allowed_stages:
         raise ValueError("rubric proposer reasoning policy has unknown stages")
     if any(value not in {"low", "high"} for value in stage_efforts.values()):
-        raise ValueError("rubric proposer stage reasoning effort must be low or high")
-    if stage_efforts and protocol.get("red_team_trace_version") is None:
-        raise ValueError("stage-specific proposer reasoning requires red team trace")
+        raise ValueError(
+            "rubric proposer stage reasoning effort must be low or high"
+        )
     simulator = protocol["feedback_simulator"]
     simulator_keys = {
         "model",

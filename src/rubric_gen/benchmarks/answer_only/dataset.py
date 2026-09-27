@@ -39,11 +39,21 @@ def render_rubric(row: dict, benchmark: str) -> str:
                 raise ValueError("HealthBench points must be nonzero integers")
             # Highest-point level first, including penalty criteria.
             levels = (f"A={points} B=0" if points > 0 else f"A=0 B={points}")
-            descriptions = (
-                ("The stated criterion is met by the answer.", "The stated criterion is not met by the answer.")
-                if points > 0 else
-                ("The stated criterion is not met by the answer.", "The stated criterion is met by the answer.")
-            )
+            # The source text is a factual predicate, not necessarily a goal:
+            # e.g. "Fails to provide advice" with negative points. Do not turn
+            # that into the ambiguous instruction "criterion not met".
+            statement = json.dumps(_line(c["criterion"]), ensure_ascii=False)
+            if points > 0:
+                descriptions = (
+                    f"Credit earned: this statement is TRUE of the answer: {statement}",
+                    f"Credit not earned: this statement is FALSE of the answer: {statement}",
+                )
+            else:
+                title = f"Penalty condition (not a requested action): {title}"
+                descriptions = (
+                    f"Penalty avoided (zero deduction): this statement is FALSE of the answer: {statement}",
+                    f"Penalty incurred: this statement is TRUE of the answer: {statement}",
+                )
             sections.append(f"Criterion {i}: {title}\nLevels: {levels}\n"
                             f"[A]: {descriptions[0]}\n[B]: {descriptions[1]}")
     elif benchmark == "researchqa-parametric":
@@ -93,7 +103,7 @@ def stratified_order(rows: list[dict], benchmark: str) -> list[dict]:
 
 
 def prepare(rows: list[dict], destination: Path, *, benchmark: str, subset: str,
-            source: str) -> dict:
+            source: str, selected_source_ids: list[str] | None = None) -> dict:
     if benchmark not in {"healthbench-hard", "researchqa-parametric"} or subset not in {"dev3", "result20"}:
         raise ValueError("unsupported benchmark or subset")
     ordered = stratified_order(rows, benchmark)
@@ -101,6 +111,17 @@ def prepare(rows: list[dict], destination: Path, *, benchmark: str, subset: str,
     # HealthBench has one official pool: reserve Dev3 before selecting Result20.
     offset = 3 if benchmark == "healthbench-hard" and subset == "result20" else 0
     selected = ordered[offset:offset + count]
+    selection = "metadata-stratified-round-robin"
+    if selected_source_ids is not None:
+        if benchmark != "healthbench-hard" or len(selected_source_ids) != count:
+            raise ValueError(f"explicit source IDs require exactly {count} HealthBench IDs")
+        if len(set(selected_source_ids)) != count:
+            raise ValueError("explicit source IDs must be distinct")
+        by_id = {row["prompt_id"]: row for row in ordered}
+        if any(source_id not in by_id for source_id in selected_source_ids):
+            raise ValueError("explicit source ID is missing from official source")
+        selected = [by_id[source_id] for source_id in selected_source_ids]
+        selection = "explicit-source-ids-after-rubric-review"
     if len(selected) != count:
         raise ValueError("not enough tasks for requested subset")
     prefix = "dev" if subset == "dev3" else "result"
@@ -129,7 +150,7 @@ def prepare(rows: list[dict], destination: Path, *, benchmark: str, subset: str,
         (task / "tests" / "source.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
         tasks.append({"task_id": task_id, "source_id": source_id})
     manifest = {"benchmark": benchmark, "subset": subset, "source": source,
-                "selection_seed": SELECTION_SEED, "selection": "metadata-stratified-round-robin",
+                "selection_seed": SELECTION_SEED, "selection": selection,
                 "source_count": len(rows), "tasks": tasks}
     (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest
@@ -140,6 +161,7 @@ def main(benchmark: str) -> None:
     parser.add_argument("--subset", choices=("dev3", "result20"), default="dev3")
     parser.add_argument("--source", type=Path, help="Use a local official source file instead of downloading")
     parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--source-ids", nargs="+", help="Pin HealthBench source IDs for the requested subset")
     args = parser.parse_args()
     split = "valid" if args.subset == "dev3" else "test"
     url = HEALTHBENCH_URL if benchmark == "healthbench-hard" else RESEARCHQA_URL.format(split=split)
@@ -153,5 +175,6 @@ def main(benchmark: str) -> None:
             if benchmark == "healthbench-hard" else json.loads(raw))
     root = Path(__file__).resolve().parents[4]
     destination = args.output_dir or root / "data" / benchmark / args.subset
-    manifest = prepare(rows, destination, benchmark=benchmark, subset=args.subset, source=url)
+    manifest = prepare(rows, destination, benchmark=benchmark, subset=args.subset,
+                       source=url, selected_source_ids=args.source_ids)
     print(json.dumps({"output_dir": str(destination), "tasks": manifest["tasks"]}, indent=2))

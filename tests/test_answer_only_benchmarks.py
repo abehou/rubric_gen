@@ -18,6 +18,22 @@ BENCHMARKS = ("healthbench-hard", "researchqa-parametric")
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.parametrize("first_revision", [True, False])
+def test_healthbench_revision_is_neutral_and_preserves_task_and_feedback(first_revision):
+    contract = get_submission_benchmark("healthbench-hard")
+    instruction = "Original task: distinguish documented facts from missing information."
+    feedback = "Feedback: clarify which finding is missing."
+    prompt = contract.render_revision_solver_prompt(instruction, feedback, first_revision=first_revision)
+    assert instruction in prompt and feedback in prompt
+    assert "Preserve correct content." in prompt
+    assert "do not invent facts or citations" not in prompt
+    assert "No research tools or external information are allowed" in prompt
+    research = get_submission_benchmark("researchqa-parametric")
+    assert "do not invent facts or citations" in research.render_revision_solver_prompt(
+        instruction, feedback, first_revision=first_revision,
+    )
+
+
 def rows(benchmark):
     if benchmark == "healthbench-hard":
         return [{"prompt_id": f"health-{i:03}", "example_tags": [f"theme:group-{i % 3}"],

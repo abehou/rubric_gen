@@ -24,7 +24,7 @@ def scientific_identity(identity):
     return json.dumps(value, sort_keys=True, separators=(',', ':'))
 
 
-def _completed_summary(output, config):
+def _completed_summary(output, config, *, models=None):
     path = output.path('summary.json')
     if not config.resume or not path.exists():
         return None
@@ -33,7 +33,8 @@ def _completed_summary(output, config):
         return None
     if (summary.get('experiment_id') != config.experiment.experiment_id
             or summary.get('study_dir') != str(config.study_dir.resolve())
-            or summary.get('models') != list(config.experiment.outcome_audit['models'])):
+            or summary.get('models') != list(models if models is not None
+                                             else config.experiment.outcome_audit['models'])):
         raise RuntimeError('completed stage belongs to another study or panel')
     return summary
 
@@ -99,7 +100,8 @@ def reuse_completed_free(runner) -> bool:
         (runner.pairwise_output, prepared.unique_pairwise_jobs, jobs._pairwise_judgment_identity,
          jobs._pairwise_preference_request, pairwise_preference.validate_verdict),
     )
-    summaries = [_completed_summary(output, runner.config) for output, *_ in parts]
+    summaries = [_completed_summary(output, runner.config, models=prepared.models)
+                 for output, *_ in parts]
     if any(summary is None for summary in summaries):
         return False
     count = 0
@@ -336,6 +338,17 @@ def _plan_science(entry):
         # criterion coverage, calls, or the configured output budget.
         value['shape'] = {k:v for k,v in value['shape'].items() if k not in {
             'schema_bytes','payload_bytes','request_content_bytes_per_call','total_request_content_bytes'}}
+        from .rubric_judge import output_recovery_limit
+        limit = output_recovery_limit(entry)
+        if limit is not None:
+            shape = value['shape']
+            default = min(32768, max(4096, shape['criterion_count'] * 128))
+            if (shape['max_output_tokens_per_call'] not in {default, limit}
+                    or shape['total_output_tokens'] != shape['calls'] * shape['max_output_tokens_per_call']):
+                raise RuntimeError('audit output recovery does not match the approved allowance')
+            # Only this explicit input binding may change its operational cap.
+            shape['max_output_tokens_per_call'] = default
+            shape['total_output_tokens'] = shape['calls'] * default
     return json.dumps(value, sort_keys=True, separators=(',', ':'))
 
 

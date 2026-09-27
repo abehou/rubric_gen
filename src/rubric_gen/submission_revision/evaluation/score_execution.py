@@ -68,7 +68,9 @@ class RubricFreeScoreStage:
             return
         targets = self.targets
         models = tuple(
-            str(model) for model in self.config.experiment.outcome_audit["models"]
+            str(model) for model in self.config.experiment.outcome_audit.get(
+                "rubric_free_models", self.config.experiment.outcome_audit["models"]
+            )
         )
         implementation_identity = _rubric_free_score_implementation_identity()
         order_plan = pairwise_order_plan(targets)

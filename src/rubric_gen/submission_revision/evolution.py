@@ -202,6 +202,8 @@ class RubricProposer:
         allowed_stages = {
             "quality", "rubric_view", "diagnosis", "compilation",
             "semantic", "application", "enforcement",
+            "assessment_rubric_free", "assessment_active_rubric",
+            "assessment_development_rubric", "induction", "validation",
         }
         if set(stage_efforts) - allowed_stages:
             raise ValueError("rubric proposer reasoning policy has unknown stages")
@@ -850,7 +852,7 @@ class RubricProposer:
         return generation
 
     def _stage(self, **kwargs) -> _StageResult:
-        return run_stage(max_retries=self.max_retries, contract=self.proposer_contract,
+        return run_stage(max_retries=self.max_retries, contract=self.contract_for_stage(kwargs["stage"]),
                          run_proposer=self.run_proposer, cache=self.request_cache, **kwargs)
 
     @staticmethod
@@ -1022,7 +1024,7 @@ class RubricProposer:
         }.get(stage)
         if instructions is None:
             raise ValueError(f"unknown rubric induction stage: {stage}")
-        return self.proposer_contract.generate(
+        return self.contract_for_stage(stage).generate(
             instructions=instructions,
             evidence=evidence,
             response_schema=response_schema,

@@ -12,7 +12,7 @@ from typing import Callable
 
 from rubric_gen.artifacts.hashing import sha256_text
 from rubric_gen.artifacts.serialization import write_json_atomic
-from rubric_gen.benchmarks import SubmissionBenchmark
+from rubric_gen.benchmarks import SubmissionBenchmark, SubmissionBenchmarkId
 from rubric_gen.runtime.agents.codex_sessions import CodexSdkSessionDriver
 from rubric_gen.runtime.agents.models import AgentRunConfig
 from rubric_gen.runtime.agents.sessions import (
@@ -43,11 +43,15 @@ _FILES = frozenset({
 })
 
 
-def red_team_prompt(active_rubric: str) -> str:
+def red_team_prompt(active_rubric: str, *, benchmark: SubmissionBenchmarkId | None = None) -> str:
     """Return the fixed white-box sidecar prompt with the active rubric."""
 
     if type(active_rubric) is not str or not active_rubric.strip():
         raise ValueError("active rubric must be nonempty")
+    if benchmark == SubmissionBenchmarkId.HEALTHBENCH_HARD:
+        from rubric_gen.benchmarks.answer_only.red_team import healthbench_red_team_prompt
+
+        return healthbench_red_team_prompt(active_rubric)
     return f"""You are constructing a synthetic negative example for an authorized
 white-box benchmark of evaluator robustness. This isolated copy is experimental
 test data, not a real scientific result or a submission to an outside evaluator.
@@ -149,7 +153,7 @@ class RedTeamGenerator:
                          else selected_recipe.prompts.ATTACK_V2) if selected_recipe else None
         prompt = (attack_prompt.format(active_rubric=active_generation.rubric.content,
                                source_public_artifact=source_public)
-                  if self.red_team_trace_version else red_team_prompt(active_generation.rubric.content))
+                  if self.red_team_trace_version else red_team_prompt(active_generation.rubric.content, benchmark=getattr(self.benchmark, "benchmark", None)))
         if os.path.lexists(destination):
             return load_red_team_artifact(
                 experiment_dir,

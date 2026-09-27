@@ -319,9 +319,11 @@ def project_rubric_feedback(
     }
     if resolved_policy is FeedbackPolicy.FULL:
         payload["rubric_text"] = generation.rubric.content
-        payload["overall_reasoning"] = fixed_projection.payload[
-            "overall_reasoning"
-        ]
+        payload["overall_reasoning"] = _score_overview(
+            parse_rubric_levels_strict(generation.rubric.content),
+            {key: value["points"] for key, value in merged_criteria.items()},
+            max_reason_chars,
+        )
     return ProjectedFeedback(
         score=composition.score,
         payload=payload,
@@ -686,6 +688,26 @@ def _validate_score_record(
     return score, raw_score, criterion_levels, criterion_scores
 
 
+def _score_overview(
+    rubric_levels: dict[str, dict[str, int]],
+    criterion_scores: dict[str, float],
+    max_reason_chars: int,
+) -> str:
+    """Summarize the delivered decisions, including active learned penalties."""
+    at_maximum: list[str] = []
+    below_maximum: list[str] = []
+    for criterion_id, points in criterion_scores.items():
+        maximum = max(rubric_levels[criterion_id].values())
+        (at_maximum if points == maximum else below_maximum).append(criterion_id)
+    return _bounded_text(
+        f"At maximum points: {', '.join(at_maximum) or 'none'}. "
+        f"Below maximum points: {', '.join(below_maximum) or 'none'}. "
+        "Use the criterion-level evidence for revisions. Zero points on a "
+        "penalty-only criterion means the penalty was avoided; preserve that avoidance.",
+        max_reason_chars,
+    )
+
+
 def _project_full_payload(
     *,
     validation: dict[str, object],
@@ -712,6 +734,7 @@ def _project_full_payload(
     if type(evaluation_criteria) is not dict:
         raise ValueError("evaluation.criteria must be a JSON object")
 
+    rubric_levels = parse_rubric_levels_strict(rubric_text)
     criteria: dict[str, object] = {}
     for criterion_id in sorted(criterion_levels):
         evaluation_criterion = evaluation_criteria.get(criterion_id)
@@ -720,9 +743,18 @@ def _project_full_payload(
             if type(evaluation_criterion) is dict
             else ""
         )
+        points = criterion_scores[criterion_id]
+        maximum = max(rubric_levels[criterion_id].values())
+        if maximum == 0 and min(rubric_levels[criterion_id].values()) < 0:
+            status = (
+                "Penalty avoided; zero is full credit, not missing work."
+                if points == 0 else
+                "Penalty incurred; avoid the penalized behavior."
+            )
+            reason = f"{status} Judge evidence: {reason}"
         criteria[criterion_id] = {
             "level": criterion_levels[criterion_id],
-            "points": criterion_scores[criterion_id],
+            "points": points,
             "judge_reason": _bounded_text(reason, max_reason_chars),
         }
 
@@ -730,10 +762,11 @@ def _project_full_payload(
         "rubric_text": rubric_text,
         "score": score,
         "criteria": criteria,
-        "overall_reasoning": _bounded_text(
-            evaluation.get("reasoning", ""),
-            max_reason_chars,
-        ),
+        # A second free-form model summary can contradict correct per-item
+        # decisions and instruct the solver to introduce an avoided penalty.
+        # Derive the overview from those decisions; retain raw model prose in
+        # evaluation.json and the item-level evidence above.
+        "overall_reasoning": _score_overview(rubric_levels, criterion_scores, max_reason_chars),
     }
 
 

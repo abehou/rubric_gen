@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -142,6 +143,14 @@ def test_judge_subprocess_uses_absolute_package_root(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("PYTHONPATH", "relative-src")
+    for variable in (
+        "OPENBLAS_NUM_THREADS",
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        monkeypatch.setenv(variable, "64")
 
     environment = executor_module._judge_subprocess_environment()
 
@@ -150,6 +159,16 @@ def test_judge_subprocess_uses_absolute_package_root(
         "relative-src",
     ]
     assert environment["LITELLM_LOCAL_MODEL_COST_MAP"] == "True"
+    assert environment["PATH"].split(os.pathsep)[0] == str(Path(sys.prefix) / "bin")
+    assert environment["PYTHONNOUSERSITE"] == "1"
+    for variable in (
+        "OPENBLAS_NUM_THREADS",
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        assert environment[variable] == "1"
 
 
 def test_prompt_treats_artifacts_as_untrusted() -> None:

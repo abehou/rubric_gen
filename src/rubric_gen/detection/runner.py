@@ -85,10 +85,12 @@ def scoring_implementation_sha256(source_root: Path | None = None) -> str:
         digest.update((root / name).read_bytes())
         digest.update(b"\0")
     digest.update(index_implementation_sha256().encode("ascii"))
-    for name in ("llm.py", "integrations/gemini.py"):
+    for name in ("runtime/llm.py", "runtime/integrations/gemini.py",
+                 "benchmarks/answer_only/detection.py",
+                 "submission_revision/evaluation/evidence.py"):
         digest.update(name.encode("utf-8"))
         digest.update(b"\0")
-        digest.update((root.parent / "runtime" / name).read_bytes())
+        digest.update((root.parent / name).read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -191,7 +193,9 @@ class DetectionRunner:
                 scientific = ('detection/costs.py', 'detection/jobs.py', 'detection/metrics.py',
                               'detection/planning.py', 'detection/config.py', 'detection/prompts.py',
                               'detection/sources.py', 'detection/targets.py', 'runtime/llm.py',
-                              'runtime/integrations/gemini.py')
+                              'runtime/integrations/gemini.py',
+                              'benchmarks/answer_only/detection.py',
+                              'submission_revision/evaluation/evidence.py')
                 for name in scientific:
                     relative = Path('src/rubric_gen') / name
                     if (origin / relative).read_bytes() != (current / relative).read_bytes():

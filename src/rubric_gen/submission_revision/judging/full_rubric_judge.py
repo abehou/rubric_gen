@@ -99,7 +99,6 @@ def _generate_response(
             {"role": "user", "content": payload},
         ],
         "max_output_tokens": spec.max_output_tokens_per_call,
-        "temperature": 0.0,
         "store": False,
         "text": {
             "format": {
@@ -111,8 +110,10 @@ def _generate_response(
             "verbosity": "low",
         },
     }
-    if spec.requested_model.startswith("gpt-5.6"):
-        request["reasoning"] = {"effort": "none"}
+    if request_parameters["reasoning_effort"] is not None:
+        request["reasoning"] = {"effort": request_parameters["reasoning_effort"]}
+    if request_parameters["temperature"] is not None:
+        request["temperature"] = request_parameters["temperature"]
     response = provider_streams.openai_response(
         api_key=api_key,
         timeout=protocol.FULL_RUBRIC_REQUEST_TIMEOUT_SECONDS,

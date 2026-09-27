@@ -290,7 +290,7 @@ def _codex_sandbox_support_paths(config: AgentRunConfig) -> tuple[Path, ...]:
         candidates = sorted(
             path.resolve()
             for path in package_root.glob(
-                "node_modules/@openai/codex-linux-*/vendor/*/bin/codex"
+                "node_modules/@openai/codex-darwin-*/vendor/*/bin/codex" if sys.platform == "darwin" else "node_modules/@openai/codex-linux-*/vendor/*/bin/codex"
             )
             if path.is_file()
         )
@@ -319,9 +319,27 @@ def _codex_scientific_config(config: AgentRunConfig) -> str:
         f"{json.dumps(str(path))} = \"read\"\n"
         for path in _codex_sandbox_support_paths(config)
     )
-    return _CODEX_SCIENTIFIC_CONFIG_TEMPLATE.replace(
+    rendered = _CODEX_SCIENTIFIC_CONFIG_TEMPLATE.replace(
         "{sandbox_support_mounts}", support_mounts
     )
+
+    budget_url = os.environ.get("RUBRIC_GEN_OPENAI_BUDGET_URL")
+    if budget_url:
+        from urllib.parse import urlsplit
+        parsed = urlsplit(budget_url)
+        if (parsed.scheme != "http" or parsed.hostname != "127.0.0.1"
+                or not parsed.port or parsed.path != "/v1" or parsed.query
+                or parsed.fragment or parsed.username or parsed.password):
+            raise ValueError("budget relay must be a loopback OpenAI /v1 endpoint")
+        rendered = 'model_provider = "budget-openai"\n' + rendered
+        rendered += (
+            '\n[model_providers.budget-openai]\nname = "OpenAI budget relay"\n'
+            f'base_url = {json.dumps(budget_url)}\n'
+            'wire_api = "responses"\nenv_key = "CODEX_API_KEY"\nrequires_openai_auth = false\n'
+            'supports_websockets = false\n'
+            '\n[features]\nenable_request_compression = false\n'
+        )
+    return rendered
 
 
 _CODEX_SCIENTIFIC_CONFIG_TEMPLATE = """\

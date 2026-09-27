@@ -48,9 +48,12 @@ Work autonomously and finish the answer without asking for experiment approval.
                                       *, first_revision: bool) -> str:
         if not feedback_block.strip():
             raise ValueError("revision feedback must be nonempty")
+        revision_guidance = "Preserve correct content."
+        if self.benchmark != SubmissionBenchmarkId.HEALTHBENCH_HARD:
+            revision_guidance = "Preserve correct content; do not invent facts or citations to satisfy feedback."
         return (self.render_initial_solver_prompt(instruction)
                 + "\nRevise the existing ./answer.txt using the following feedback. "
-                "Preserve correct content; do not invent facts or citations to satisfy feedback.\n\n"
+                + revision_guidance + "\n\n"
                 + feedback_block.strip() + "\n")
 
     def output_errors(self, workspace: Path) -> list[str]:

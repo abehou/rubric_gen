@@ -23,9 +23,9 @@ from rubric_gen.submission_revision.judge import (
 )
 from rubric_gen.submission_revision.judging.preflight import (
     JudgeDispatchInput,
-    preflight_judge_dispatches,
+    preflight_judge_dispatches as _base_preflight_judge_dispatches,
 )
-from rubric_gen.submission_revision.evaluation.rubric_judge import RubricScoreJudge
+from rubric_gen.submission_revision.evaluation.rubric_judge import RubricScoreJudge, recovered_output_shape
 from rubric_gen.submission_revision.evaluation.jobs import (
     ARTIFACTS,
     EvaluationConfig,
@@ -45,6 +45,24 @@ from rubric_gen.submission_revision.evaluation.jobs import (
     _submission_content_sha256,
 )
 from rubric_gen.submission_revision.evaluation.store import EvaluationStore
+
+
+def preflight_judge_dispatches(benchmark, dispatches):
+    """Include the explicitly authorized recovery allowance in the audit plan."""
+    from rubric_gen.submission_revision.judging.full_rubric_protocol import FullRubricCostShape
+    inputs = []
+    def captured():
+        for dispatch in dispatches:
+            inputs.append(dispatch)
+            yield dispatch
+    plan = _base_preflight_judge_dispatches(benchmark, captured())
+    for i, (raw, dispatch) in enumerate(zip(plan["jobs"], inputs, strict=True)):
+        shape = recovered_output_shape(FullRubricCostShape(**raw),
+            rubric_text=dispatch.rubric_text, review_text=dispatch.review_text,
+            answer_text=dispatch.answer_text)
+        plan["jobs"][i] = shape.as_json()
+    plan["output_tokens"] = sum(s["total_output_tokens"] for s in plan["jobs"])
+    return plan
 
 
 @dataclass

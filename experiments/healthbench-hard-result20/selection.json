@@ -1,0 +1,38 @@
+{
+  "name": "healthbench-hard-challenge20-v1",
+  "selection": "Content-reviewed English-language challenge subset, before solver outcomes; no per-item empirical difficulty claim",
+  "criteria": "Prioritize multi-constraint reasoning, contextual decision-making, calibrated uncertainty and task fidelity. Keep original signed criteria. Exclude direct mutually inconsistent requirements. No selection by RTT advantage; no model screening calls.",
+  "tasks": [
+    ["57f45e92-df59-41df-957d-a4206c671e76", "DVT risk calculation and action, avoiding an extra score point"],
+    ["6130eee2-2de4-428c-81c3-3464b2c171e3", "Renal dosing, titration and changing kidney function"],
+    ["ef79e596-9fa3-4fdc-8d6d-3a23ffe6d31c", "Corrected family genetic history, source specificity and patient communication"],
+    ["a7dac6a9-eab5-4c01-882c-dbf6c774d7c3", "BRCA preventive surgery versus surveillance with missing context"],
+    ["2b7f5235-8176-439f-a8fd-314d8d5f550b", "Insomnia prescribing conditional on comorbidity and symptom pattern"],
+    ["63e4e0d4-0cb1-442e-8316-8c12a6e3ec14", "Antibiotic yes/no pressure without diagnostic evidence"],
+    ["7ca2ba7c-40c6-4b07-9285-181e8563a080", "Postoperative activity and diet with unknown procedure"],
+    ["9914f37a-8063-4f7c-baa7-b97745b610e6", "Pressure for definitive interpretation of unexplained laboratory finding"],
+    ["45943bf5-d013-4a13-8acc-f177a813d612", "Spreadsheet task shifts to unsafe glucose quick-fix request"],
+    ["d69bf5a4-0318-4f99-9cb8-e3c40651c18e", "Mood swings, differential diagnosis and unsafe medication certainty"],
+    ["c2fb9729-d1a2-46ea-875c-4b826fccae4e", "Rapidly deteriorating patient, ordered emergency priorities"],
+    ["adbb1db8-5f20-486f-ad56-2b5c39b68013", "Pediatric anaphylaxis, dose/route and contingency actions"],
+    ["b2256875-a184-4447-a53a-34e8a10fba8b", "Prolonged childhood fever, negative tests and uncharacterized abdominal lumps"],
+    ["3485437a-1365-4a91-8cab-a5b0342b1884", "Home nursing authorization, documented needs and missing caregiver context"],
+    ["1e93a526-e2b4-42a1-901a-d6697bb0ead9", "Pediatric antibiotic allergy, dosing and parent-facing assessment/plan"],
+    ["c30dee7b-0cbc-41a8-8436-49b5ea9065b9", "Exercise hydration with symptom-dependent quantity and timing"],
+    ["9e2670fc-2237-492a-afed-d6d198cb673c", "Exertional breathlessness, context and specific escalation criteria"],
+    ["92355c7b-20b1-4741-8528-f07f2f9e7365", "Toddler supplements, age/medication context and safe dosing limits"],
+    ["d90e1686-8a91-42b0-90a0-9f09c4b110ee", "Jaw surgery recovery conditional on procedure and patient factors"],
+    ["e91caaef-849e-43b7-8c3e-1afbbff51844", "Rheumatoid flare, conditional medication adjustments and document fidelity"]
+  ],
+  "explicit_conflict_exclusions": {
+    "49a730fc-5a47-4e38-993b-64c64502422a": "Rewards both standard 10-day treatment and 3–5-day limit while penalizing under-five-day guidance",
+    "7bf7df45-5f64-40c7-8528-f35061257fd0": "Penalizes listing multiple salvage options while positively requesting their dosing strategies",
+    "6909c016-c3bb-417d-b6f2-771552dfedab": "Conflicting +4 versus +2 location points and total PHASES score",
+    "4d569ecc-b63d-4e87-b5b8-51fbc648a21b": "Rewards and penalizes oral rehydration in an obtunded child",
+    "eb1d97c2-659f-4331-89df-5a24c40b1a09": "Penalizes CPR if pulseless while rewarding arrest recognition/CPR guidance",
+    "352832df-973e-4468-956b-13f2df962bb6": "Rewards and penalizes a fatigue symptom log",
+    "65449e9d-ac3f-4cb0-8805-58fcb4ffbdce": "One drug example versus multiple named/dosed drugs required",
+    "e89e00c9-29e9-420c-813d-e06ddc39d585": "Negative criterion describes the same combined HF/diabetes optimization rewarded elsewhere",
+    "69ab890f-d928-41fb-83c0-9206ccdbaeb8": "Rewards lifestyle/supplement advice and penalizes discussing those same topics"
+  }
+}

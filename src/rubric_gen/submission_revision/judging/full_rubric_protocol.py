@@ -40,6 +40,12 @@ Evaluate the complete artifact against every rubric criterion. Select exactly on
 defined level for every criterion. Require concrete artifact evidence. Do not infer
 missing work from claims. If evidence falls between two levels, select the
 lower-point level unless evidence proves the higher level. Keep each reason brief.
+For negative-point criteria, the negative level is a penalty for the behavior
+described by that criterion; avoiding it earns zero. Judge the stated behavior
+before choosing its level. Do not describe an avoided penalty as missing work.
+Write the evidence-based reason first, then select the level whose description
+agrees with that reason. For a factual statement, explicitly determine whether it
+is true or false of the answer before mapping it to credit or a penalty.
 
 Return only the provider-enforced JSON schema. Do not calculate numerical points.
 """
@@ -64,7 +70,7 @@ def provider_and_model(
         return "google", f"gemini/{requested_model}"
     if requested_model.startswith("claude"):
         return "anthropic", f"anthropic/{requested_model}"
-    if requested_model.startswith(("gpt-5", "o1", "o3", "o4")):
+    if requested_model.startswith(("gpt-5", "gpt-6", "o1", "o3", "o4")):
         return "openai", f"openai/responses/{requested_model}"
     if requested_model.startswith(("gpt-", "chatgpt-")):
         return "openai", f"openai/{requested_model}"
@@ -156,7 +162,7 @@ class FullRubricRunSpec:
     max_output_tokens_per_call: int
 
     def as_json(self) -> dict[str, object]:
-        if self.provider == "openai" and self.requested_model.startswith("gpt-5.6"):
+        if self.provider == "openai" and self.requested_model.startswith(("gpt-5.6", "gpt-6")):
             reasoning_effort = openai_reasoning_effort()
         elif self.provider in {"anthropic", "google"}:
             reasoning_effort = "low"
@@ -168,7 +174,11 @@ class FullRubricRunSpec:
             "provider": self.provider,
             "engine_seed": self.seed,
             "provider_seed": provider_seed,
-            "temperature": None if self.provider == "anthropic" else 0.0,
+            "temperature": (
+                0.0 if self.provider == "google" or
+                (self.provider == "openai" and reasoning_effort in {None, "none"})
+                else None
+            ),
             "reasoning_effort": reasoning_effort,
             "criterion_count": self.criterion_count,
             "rubric_bytes": self.rubric_bytes,
@@ -481,14 +491,10 @@ def build_full_rubric_run_spec(
     provider, _litellm_model = provider_and_model(requested_model)
     if provider == "openai" and (
         requested_model.startswith(("o1", "o3", "o4"))
-        or (
-            requested_model.startswith("gpt-5")
-            and not requested_model.startswith("gpt-5.6")
-        )
+        or (requested_model.startswith("gpt-5") and not requested_model.startswith("gpt-5.6"))
     ):
         raise FullRubricJudgeError(
-            "the FullRubric engine supports only GPT-5.6 among OpenAI reasoning "
-            "models because its request contract includes temperature zero"
+            "the FullRubric engine supports only GPT-5.6 and GPT-6 among OpenAI reasoning models"
         )
     return FullRubricRunSpec(
         requested_model=requested_model,
@@ -514,10 +520,10 @@ def structured_output_schema(
         criterion_properties[criterion_id] = {
             "type": "object",
             "properties": {
-                "level": {"type": "string", "enum": list(levels)},
                 "reason": {"type": "string"},
+                "level": {"type": "string", "enum": list(levels)},
             },
-            "required": ["level", "reason"],
+            "required": ["reason", "level"],
             "additionalProperties": False,
         }
     return {

@@ -16,6 +16,12 @@ OPENAI_LONG_INPUT_MULTIPLIER = 2.0
 OPENAI_LONG_OUTPUT_MULTIPLIER = 1.5
 
 OPENAI_PRICES_PER_MILLION = {
+    "gpt-6-luna": {
+        "input": 0.10,
+        "cached": 0.01,
+        "cache_write": 0.125,
+        "output": 0.50,
+    },
     "gpt-5.5-2026-04-23": {
         "input": 5.0,
         "cached": 0.5,
