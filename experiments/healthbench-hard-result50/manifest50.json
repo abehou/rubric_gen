@@ -1,0 +1,357 @@
+{
+  "benchmark": "healthbench-hard",
+  "retained20": [
+    {
+      "task_id": "result-001",
+      "source_id": "57f45e92-df59-41df-957d-a4206c671e76",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-001"
+    },
+    {
+      "task_id": "result-002",
+      "source_id": "6130eee2-2de4-428c-81c3-3464b2c171e3",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-002"
+    },
+    {
+      "task_id": "result-003",
+      "source_id": "ef79e596-9fa3-4fdc-8d6d-3a23ffe6d31c",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-003"
+    },
+    {
+      "task_id": "result-004",
+      "source_id": "a7dac6a9-eab5-4c01-882c-dbf6c774d7c3",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-004"
+    },
+    {
+      "task_id": "result-005",
+      "source_id": "2b7f5235-8176-439f-a8fd-314d8d5f550b",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-005"
+    },
+    {
+      "task_id": "result-006",
+      "source_id": "63e4e0d4-0cb1-442e-8316-8c12a6e3ec14",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-006"
+    },
+    {
+      "task_id": "result-007",
+      "source_id": "7ca2ba7c-40c6-4b07-9285-181e8563a080",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-007"
+    },
+    {
+      "task_id": "result-008",
+      "source_id": "9914f37a-8063-4f7c-baa7-b97745b610e6",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-008"
+    },
+    {
+      "task_id": "result-009",
+      "source_id": "45943bf5-d013-4a13-8acc-f177a813d612",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-009"
+    },
+    {
+      "task_id": "result-010",
+      "source_id": "d69bf5a4-0318-4f99-9cb8-e3c40651c18e",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-010"
+    },
+    {
+      "task_id": "result-011",
+      "source_id": "c2fb9729-d1a2-46ea-875c-4b826fccae4e",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-011"
+    },
+    {
+      "task_id": "result-012",
+      "source_id": "adbb1db8-5f20-486f-ad56-2b5c39b68013",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-012"
+    },
+    {
+      "task_id": "result-013",
+      "source_id": "b2256875-a184-4447-a53a-34e8a10fba8b",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-013"
+    },
+    {
+      "task_id": "result-014",
+      "source_id": "3485437a-1365-4a91-8cab-a5b0342b1884",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-014"
+    },
+    {
+      "task_id": "result-015",
+      "source_id": "1e93a526-e2b4-42a1-901a-d6697bb0ead9",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-015"
+    },
+    {
+      "task_id": "result-016",
+      "source_id": "c30dee7b-0cbc-41a8-8436-49b5ea9065b9",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-016"
+    },
+    {
+      "task_id": "result-017",
+      "source_id": "9e2670fc-2237-492a-afed-d6d198cb673c",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-017"
+    },
+    {
+      "task_id": "result-018",
+      "source_id": "92355c7b-20b1-4741-8528-f07f2f9e7365",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-018"
+    },
+    {
+      "task_id": "result-019",
+      "source_id": "d90e1686-8a91-42b0-90a0-9f09c4b110ee",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-019"
+    },
+    {
+      "task_id": "result-020",
+      "source_id": "e91caaef-849e-43b7-8c3e-1afbbff51844",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/data/healthbench-hard/challenge20-20260926/result-020"
+    }
+  ],
+  "extension30": [
+    {
+      "task_id": "result-021",
+      "source_id": "1ca222ed-cc79-4e78-9ca3-3547e7b37e3a",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-021",
+      "theme": "emergency_referrals",
+      "previously_run_dev3": [
+        {
+          "pool": "live-dev3-20260925-v4",
+          "task_id": "dev-002"
+        }
+      ]
+    },
+    {
+      "task_id": "result-022",
+      "source_id": "47a50742-10ba-462a-84bb-a119bfe360af",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-022",
+      "theme": "health_data_tasks",
+      "previously_run_dev3": [
+        {
+          "pool": "rh-dev3-20260926-v6",
+          "task_id": "dev-001"
+        }
+      ]
+    },
+    {
+      "task_id": "result-023",
+      "source_id": "5f539a2c-85f4-4cc9-8790-e1b23d950954",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-023",
+      "theme": "health_data_tasks",
+      "previously_run_dev3": [
+        {
+          "pool": "rh-dev3-20260926-v6",
+          "task_id": "dev-003"
+        }
+      ]
+    },
+    {
+      "task_id": "result-024",
+      "source_id": "b947fc6f-1d50-4e3f-b679-8484529b787b",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-024",
+      "theme": "communication",
+      "previously_run_dev3": [
+        {
+          "pool": "live-dev3-20260925-v4",
+          "task_id": "dev-001"
+        }
+      ]
+    },
+    {
+      "task_id": "result-025",
+      "source_id": "d546badf-e07b-44a1-bb32-373f263d7458",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-025",
+      "theme": "health_data_tasks",
+      "previously_run_dev3": [
+        {
+          "pool": "live-dev3-20260925-v4",
+          "task_id": "dev-003"
+        }
+      ]
+    },
+    {
+      "task_id": "result-026",
+      "source_id": "d716ca0e-52b9-491b-92b4-1d74e450314c",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-026",
+      "theme": "health_data_tasks",
+      "previously_run_dev3": [
+        {
+          "pool": "rh-dev3-20260926-v6",
+          "task_id": "dev-002"
+        }
+      ]
+    },
+    {
+      "task_id": "result-027",
+      "source_id": "c0435430-080a-486b-9a6b-8ab25b7b5db1",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-027",
+      "theme": "global_health",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-028",
+      "source_id": "ccdcfb68-edfc-47b1-b010-6cf41a77c363",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-028",
+      "theme": "global_health",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-029",
+      "source_id": "a819f3b5-3d2f-4330-8868-0e482c96ef02",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-029",
+      "theme": "global_health",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-030",
+      "source_id": "78400c61-14c5-411b-b153-2a26dab7542d",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-030",
+      "theme": "global_health",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-031",
+      "source_id": "1f5e62a4-3949-49f8-afce-bc84cfbc6f12",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-031",
+      "theme": "global_health",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-032",
+      "source_id": "62b6848d-7811-4994-a9d7-48437d1e5841",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-032",
+      "theme": "global_health",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-043",
+      "source_id": "0c128afb-be6e-4ea8-b9c2-07cd97e3d8d3",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-043",
+      "theme": "context_seeking",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-044",
+      "source_id": "3e2283a5-81de-4fac-a1d3-60bcc2762eb9",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-044",
+      "theme": "context_seeking",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-045",
+      "source_id": "87fa64df-bb0b-417a-b853-0306486aae73",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-045",
+      "theme": "context_seeking",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-046",
+      "source_id": "1854ebb0-59f1-442b-bfde-1c82dcb31152",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-046",
+      "theme": "context_seeking",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-047",
+      "source_id": "4bef196d-54dc-4a9d-8fc3-fc6a595c5ddc",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-047",
+      "theme": "context_seeking",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-057",
+      "source_id": "037cdb42-109a-44f5-90f1-09b731842fb2",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-057",
+      "theme": "hedging",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-058",
+      "source_id": "1847f8a8-f3d5-4f04-be2a-5df8b533d85a",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-058",
+      "theme": "hedging",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-059",
+      "source_id": "0ac03af4-04e5-489c-9e2c-00aa04fb5575",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-059",
+      "theme": "hedging",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-060",
+      "source_id": "2130cd26-6181-489e-acab-23c549e772ee",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-060",
+      "theme": "hedging",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-061",
+      "source_id": "ededbafb-a080-473c-8826-97b683a38dff",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-061",
+      "theme": "hedging",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-071",
+      "source_id": "0b2e5afc-8672-4157-a71e-5c52fbec828e",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-071",
+      "theme": "health_data_tasks",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-081",
+      "source_id": "e2e23ff7-9eb5-4fb0-b6a8-e7d68f3ab694",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-081",
+      "theme": "communication",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-082",
+      "source_id": "9c3e21ff-3059-4e96-896a-144e67a065bb",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-082",
+      "theme": "communication",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-083",
+      "source_id": "8e706833-319d-4a28-9ecf-048d28055e79",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-083",
+      "theme": "communication",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-090",
+      "source_id": "b9439cdc-296d-4a31-ad83-4118486f6d8a",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-090",
+      "theme": "complex_responses",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-091",
+      "source_id": "1cd1c06f-d27d-49c1-83a0-b3d427a2976b",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-091",
+      "theme": "complex_responses",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-092",
+      "source_id": "a5646305-0705-4ade-9868-83abba55d996",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-092",
+      "theme": "complex_responses",
+      "previously_run_dev3": []
+    },
+    {
+      "task_id": "result-098",
+      "source_id": "d539a642-0ab5-4ed2-af54-1ed542320448",
+      "task_dir": "/Users/yuenanhuang/Desktop/rubric_gen/runs/healthbench-hard-result50-extension-20261006/tasks/result-098",
+      "theme": "emergency_referrals",
+      "previously_run_dev3": []
+    }
+  ],
+  "extension_theme_counts": {
+    "global_health": 6,
+    "context_seeking": 5,
+    "hedging": 5,
+    "health_data_tasks": 5,
+    "communication": 4,
+    "complex_responses": 3,
+    "emergency_referrals": 2
+  },
+  "selection": "Original prepared80 content ranking, proportionally stratified; retain six Dev3 source tasks; no outcome filtering"
+}

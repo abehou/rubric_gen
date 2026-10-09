@@ -1,3 +1,7 @@
+## 2026-10-08 — HealthBench50 GitHub publication
+
+- 17:06 PDT: User accepts the current corrected Result50 and requests publication on the existing `codex/healthbench-researchqa` branch. Exported the complete eight-condition table and all1200 assignment measurements with original/corrected values to `experiments/healthbench-hard-result50/{RESULTS.md,results.json}`, preserving local raw runs and unrelated ResearchQA/Bio changes; publication performs no paid calls.
+
 ## 2026-09-27 — ResearchQA parametric Dev3
 
 - 06:46 PDT: Trajectory-level inspection finds Static S−H already−4.00 at initial answers and improving to−2.22 Full/−1.20 User at final; dev-002's quantitative criterion accounts for all Full-Static negative task gap while dev-001 near-ceiling feedback-following and dev-002 quantitative-sounding substitutions produce the concrete RH concerns. No new API calls or relabeling; saved evidence and limits are in `experiments/researchqa-parametric-local-mac/SH_DIAGNOSIS.md`.
