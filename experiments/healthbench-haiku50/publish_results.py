@@ -87,9 +87,11 @@ def main():
                     S_H_RH='gpt-6-luna high',A_pairwise='gpt-6-sol high',
                     initial_answers='150 reused Luna seed answers, byte-identical to Luna50'),
         rows=[{k:r[k] for k in ('task_id','source_id','condition_id','replicate','initial','final','rounds',*WINDOWS)}
-              for r in haiku['rows']],verification=haiku['verification'])
+              for r in haiku['rows']],verification=haiku['verification'],
+        rh_review_20261011=haiku['rh_review_20261011'])
     corrections=dict(first_review=read(RUN/'review/corrections.json'),
-                     rh_followup=read(RUN/'review/rh-focus/corrections.json'))
+                     rh_followup=read(RUN/'review/rh-focus/corrections.json'),
+                     rh_review_20261011=read(HERE/'rh-review-20261011/haiku/corrections.json'))
     for filename,obj in [('results.json',compact),('review-corrections.json',corrections)]:
         (HERE/filename).write_text(json.dumps(portable(obj),ensure_ascii=False)+'\n')
     lines=['# HealthBench Hard Haiku Result50', '',
@@ -98,7 +100,7 @@ def main():
         'The tables include the completed saved-evidence S/H and RH corrections. Original audit records and numeric RH scores are retained; '
         'the latest RH-only review does not change W/S/H/A, gaps, answers or population.', '',
         '## Haiku50 — current results', '',table(haiku), '',
-        '## Luna50 — previously published results', '',table(luna), '',
+        '## Luna50 — current results', '',table(luna), '',
         '## Matched comparison', '',
         'Both runs cover the same50 source tasks and3 replicates; all150 initial answer files match byte-for-byte. '
         'Haiku replaces the revision solver, online W and user simulator, and RTT components; this is not a Haiku-from-scratch seed run. '
@@ -113,20 +115,29 @@ def main():
         for data in (haiku,luna):
             cells.append(' → '.join(f"{data['conditions'][prefix+'-'+f]['final']['A']:.2f}" for f in ('static','red-team-trace')))
         lines.append('| '+label+' | '+' | '.join(cells)+' |')
+    reductions=[]
+    for data in (haiku,luna):
+        values=[]
+        for prefix in ('full','semi','score-only','user-simulator'):
+            counts=[data['conditions'][prefix+'-'+f]['full_trajectory']['decisions'].get(YES,0)
+                    for f in ('static','red-team-trace')]
+            values.append((counts[0]-counts[1])*100/150)
+        reductions.append(', '.join(f'{v:.2f}' for v in values))
     lines += ['',
-        '- Full-trajectory RH is lower for RTT than Static in each of the four policies in both reported tables. '
-        'Haiku reductions are11.33,2.00,1.33,0.67 percentage points; Luna reductions are6.00,2.00,1.33,2.67.',
+        '- Full-trajectory RH Static-minus-RTT differences (Full/Semi/Score-only/User): '
+        f'Haiku {reductions[0]} percentage points; Luna {reductions[1]} percentage points.',
         '- Haiku full-trajectory RH is higher than Luna in all eight cells. Its A scores are3.74–7.59 points lower across the matched cells; '
         'this is a between-run difference, not a claim of within-run degradation.',
         '- Within Haiku, RTT minus Static S−H is−3.19/−1.92/−4.40/−1.43 points (Full/Semi/Score-only/User). '
         'These are signed gap differences; negative gaps do not by themselves demonstrate better independent quality.', '',
         '## Verification and evidence', '',
         '- [Machine-readable results](results.json): all1200 assignment endpoints and RH judgments.',
-        '- [Correction evidence](review-corrections.json): prior criterion/RH corrections and the latest22 RH-window changes, with saved evidence paths and reasons.',
+        '- [Correction evidence](review-corrections.json): prior criterion/RH corrections and the2026-10-11 RH follow-up, with saved evidence paths and reasons.',
+        '- [Latest joint review](rh-review-20261011/verification.json): both model populations, scope checks and correction counts; model subdirectories contain individual decisions and tables.',
         '- [Offline export/verification](publish_results.py): checks population, aggregates, gap arithmetic, all RH windows, unchanged score fields and shared initial answers.',
         '- Local originals: `runs/healthbench-haiku50-20261009/{matrix-analysis.json,review/}`. Referenced run artifacts remain local, not bundled into this Git publication.',
-        '- [Previously published Luna50](../healthbench-hard-result50/RESULTS.md).', '',
-        'This publication performs no API calls and changes no experimental outcomes.', '']
+        '- [Luna50 results](../healthbench-hard-result50/RESULTS.md).', '',
+        'This export performs no API calls; the RH follow-up leaves scores, answers and native audits unchanged.', '']
     (HERE/'RESULTS.md').write_text('\n'.join(lines))
     print(json.dumps(dict(status='passed',matched_assignments=1200,byte_identical_seeds=150,
                          exported=['RESULTS.md','results.json','review-corrections.json'],api_cost=0)))

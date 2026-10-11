@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "model": "haiku",
+  "assignments": 1200,
+  "tasks": 50,
+  "assignments_per_condition": 150,
+  "score_fields_unchanged": true,
+  "original_RH_scores_unchanged": true,
+  "unselected_windows_unchanged": true,
+  "final_artifact_labels_unchanged": true,
+  "api_cost": 0,
+  "changes": {
+    "window_changes": 11,
+    "assignments": 8,
+    "full_added": 5,
+    "full_removed": 3
+  }
+}
