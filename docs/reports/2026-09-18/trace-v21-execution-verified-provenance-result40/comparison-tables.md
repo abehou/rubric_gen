@@ -1,4 +1,48 @@
-# Results40 compact gap and RH tables
+# BioMNIBench Original Result20 — current corrected results
+
+Updated 2026-10-12. Eight conditions; each has 20 tasks × 3 replicates = 60 assignments. W/S/H/A and all four gaps are score points. RH reports only full trajectory and final artifact; confirmed-positive counts use all 60 assignments, with abstentions retained rather than relabeled negative.
+
+These tables include the saved-evidence manual corrections documented below, not a new model-generated audit. Raw model judgments, revisions, rubrics, W/A and RH are unchanged. H remains the mean of the original three heldouts. Gaps are computed before rounding. No new provider calls were made for this review or publication.
+
+The displayed RH windows use their original Sol/Opus judgments. Earlier Haiku fallback records for other, omitted windows retain their actual model provenance in the source history.
+
+For correction evidence see [current Original20 report](../../2026-10-12/biomnibench-original20/README.md).
+
+## gpt-5.6-sol
+
+| Condition | W | S | H | A | W−S | S−H | H−A | W−A | RH full trajectory | RH final artifact |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 96.72 | 87.07 | 86.32 | 64.75 | 9.65 | 0.74 | 21.57 | 31.97 | 20.00% | 1.67% |
+| Full RTT | 94.40 | 88.82 | 88.58 | 72.23 | 5.58 | 0.23 | 16.35 | 22.17 | 6.67% | 1.67% |
+| User Static | 89.58 | 82.00 | 79.26 | 72.63 | 7.58 | 2.74 | 6.62 | 16.95 | 18.33% | 0.00% |
+| User RTT | 89.63 | 80.65 | 80.14 | 79.50 | 8.98 | 0.51 | 0.64 | 10.13 | 5.00% | 0.00% |
+| Semi Static | 81.70 | 69.08 | 67.30 | 79.27 | 12.62 | 1.78 | -11.97 | 2.43 | 6.67% | 0.00% |
+| Semi RTT | 84.73 | 71.55 | 71.04 | 81.30 | 13.18 | 0.51 | -10.26 | 3.43 | 1.67% | 0.00% |
+| Score-only Static | 63.42 | 52.53 | 51.28 | 82.58 | 10.88 | 1.26 | -31.31 | -19.17 | 10.00% | 0.00% |
+| Score-only RTT | 71.50 | 62.87 | 62.54 | 81.00 | 8.63 | 0.33 | -18.46 | -9.50 | 1.67% | 0.00% |
+
+Historical abstentions retained: Full Static: full 2, final 0.
+
+## claude-opus-5
+
+| Condition | W | S | H | A | W−S | S−H | H−A | W−A | RH full trajectory | RH final artifact |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 96.72 | 90.97 | 88.77 | 70.17 | 5.75 | 2.20 | 18.60 | 26.55 | 21.67% | 5.00% |
+| Full RTT | 94.40 | 89.50 | 88.06 | 77.00 | 4.90 | 1.44 | 11.06 | 17.40 | 3.33% | 1.67% |
+| User Static | 89.58 | 82.48 | 81.48 | 68.32 | 7.10 | 1.01 | 13.16 | 21.27 | 21.67% | 0.00% |
+| User RTT | 89.63 | 82.12 | 81.06 | 72.27 | 7.52 | 1.06 | 8.79 | 17.37 | 1.67% | 0.00% |
+| Semi Static | 81.70 | 72.22 | 71.18 | 80.85 | 9.48 | 1.04 | -9.67 | 0.85 | 6.67% | 0.00% |
+| Semi RTT | 84.73 | 75.55 | 75.16 | 79.30 | 9.18 | 0.39 | -4.14 | 5.43 | 0.00% | 0.00% |
+| Score-only Static | 63.42 | 57.75 | 55.92 | 80.97 | 5.67 | 1.83 | -25.05 | -17.55 | 3.33% | 0.00% |
+| Score-only RTT | 71.50 | 65.30 | 64.94 | 77.35 | 6.20 | 0.36 | -12.41 | -5.85 | 0.00% | 0.00% |
+
+Historical abstentions retained: Full Static: full 2, final 0; Full RTT: full 1, final 0; User Static: full 2, final 0; User RTT: full 2, final 0; Semi RTT: full 0, final 1.
+
+---
+
+The following New20 and cumulative40 tables are the historical 2026-09-19 snapshot. New20 has not changed; cumulative40 has not been recomputed with the 2026-10-12 Original20 corrections and must not be presented as a current corrected Result40. Old Original20 rows have been replaced by the current tables above. Historical Gemini-containing panels are not part of the current Sol/Opus report.
+
+# Historical New20 / Result40 compact tables
 
 Gap cells are score points. RH cells are confirmed-positive auditor-row percentages; abstentions remain in each denominator. Delta rows are promoted RTT minus matched static, in points and percentage points respectively.
 
@@ -6,12 +50,6 @@ Gap cells are score points. RH cells are confirmed-positive auditor-row percenta
 
 | Population | Arm | Condition | W−S | S−H | H−A | W−A | RH full | RH post | RH artifact | RH revision |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Original 20 | Full | Static | 7.70 | 1.47 | 20.09 | 29.26 | 20.83 | 1.67 | 3.33 | 0.83 |
-| Original 20 | Full | Promoted RTT | 5.24 | 0.91 | 13.64 | 19.78 | 5.00 | 2.50 | 1.67 | 1.67 |
-| Original 20 | Full | RTT − static | -2.46 | -0.57 | -6.45 | -9.47 | -15.83 | 0.83 | -1.67 | 0.83 |
-| Original 20 | User | Static | 7.34 | 1.36 | 10.40 | 19.11 | 20.00 | 11.67 | 0.00 | 5.00 |
-| Original 20 | User | Promoted RTT | 7.83 | 1.37 | 4.54 | 13.75 | 3.33 | 4.17 | 0.00 | 1.67 |
-| Original 20 | User | RTT − static | 0.49 | 0.01 | -5.86 | -5.36 | -16.67 | -7.50 | 0.00 | -3.33 |
 | Newly added 20 | Full | Static | 8.25 | 0.07 | 26.73 | 35.05 | 29.17 | 4.17 | 6.67 | 1.67 |
 | Newly added 20 | Full | Promoted RTT | 8.73 | 0.69 | 17.89 | 27.32 | 10.00 | 0.83 | 0.83 | 0.00 |
 | Newly added 20 | Full | RTT − static | 0.48 | 0.63 | -8.84 | -7.73 | -19.17 | -3.33 | -5.83 | -1.67 |
@@ -29,12 +67,6 @@ Gap cells are score points. RH cells are confirmed-positive auditor-row percenta
 
 | Population | Arm | Condition | W−S | S−H | H−A | W−A | RH full | RH post | RH artifact | RH revision |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Original 20 | Full | Static | 9.65 | 0.74 | 21.57 | 31.97 | 20.00 | 1.67 | 1.67 | 0.00 |
-| Original 20 | Full | Promoted RTT | 5.58 | 0.23 | 16.35 | 22.17 | 6.67 | 3.33 | 1.67 | 1.67 |
-| Original 20 | Full | RTT − static | -4.07 | -0.51 | -5.22 | -9.80 | -13.33 | 1.67 | 0.00 | 1.67 |
-| Original 20 | User | Static | 7.58 | 2.74 | 6.62 | 16.95 | 18.33 | 11.67 | 0.00 | 3.33 |
-| Original 20 | User | Promoted RTT | 8.15 | 1.27 | 0.72 | 10.13 | 5.00 | 5.00 | 0.00 | 1.67 |
-| Original 20 | User | RTT − static | 0.57 | -1.48 | -5.91 | -6.82 | -13.33 | -6.67 | 0.00 | -1.67 |
 | Newly added 20 | Full | Static | 9.18 | -0.34 | 27.76 | 36.60 | 30.00 | 5.00 | 5.00 | 3.33 |
 | Newly added 20 | Full | Promoted RTT | 9.88 | 0.35 | 15.75 | 25.98 | 13.33 | 1.67 | 0.00 | 0.00 |
 | Newly added 20 | Full | RTT − static | 0.70 | 0.69 | -12.01 | -10.62 | -16.67 | -3.33 | -5.00 | -3.33 |
@@ -52,12 +84,6 @@ Gap cells are score points. RH cells are confirmed-positive auditor-row percenta
 
 | Population | Arm | Condition | W−S | S−H | H−A | W−A | RH full | RH post | RH artifact | RH revision |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Original 20 | Full | Static | 5.75 | 2.20 | 18.60 | 26.55 | 21.67 | 1.67 | 5.00 | 1.67 |
-| Original 20 | Full | Promoted RTT | 4.90 | 1.58 | 10.92 | 17.40 | 3.33 | 1.67 | 1.67 | 1.67 |
-| Original 20 | Full | RTT − static | -0.85 | -0.62 | -7.68 | -9.15 | -18.33 | 0.00 | -3.33 | 0.00 |
-| Original 20 | User | Static | 7.10 | -0.02 | 14.18 | 21.27 | 21.67 | 11.67 | 0.00 | 6.67 |
-| Original 20 | User | Promoted RTT | 7.52 | 1.48 | 8.37 | 17.37 | 1.67 | 3.33 | 0.00 | 1.67 |
-| Original 20 | User | RTT − static | 0.42 | 1.50 | -5.82 | -3.90 | -20.00 | -8.33 | 0.00 | -5.00 |
 | Newly added 20 | Full | Static | 7.32 | 0.47 | 25.71 | 33.50 | 28.33 | 3.33 | 8.33 | 0.00 |
 | Newly added 20 | Full | Promoted RTT | 7.58 | 1.04 | 20.03 | 28.65 | 6.67 | 0.00 | 1.67 | 0.00 |
 | Newly added 20 | Full | RTT − static | 0.27 | 0.57 | -5.68 | -4.85 | -21.67 | -3.33 | -6.67 | 0.00 |
@@ -75,12 +101,6 @@ Gap cells are score points. RH cells are confirmed-positive auditor-row percenta
 
 | Population | Arm | Condition | W−S | S−H | H−A | W−A | RH full | RH post | RH artifact | RH revision |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Original 20 | Full | Static | -0.13 | 0.68 | 1.07 | 1.62 | 1.67 | 0.00 | 0.00 | 0.00 |
-| Original 20 | Full | Promoted RTT | 0.00 | 0.42 | -3.74 | -3.32 | 0.00 | 0.00 | 1.67 | 0.00 |
-| Original 20 | Full | RTT − static | 0.13 | -0.26 | -4.81 | -4.93 | -1.67 | 0.00 | 1.67 | 0.00 |
-| Original 20 | User | Static | -3.20 | -0.62 | -1.10 | -4.92 | 3.33 | 0.00 | 0.00 | 0.00 |
-| Original 20 | User | Promoted RTT | -1.05 | -0.19 | -3.56 | -4.80 | 0.00 | 0.00 | 0.00 | 0.00 |
-| Original 20 | User | RTT − static | 2.15 | 0.42 | -2.46 | 0.12 | -3.33 | 0.00 | 0.00 | 0.00 |
 | Newly added 20 | Full | Static | -0.10 | 0.14 | 4.61 | 4.65 | 8.33 | 0.00 | 3.33 | 0.00 |
 | Newly added 20 | Full | Promoted RTT | 1.42 | 0.74 | 1.41 | 3.57 | 5.00 | 0.00 | 0.00 | 0.00 |
 | Newly added 20 | Full | RTT − static | 1.52 | 0.59 | -3.19 | -1.08 | -3.33 | 0.00 | -3.33 | 0.00 |
@@ -98,12 +118,6 @@ Gap cells are score points. RH cells are confirmed-positive auditor-row percenta
 
 | Population | Arm | Condition | W−S | S−H | H−A | W−A | RH full | RH post | RH artifact | RH revision |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Original 20 | Full | Static | 5.09 | 1.21 | 13.75 | 20.04 | 14.44 | 1.11 | 2.22 | 0.56 |
-| Original 20 | Full | Promoted RTT | 3.49 | 0.74 | 7.84 | 12.08 | 3.33 | 1.67 | 1.67 | 1.11 |
-| Original 20 | Full | RTT − static | -1.59 | -0.46 | -5.90 | -7.96 | -11.11 | 0.56 | -0.56 | 0.56 |
-| Original 20 | User | Static | 3.83 | 0.70 | 6.57 | 11.10 | 14.44 | 7.78 | 0.00 | 3.33 |
-| Original 20 | User | Promoted RTT | 4.87 | 0.85 | 1.84 | 7.57 | 2.22 | 2.78 | 0.00 | 1.11 |
-| Original 20 | User | RTT − static | 1.04 | 0.15 | -4.73 | -3.53 | -12.22 | -5.00 | 0.00 | -2.22 |
 | Newly added 20 | Full | Static | 5.47 | 0.09 | 19.36 | 24.92 | 22.22 | 2.78 | 5.56 | 1.11 |
 | Newly added 20 | Full | Promoted RTT | 6.29 | 0.71 | 12.40 | 19.40 | 8.33 | 0.56 | 0.56 | 0.00 |
 | Newly added 20 | Full | RTT − static | 0.83 | 0.62 | -6.96 | -5.52 | -13.89 | -2.22 | -5.00 | -1.11 |

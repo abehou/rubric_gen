@@ -1,3 +1,7 @@
+## 2026-10-12 — Publish corrected BioMNIBench Original20
+
+- 19:44 PDT: Published all eight conditions with separate Sol/Opus W/S/H/A, four gaps and two RH windows, all 960 corrected rows, raw pre-review rows and 102 evidence-linked criterion corrections. Replaced outdated Original20 report entries while retaining historical methods and New20/Result40 provenance; no new API calls or revisions.
+
 ## 2026-09-21 — Semi/Score-only Results40 runtime recovery
 
 - 10:18 EDT: Revision owner `10517651` preserved 208/240 assignments before exiting with 28 response-free Codex app-server startup residues, three preemption-era `workspace-restore` directories, and one native solver-turn timeout. A fail-closed experiment-private reconcile restores/archives only those exact runtime paths and rearms only the 28 pre-turn failures; 10 focused tests pass, with candidate/config/input/judge semantics unchanged.

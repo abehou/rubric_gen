@@ -1,5 +1,7 @@
 # Execution-verified provenance RTT on BioMNIBench Results40
 
+2026-10-12 update: [current corrected Original20, all eight conditions](../../2026-10-12/biomnibench-original20/README.md). The Result40 numbers and interpretations below remain the historical pre-review snapshot; this publication does not recompute New20 or cumulative40.
+
 ## Result
 
 The frozen `attack_defense_v2.1_execution_verified_proactive_provenance`

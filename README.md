@@ -1,5 +1,7 @@
 # Rubric Gen
 
+Latest BioMNIBench tables: [Original Result20 — eight conditions, separate Sol/Opus W/S/H/A, gaps and RH](docs/reports/2026-10-12/biomnibench-original20/README.md) (2026-10-12, documented saved-evidence corrections).
+
 The BioMNIBench static baseline is frozen. Formal feedback conditions are **Full feedback** and **User simulator**, crossed with **Static rubric** and **Red-team trace**. See the [accepted checkpoint, scores and plots](docs/reports/2026-09-09/baseline-freeze/README.md) and [frozen configuration snapshots](experiments/frozen-biomnibench/README.md). Both static arms have60/60 assignments; User simulator trace has60/60 and Full feedback trace59/60. Trace mitigation is not yet jointly established. No new experiment is active or authorized by this checkpoint.
 
 Internal prompt provenance retains the version label `rubric-cue`; it is not a formal condition name. Historical reports/configs preserve their original evidence labels. [Babel runtime](docs/BABEL_SETUP.md) uses shared aggregate60, with one audit study at a time; [run records](EXPERIMENT_RUNS.md) retain output ownership.

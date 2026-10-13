@@ -1,34 +1,41 @@
-# BioMNIBench Results20 feedback-policy comparison
+# BioMNIBench Original Result20 — current corrected results
 
-Status: **audit recovery in progress; scientific tables are not final**.
+Updated 2026-10-12. Eight conditions; each has 20 tasks × 3 replicates = 60 assignments. W/S/H/A and all four gaps are score points. RH reports only full trajectory and final artifact; confirmed-positive counts use all 60 assignments, with abstentions retained rather than relabeled negative.
 
-This run adds the two remaining feedback policies to the completed original20 Full/User comparison. It evaluates matched static and promoted RTT conditions for Semi and Score-only on the canonical twenty tasks, three replicates each. Scientific behavior is frozen at `attack_defense_v2.1_execution_verified_proactive_provenance`.
+These tables include the saved-evidence manual corrections documented below, not a new model-generated audit. Raw model judgments, revisions, rubrics, W/A and RH are unchanged. H remains the mean of the original three heldouts. Gaps are computed before rounding. No new provider calls were made for this review or publication.
 
-## Durable scope
+The displayed RH windows use their original Sol/Opus judgments. Earlier Haiku fallback records for other, omitted windows retain their actual model provenance in the source history.
 
-- Experiment: `biomnibench-da-factorial-r10-2e389d4e31bb`
-- Config: `experiments/trace-v21-execution-verified-provenance-result20-feedback/result20.yaml`
-- Study: `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/study/biomnibench-da-factorial-r10-2e389d4e31bb`
-- Sol/Opus audit: `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/audit/biomnibench-da-factorial-r10-2e389d4e31bb`
-- Gemini audit: `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/audit-gemini/biomnibench-da-factorial-r10-2e389d4e31bb`
-- Revision job `10510934`: 240/240 assignments complete, with 60 assignments in each of Semi static, Semi RTT, Score-only static, and Score-only RTT.
+Canonical report and correction evidence: [current Original20 results](../../2026-10-12/biomnibench-original20/README.md). This replaces the outdated table/status at this entry point.
 
-## Audit status at 2026-09-20 19:53 EDT
+[Previous dated report, execution details and historical recipe comparisons](https://github.com/abehou/rubric_gen/blob/daec7246410726c37de0a585b930bde91613a363/docs/reports/2026-09-20/trace-v21-execution-verified-provenance-result20-feedback/README.md) remain in Git history; v1/v2.1 are different methods and are not relabeled as this corrected RTT result.
 
-Gemini is complete after exact missing-only recovery:
+## gpt-5.6-sol
 
-- rubric: 1,657/1,657;
-- absolute: 299/299;
-- pairwise: 239/239;
-- each RH window: 240/240;
-- missing/invalid: zero.
+| Condition | W | S | H | A | W−S | S−H | H−A | W−A | RH full trajectory | RH final artifact |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 96.72 | 87.07 | 86.32 | 64.75 | 9.65 | 0.74 | 21.57 | 31.97 | 20.00% | 1.67% |
+| Full RTT | 94.40 | 88.82 | 88.58 | 72.23 | 5.58 | 0.23 | 16.35 | 22.17 | 6.67% | 1.67% |
+| User Static | 89.58 | 82.00 | 79.26 | 72.63 | 7.58 | 2.74 | 6.62 | 16.95 | 18.33% | 0.00% |
+| User RTT | 89.63 | 80.65 | 80.14 | 79.50 | 8.98 | 0.51 | 0.64 | 10.13 | 5.00% | 0.00% |
+| Semi Static | 81.70 | 69.08 | 67.30 | 79.27 | 12.62 | 1.78 | -11.97 | 2.43 | 6.67% | 0.00% |
+| Semi RTT | 84.73 | 71.55 | 71.04 | 81.30 | 13.18 | 0.51 | -10.26 | 3.43 | 1.67% | 0.00% |
+| Score-only Static | 63.42 | 52.53 | 51.28 | 82.58 | 10.88 | 1.26 | -31.31 | -19.17 | 10.00% | 0.00% |
+| Score-only RTT | 71.50 | 62.87 | 62.54 | 81.00 | 8.63 | 0.33 | -18.46 | -9.50 | 1.67% | 0.00% |
 
-The first Gemini-60 pass preserved partial results but hit the provider's input-token quota. Provider-free job `10514839` archived only 1,386 exact HTTP 429 failure receipts, preserving every successful judgment. Missing-only job `10514868` then completed at 12 workers in 15:16. This changed no judge request or scoring definition.
+Historical abstentions retained: Full Static: full 2, final 0.
 
-Sol/Opus recovery has preserved all successful records. Absolute (598/598) and pairwise (478/478) are complete. Provider-free replay recovered 184 previously paid Opus rubric responses, bringing rubric coverage to 2,952/3,314 and leaving 362 genuinely missing rubric judgments. The four RH windows still have 146, 113, 140, and 108 failed rows respectively; these are Opus-side missing work, while saved Sol judgments remain intact.
+## claude-opus-5
 
-The remaining Opus requests are externally blocked by fresh Anthropic `credit balance is too low` responses. The audit will not repeatedly retry this permanent failure. When Anthropic access is restored, resume only the archived/failed Opus work, then run `report.sbatch`; the analysis refuses incomplete native audit coverage.
+| Condition | W | S | H | A | W−S | S−H | H−A | W−A | RH full trajectory | RH final artifact |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 96.72 | 90.97 | 88.77 | 70.17 | 5.75 | 2.20 | 18.60 | 26.55 | 21.67% | 5.00% |
+| Full RTT | 94.40 | 89.50 | 88.06 | 77.00 | 4.90 | 1.44 | 11.06 | 17.40 | 3.33% | 1.67% |
+| User Static | 89.58 | 82.48 | 81.48 | 68.32 | 7.10 | 1.01 | 13.16 | 21.27 | 21.67% | 0.00% |
+| User RTT | 89.63 | 82.12 | 81.06 | 72.27 | 7.52 | 1.06 | 8.79 | 17.37 | 1.67% | 0.00% |
+| Semi Static | 81.70 | 72.22 | 71.18 | 80.85 | 9.48 | 1.04 | -9.67 | 0.85 | 6.67% | 0.00% |
+| Semi RTT | 84.73 | 75.55 | 75.16 | 79.30 | 9.18 | 0.39 | -4.14 | 5.43 | 0.00% | 0.00% |
+| Score-only Static | 63.42 | 57.75 | 55.92 | 80.97 | 5.67 | 1.83 | -25.05 | -17.55 | 3.33% | 0.00% |
+| Score-only RTT | 71.50 | 65.30 | 64.94 | 77.35 | 6.20 | 0.36 | -12.41 | -5.85 | 0.00% | 0.00% |
 
-Provider-free rearm job `10515177` completed successfully and archived only the exact live terminal failures eligible for missing-only recovery: 15 Opus rubric-score artifacts and 29 Opus RH attempts. It preserved completed scores and all saved provider responses; its receipt is `/data/user_data/aydanh/rubric_gen/runs/rtt-result20-feedback-policies-20260920/opus-missing-rearm-20260920T235101Z.json`. This preparation made zero provider calls and does not remove the external Anthropic credit requirement for the remaining judgments.
-
-No scientific result is reported from a surviving-provider subset. Final outputs will include Sol+Opus, Sol, Opus, Gemini, and equal-weight three-model tables with W/S/H/A, all four gaps, all four RH windows, abstentions, paired deltas, and artifact/task-level exports.
+Historical abstentions retained: Full Static: full 2, final 0; Full RTT: full 1, final 0; User Static: full 2, final 0; User RTT: full 2, final 0; Semi RTT: full 0, final 1.

@@ -1,0 +1,36 @@
+{
+  "api_calls": 0,
+  "api_cost_usd": 0,
+  "rows": 960,
+  "source_reconciled_rows": 180,
+  "criterion_corrections": 43,
+  "corrections_by_model": {
+    "gpt-5.6-sol": 21,
+    "claude-opus-5": 22
+  },
+  "corrected_artifacts": 21,
+  "sol_selected_down": 10,
+  "sol_heldout_down": 9,
+  "sol_heldout_up": 2,
+  "untouched": [
+    "raw audit outputs",
+    "prior review outputs",
+    "W",
+    "A",
+    "W-A",
+    "RH",
+    "revisions",
+    "rubrics",
+    "all out-of-scope rows"
+  ],
+  "static_H_source": "/data/user_data/aydanh/rubric_gen/runs/result20-prompt-nofallback-v2-20260910/user-simulator-static",
+  "checks": [
+    "180 exact source S/H reconciliations",
+    "native criterion-level points",
+    "no duplicate or prior correction applied twice",
+    "same-rule S/H corrections",
+    "all gaps telescope",
+    "all 960 rows retained",
+    "W/A/RH and out-of-scope rows exactly unchanged"
+  ]
+}
