@@ -2549,3 +2549,7 @@ The latest available `sacct` query still shows all BioMNIBench recovery/audit/re
 
 - 20:11 JST: At user direction, removed five oversized generated H5AD artifacts from `da-11-1` rep-003 snapshots and their two orphaned live-workspace copies, recovering about 56 GiB while retaining logs and all other outputs. The affected snapshot hashes are intentionally no longer valid and must not be treated as natively resumable.
 - 20:32 JST: User retired all Gemini/Qwen solver experiments: terminated remaining orphaned diagnostic/process groups, removed seven Gemini live roots plus both solver run/setup trees, deleted the recurring monitor, and recovered another roughly 8 GiB. Completed Gemini-as-auditor Result20 evidence and unrelated experiment owners remain intact.
+
+## 2026-10-12 — Latest benchmark figure publication
+
+- 20:19 PDT: Replaced all sixteen HealthBench/ResearchQA Result50 figures and four download bundles with the approved paired Static/RTT layout and latest corrected rows matching b4630a0e tables. Updated figure pages to link LATEST_RESULTS.md; no scores, audit evidence, scripts, providers or main changes.
