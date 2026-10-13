@@ -2546,3 +2546,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 ## 2026-10-12 — Latest benchmark figure publication
 
 - 20:21 PDT: Published eight BioMNIBench corrected Original20 Sol/Opus audit-panel gap/full-trajectory RH figures, with and without 20-task SEs, and a verified PNG/PDF/SVG download bundle beside the current tables. Approved paired color layout and S−A negative-scale compression retained; raw/corrected scores, evidence, other experiment histories and main unchanged.
+
+## 2026-10-13 — Latest benchmark figure publication
+
+- 00:37 PDT: Published eight BioMNIBench corrected Original20 Sol/Opus audit-panel gap/full-trajectory RH figures, with and without 20-task SEs, and a verified PNG/PDF/SVG download bundle beside the current tables. Approved paired color layout and S−A negative-scale compression retained; raw/corrected scores, evidence, other experiment histories and main unchanged.
