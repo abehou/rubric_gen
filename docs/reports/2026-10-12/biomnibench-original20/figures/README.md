@@ -1,6 +1,6 @@
 # BioMNIBench Original Result20 figures
 
-[Latest result tables](../README.md) · [Download all plots (PNG/PDF/SVG)](biomnibench_result20_plots.zip)
+[Latest result tables](../README.md) · [Overview figures](https://github.com/abehou/rubric_gen/tree/codex/healthbench-researchqa/figures/benchmark-overviews) · [Download all plots (PNG/PDF/SVG)](biomnibench_result20_plots.zip)
 
 ## Sol 5.6 audit
 
