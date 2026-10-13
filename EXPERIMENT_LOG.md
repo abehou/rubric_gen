@@ -1,3 +1,7 @@
+## 2026-10-12 — Publish corrected BioMNIBench Original20
+
+- 19:46 PDT: Published all eight conditions with separate Sol/Opus W/S/H/A, four gaps and two RH windows, all 960 corrected rows, raw pre-review rows and 102 evidence-linked criterion corrections. Replaced outdated Original20 report entries while retaining historical methods and New20/Result40 provenance; no new API calls or revisions.
+
 ## 2026-09-19 — PaperBench promoted RTT Dev3 result
 
 - 14:33 JST: Read-only trajectory forensics confirm all 18 PaperBench assignments used the promoted BioMNIBench `attack_defense_v2.1_execution_verified_proactive_provenance` implementation with one prompt/rubric implementation identity and no `src/` diff between the BioMNIBench execution pin and PaperBench execution pin. The failure is mechanistic: 10/18 terminal submissions trail an earlier fixed-rubric checkpoint, 13/18 max-budget terminal edits lack a subsequent RTT witness, and internal rubric gain does not track independent S/H improvement; no provider call or artifact mutation occurred ([report](docs/reports/2026-09-19/paperbench-rtt-provenance-dev3/README.md)).
