@@ -2557,3 +2557,11 @@ The latest available `sacct` query still shows all BioMNIBench recovery/audit/re
 ## 2026-10-13 — Latest benchmark figure publication
 
 - 00:36 PDT: Replaced all sixteen HealthBench/ResearchQA Result50 figures and four download bundles with the approved paired Static/RTT layout and latest corrected rows matching adef332 tables. Updated figure pages to link LATEST_RESULTS.md; no scores, audit evidence, scripts, providers or main changes.
+
+## 2026-10-13 — Latest benchmark figure publication
+
+- 14:14 PDT: Published both approved no-errorbar benchmark overviews as PNG/PDF/SVG and a verified download bundle, using the latest table-aligned plot snapshots. Main, result scores and review evidence are unchanged.
+
+## 2026-10-13 — Latest benchmark figure publication
+
+- 14:14 PDT: Replaced all sixteen HealthBench/ResearchQA Result50 figures and four download bundles with the approved paired Static/RTT layout and latest corrected rows matching 90d477e9 tables, including paired S−A task-level SEs. Updated figure pages to link LATEST_RESULTS.md; no scores, audit evidence, scripts, providers or main changes.

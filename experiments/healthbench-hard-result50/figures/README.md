@@ -1,6 +1,6 @@
 # HealthBench Hard Luna Result50
 
-[Latest result table](../LATEST_RESULTS.md) · [Download all plots (PNG/PDF/SVG)](healthbench_luna_result50_plots.zip)
+[Latest result table](../LATEST_RESULTS.md) · [Overview figures](../../../figures/benchmark-overviews/README.md) · [Download all plots (PNG/PDF/SVG)](healthbench_luna_result50_plots.zip)
 
 ### With error bars
 

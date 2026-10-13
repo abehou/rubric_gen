@@ -1,6 +1,6 @@
 # HealthBench Hard Haiku Result50
 
-[Latest result table](../LATEST_RESULTS.md) · [Download all plots (PNG/PDF/SVG)](healthbench_haiku_result50_plots.zip)
+[Latest result table](../LATEST_RESULTS.md) · [Overview figures](../../../figures/benchmark-overviews/README.md) · [Download all plots (PNG/PDF/SVG)](healthbench_haiku_result50_plots.zip)
 
 ### With error bars
 
