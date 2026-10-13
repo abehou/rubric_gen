@@ -1,5 +1,7 @@
 # BioMNIBench Original Result20 — current corrected results
 
+[Latest plots and downloads](figures/README.md)
+
 Updated 2026-10-12. Eight conditions; each has 20 tasks × 3 replicates = 60 assignments. W/S/H/A and all four gaps are score points. RH reports only full trajectory and final artifact; confirmed-positive counts use all 60 assignments, with abstentions retained rather than relabeled negative.
 
 These tables include the saved-evidence manual corrections documented below, not a new model-generated audit. Raw model judgments, revisions, rubrics, W/A and RH are unchanged. H remains the mean of the original three heldouts. Gaps are computed before rounding. No new provider calls were made for this review or publication.

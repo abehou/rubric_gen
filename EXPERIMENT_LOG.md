@@ -2593,3 +2593,7 @@ The historical `attack_defense_v2.1_task_paraphrase_required` cohort has 16/18 v
 
 - 14:15 EDT: Recovery `10520270` raised Semi/Score-only new20 coverage from 208 to 232/240, then one heavy assignment exceeded the 256-GiB cgroup and ended the owner with OOM. The tail now uses one 512-GiB shard, job-local reconstructible Codex cache, exclusive-home stale-link restoration, and at most three native missing-only passes; 24 focused provider-free tests pass and no scientific request changed.
 - 15:05 EDT: High-memory recovery `10522419` stayed below 118 GiB but three exact RTT enforcement calls and the pending static optimizer judge confirmed the configured OpenAI account has no credits remaining. The owner was canceled after the first identical permanent failures; 232/240 assignments remain preserved, audit `10522421` made zero calls, and exact response-free rearm plus interrupted-turn recovery is committed for use only after credit restoration.
+
+## 2026-10-12 — Latest benchmark figure publication
+
+- 20:21 PDT: Published eight BioMNIBench corrected Original20 Sol/Opus audit-panel gap/full-trajectory RH figures, with and without 20-task SEs, and a verified PNG/PDF/SVG download bundle beside the current tables. Approved paired color layout and S−A negative-scale compression retained; raw/corrected scores, evidence, other experiment histories and main unchanged.
