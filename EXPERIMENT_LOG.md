@@ -2553,3 +2553,7 @@ The latest available `sacct` query still shows all BioMNIBench recovery/audit/re
 ## 2026-10-12 — Latest benchmark figure publication
 
 - 20:19 PDT: Replaced all sixteen HealthBench/ResearchQA Result50 figures and four download bundles with the approved paired Static/RTT layout and latest corrected rows matching b4630a0e tables. Updated figure pages to link LATEST_RESULTS.md; no scores, audit evidence, scripts, providers or main changes.
+
+## 2026-10-13 — Latest benchmark figure publication
+
+- 00:36 PDT: Replaced all sixteen HealthBench/ResearchQA Result50 figures and four download bundles with the approved paired Static/RTT layout and latest corrected rows matching adef332 tables. Updated figure pages to link LATEST_RESULTS.md; no scores, audit evidence, scripts, providers or main changes.
