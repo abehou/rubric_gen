@@ -1,5 +1,7 @@
 ## 2026-10-13 — Consolidate benchmark result branches
 
+- 23:39 PDT: Published consolidation `1a6e59e` and deleted exactly nine obsolete GitHub branch refs after verifying their commits remain ancestors of the new branch. Remote inventory now contains only main, HealthBench/ResearchQA and `codex/biomnibench-results`; the first two heads, all local/Babel checkouts and current Result40 scores remain unchanged.
+
 - 23:38 PDT: Collected131 saved reports/figures/configurations from nine retiring branches plus two PaperBench reports from the existing local integration checkout into `codex/biomnibench-results`; current Result40/runtime/tests remain unchanged. All retired commits are retained through merge ancestry, active HealthBench/ResearchQA work and main are untouched, no Babel jobs or open PRs depend on the retired refs, and the branch/source inventory documents recovery locations.
 
 ## 2026-10-13 — Publish complete corrected BioMNIBench Result40

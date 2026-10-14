@@ -1,5 +1,7 @@
 ## 2026-10-13 — Consolidated BioMNIBench/PaperBench/Harvey branch
 
+- 23:39 PDT: Consolidation published and nine retired remote refs deleted; verified the three remaining GitHub branches. Current result entrypoint is `docs/benchmark-results.md` on `codex/biomnibench-results`; all removed source commits remain reachable through merge `1a6e59e`.
+
 - 23:38 PDT: `codex/biomnibench-results` is the shared report/configuration branch; `docs/benchmark-results.md` indexes completed results and retained diagnostics, while `docs/reports/2026-10-13/branch-consolidation/` lists every original branch tip and imported path. All frozen Mac/Babel execution checkouts and saved outputs remain in place; HealthBench/ResearchQA continues on its existing branch.
 
 ## 2026-10-13 — Complete corrected BioMNIBench Result40 publication

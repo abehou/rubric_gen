@@ -2,6 +2,8 @@
 
 GitHub keeps three branches: `main`, `codex/healthbench-researchqa`, and `codex/biomnibench-results`. The consolidated branch starts from the complete corrected Result40 publication `e5d27c8`; current score rows, tables, corrections and actual model provenance are retained exactly.
 
+Completed at23:39 PDT: all nine obsolete remote branches were deleted after publication and ancestry verification. GitHub now exposes exactly the three branches above; main and HealthBench/ResearchQA heads are unchanged. Consolidation commit `1a6e59e4959c0a59b3d82df069ef24db04b68a43` preserves every retired tip.
+
 The consolidation merge preserves every retired branch tip as an ancestor. Useful saved reports, figures and experiment configurations are materialized in their existing directories; competing files use the most recent recorded update. Runtime source and tests remain identical to the Result40 publication. Historical alternative runtime implementations are accessible at the source commits below, rather than silently changing the current scientific method.
 
 | Retired branch | Preserved tip | Content retained |
