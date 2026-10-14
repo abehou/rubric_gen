@@ -1,3 +1,7 @@
+## 2026-10-13 — Consolidated BioMNIBench/PaperBench/Harvey branch
+
+- 23:38 PDT: `codex/biomnibench-results` is the shared report/configuration branch; `docs/benchmark-results.md` indexes completed results and retained diagnostics, while `docs/reports/2026-10-13/branch-consolidation/` lists every original branch tip and imported path. All frozen Mac/Babel execution checkouts and saved outputs remain in place; HealthBench/ResearchQA continues on its existing branch.
+
 ## 2026-10-13 — Complete corrected BioMNIBench Result40 publication
 
 - 23:23 PDT: Current tables and exact rows are in `docs/reports/2026-10-13/biomnibench-result40/`; the existing Result40 `comparison-tables.md` is overwritten with the same 24 current rows. `verify_tables.py` validates 1,920 unique rows, 16 panel means, eight aggregate means and both table locations; saved review coverage, H/A corrections and actual model provenance remain alongside the data.

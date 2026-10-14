@@ -1,0 +1,325 @@
+"""Report rigorous-3 versus neutral-5 heldout scores for four saved artifacts."""
+
+from __future__ import annotations
+
+from collections import defaultdict
+import json
+from pathlib import Path
+from statistics import fmean
+import tarfile
+import tempfile
+
+from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.submission_revision.evaluation.jobs import (
+    EvaluationConfig,
+    EvaluationTarget,
+    _submission_content_sha256,
+)
+from rubric_gen.submission_revision.evaluation.rubric_score import RubricScoreStage
+from rubric_gen.submission_revision.experiment import load_experiment
+
+from report_heldout5 import (
+    _assignment_ids,
+    _assignment_record,
+    _audit_roots,
+    _saved_record,
+)
+from run_neutral_heldout5 import (
+    AUDIT_ROOT,
+    NEUTRAL_POOL,
+    ORIGINAL_CONFIG,
+    REPAIRED_CONFIG,
+    load_four_source_targets,
+    neutral_jobs,
+    neutral_scope,
+)
+
+
+ROOT = Path(__file__).resolve().parents[2]
+BASE_RUN = Path(
+    "/data/user_data/aydanh/rubric_gen/runs/"
+    "rtt-complete-public-regression-20260921"
+)
+NEUTRAL_RUN = BASE_RUN / "neutral-heldout5"
+REPORT = ROOT / "docs/reports/2026-09-21/trace-v21-complete-public-regression"
+MODELS = ("gpt-5.6-sol", "gemini-3.8-flash")
+SOL_ARCHIVE = (
+    ROOT
+    / "diagnostics/targeted-audit-evidence.tgz"
+)
+
+
+def read(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def neutral_scores() -> dict[tuple[str, str], dict[int, float]]:
+    summary = read(NEUTRAL_RUN / "rubric-score/summary.json")
+    if summary.get("status") != "completed" or summary.get(
+        "successful_judgments"
+    ) != 40:
+        raise RuntimeError("neutral-heldout score panel is incomplete")
+    original = load_experiment(ORIGINAL_CONFIG)
+    repaired = load_experiment(REPAIRED_CONFIG)
+    experiment = neutral_scope(repaired)
+    targets = load_four_source_targets(original, repaired)
+    stage = RubricScoreStage(
+        EvaluationConfig(
+            experiment=experiment,
+            study_dir=NEUTRAL_RUN / "four-read-only-source-studies",
+            paraphrase_dir=NEUTRAL_POOL,
+            output_dir=AUDIT_ROOT,
+            max_concurrency=12,
+            resume=True,
+        ),
+        targets,
+    )
+    jobs = neutral_jobs(stage, targets)
+    values: dict[tuple[str, str], dict[int, float]] = defaultdict(dict)
+    for job in jobs:
+        row = read(AUDIT_ROOT / "records" / f"{job.key}.json")
+        role = job.roles[0]
+        if role.name != "holdout" or role.variant_index is None:
+            raise RuntimeError("neutral score has a non-heldout role")
+        variant = int(role.variant_index)
+        key = (job.target.assignment_id, job.model)
+        if variant in values[key]:
+            raise RuntimeError(f"duplicate neutral score: {key} {variant}")
+        values[key][variant] = float(row["score"])
+    if len(values) != 8 or any(set(scores) != set(range(5)) for scores in values.values()):
+        raise RuntimeError("neutral scores do not cover four artifacts x two models")
+    return dict(values)
+
+
+def saved_endpoint(
+    *,
+    study: Path,
+    audit: Path,
+    assignment_id: str,
+    model: str,
+    target: EvaluationTarget,
+) -> dict[str, float]:
+    assignment = _assignment_record(study, assignment_id)
+    experiment_dir = study / str(assignment["experiment_dir"])
+    state = read(experiment_dir / "state.json")
+    submission_id = str(state["submission_ids"][-1])
+    composition = read(
+        experiment_dir / "rubric-evaluations" / f"{submission_id}.json"
+    )
+    role_scores: dict[tuple[str, int | None], float] = {}
+    rubric_summary = audit / "rubric_score/summary.json"
+    if rubric_summary.is_file():
+        references = [
+            reference
+            for reference in read(rubric_summary)["records"]
+            if reference["assignment_id"] == assignment_id
+            and reference["model"] == model
+            and reference["artifact"] == "final"
+        ]
+        for reference in references:
+            for role in reference["rubric_roles"]:
+                key = (str(role["name"]), role["variant_index"])
+                if key in role_scores:
+                    raise RuntimeError(f"duplicate saved role: {assignment_id} {key}")
+                role_scores[key] = float(reference["score"])
+    else:
+        submission_sha256 = _submission_content_sha256(target.final_submission)
+        hashes = {
+            target.selection.optimizer_sha256: ("selected", 0),
+            **{
+                digest: ("holdout", index)
+                for index, digest in zip(
+                    (2, 3, 4),
+                    target.selection.holdout_sha256s,
+                    strict=True,
+                )
+            },
+        }
+        for path in sorted((audit / "rubric_score/records").glob("*.json")):
+            record = read(path)
+            role = hashes.get(record.get("rubric_sha256"))
+            if (
+                role is None
+                or record.get("model") != model
+                or record.get("submission_content_sha256") != submission_sha256
+            ):
+                continue
+            if role in role_scores:
+                raise RuntimeError(f"duplicate archived role: {assignment_id} {role}")
+            role_scores[role] = float(record["score"])
+    selected = role_scores.get(("selected", 0))
+    heldouts = [
+        score
+        for (role, index), score in role_scores.items()
+        if role == "holdout" and index in {2, 3, 4}
+    ]
+    if selected is None or len(heldouts) != 3:
+        raise RuntimeError(f"saved rigorous panel is incomplete: {assignment_id} {model}")
+    absolute_summary = audit / "absolute_score/summary.json"
+    if absolute_summary.is_file():
+        absolute_refs = [
+            reference
+            for reference in read(absolute_summary)["records"]
+            if reference["assignment_id"] == assignment_id
+            and reference["model"] == model
+            and reference["artifact"] == "final"
+        ]
+        if len(absolute_refs) != 1:
+            raise RuntimeError(f"saved absolute score is incomplete: {assignment_id} {model}")
+        absolute = _saved_record(audit, "absolute_score", absolute_refs[0])
+    else:
+        submission_sha256 = _submission_content_sha256(target.final_submission)
+        absolute_matches = []
+        for path in sorted((audit / "absolute_score/records").glob("*.json")):
+            record = read(path)
+            if (
+                record.get("model") == model
+                and record.get("submission_content_sha256") == submission_sha256
+            ):
+                absolute_matches.append(record)
+        if len(absolute_matches) != 1:
+            raise RuntimeError(f"archived absolute score is incomplete: {assignment_id} {model}")
+        absolute = absolute_matches[0]
+    return {
+        "W": float(composition["reference_score"]),
+        "S": selected,
+        "H3": fmean(heldouts),
+        "A": float(absolute["verdict"]["score"]),
+    }
+
+
+def analyze_with_roots(roots: dict[str, dict[str, Path]]) -> dict[str, object]:
+    assignment_ids = _assignment_ids()
+    neutral = neutral_scores()
+    targets = load_four_source_targets(
+        load_experiment(ORIGINAL_CONFIG),
+        load_experiment(REPAIRED_CONFIG),
+    )
+    targets_by_id = {target.assignment_id: target for target in targets}
+    rows: list[dict[str, object]] = []
+    for version in ("original", "repaired"):
+        for arm in ("Full", "User"):
+            assignment_id = assignment_ids[version][arm]
+            for model in MODELS:
+                old = saved_endpoint(
+                    study=roots[version]["study"],
+                    audit=roots[version][model],
+                    assignment_id=assignment_id,
+                    model=model,
+                    target=targets_by_id[assignment_id],
+                )
+                scores = neutral[(assignment_id, model)]
+                h_neutral = fmean(scores.values())
+                rows.append({
+                    "version": version,
+                    "arm": arm,
+                    "model": model,
+                    "assignment_id": assignment_id,
+                    "S": old["S"],
+                    "H_rigorous3": old["H3"],
+                    "S_minus_H_rigorous3": float(old["S"]) - float(old["H3"]),
+                    "neutral_scores": scores,
+                    "H_neutral5": h_neutral,
+                    "S_minus_H_neutral5": float(old["S"]) - h_neutral,
+                    "H_change_neutral_minus_rigorous": h_neutral - float(old["H3"]),
+                    "W": old["W"],
+                    "A": old["A"],
+                })
+
+    combined = []
+    for version in ("original", "repaired"):
+        for arm in ("Full", "User"):
+            group = [
+                row for row in rows
+                if row["version"] == version and row["arm"] == arm
+            ]
+            combined.append({
+                "version": version,
+                "arm": arm,
+                "models": list(MODELS),
+                **{
+                    field: fmean(float(row[field]) for row in group)
+                    for field in (
+                        "S",
+                        "H_rigorous3",
+                        "S_minus_H_rigorous3",
+                        "H_neutral5",
+                        "S_minus_H_neutral5",
+                        "H_change_neutral_minus_rigorous",
+                        "W",
+                        "A",
+                    )
+                },
+            })
+    return {
+        "kind": "neutral-heldout5-da-26-4-rep002-report",
+        "rows": rows,
+        "combined": combined,
+    }
+
+
+def analyze() -> dict[str, object]:
+    roots = _audit_roots()
+    repaired_sol = roots["repaired"]["gpt-5.6-sol"]
+    if (repaired_sol / "rubric_score/summary.json").is_file():
+        return analyze_with_roots(roots)
+    if not SOL_ARCHIVE.is_file():
+        raise RuntimeError(f"saved repaired Sol archive is missing: {SOL_ARCHIVE}")
+    with tempfile.TemporaryDirectory(prefix="rtt-saved-sol-") as directory:
+        extracted = Path(directory)
+        with tarfile.open(SOL_ARCHIVE, "r:gz") as archive:
+            archive.extractall(extracted, filter="data")
+        roots["repaired"]["gpt-5.6-sol"] = extracted
+        return analyze_with_roots(roots)
+
+
+def markdown(report: dict[str, object]) -> str:
+    lines = [
+        "# Neutral heldout policy sensitivity",
+        "",
+        "All trajectories, final artifacts, selected rubrics, S, A, and RH are reused.",
+        "Only H is recomputed using five fresh `uniform_neutral` heldouts.",
+        "",
+        "## Sol + Gemini equal-weight mean",
+        "",
+        "| Arm | Artifact | S | H rigorous-3 | S-H rigorous-3 | H neutral-5 | S-H neutral-5 | H change |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for row in report["combined"]:
+        label = "saved Result40" if row["version"] == "original" else "complete-public repair"
+        lines.append(
+            f"| {row['arm']} | {label} | {row['S']:.2f} | "
+            f"{row['H_rigorous3']:.2f} | {row['S_minus_H_rigorous3']:.2f} | "
+            f"{row['H_neutral5']:.2f} | {row['S_minus_H_neutral5']:.2f} | "
+            f"{row['H_change_neutral_minus_rigorous']:+.2f} |"
+        )
+    lines.extend([
+        "",
+        "## Per-model paired values",
+        "",
+        "| Model | Arm | Artifact | S | H rigorous-3 | S-H rigorous-3 | H neutral-5 | S-H neutral-5 | H change |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ])
+    for row in report["rows"]:
+        label = "saved Result40" if row["version"] == "original" else "complete-public repair"
+        lines.append(
+            f"| {row['model']} | {row['arm']} | {label} | {row['S']:.2f} | "
+            f"{row['H_rigorous3']:.2f} | {row['S_minus_H_rigorous3']:.2f} | "
+            f"{row['H_neutral5']:.2f} | {row['S_minus_H_neutral5']:.2f} | "
+            f"{row['H_change_neutral_minus_rigorous']:+.2f} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def main() -> int:
+    report = analyze()
+    REPORT.mkdir(parents=True, exist_ok=True)
+    write_json_atomic(REPORT / "neutral-heldout5.json", report)
+    output = markdown(report)
+    (REPORT / "neutral-heldout5.md").write_text(output, encoding="utf-8")
+    print(output, flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

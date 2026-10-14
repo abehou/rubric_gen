@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "mappings": [
+    {
+      "source": "/home/data/biomnibench-da",
+      "destination": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6"
+    },
+    {
+      "source": "/home/aydanh/repos/rubric_gen/data/biomnibench-da",
+      "destination": "/data/user_data/aydanh/rubric_gen/data/biomnibench-da-results45-e1c8ca5e11a6"
+    },
+    {
+      "source": "/home/aydanh/babel-result20-current-20260908",
+      "destination": "/home/aydanh/repos/rubric_gen/runs/babel-result20-current-20260908"
+    },
+    {
+      "source": "/home/aydanh/babel-result20-input-restore-10356965",
+      "destination": "/home/aydanh/repos/rubric_gen/runs/babel-result20-input-restore-10356965"
+    }
+  ]
+}

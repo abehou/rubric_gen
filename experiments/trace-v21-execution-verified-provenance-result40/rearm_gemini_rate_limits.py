@@ -2,9 +2,9 @@
 
 The initial original20 Gemini audit used 60 Google slots and exceeded the
 provider's 20M input-token/minute quota.  This private recovery step preserves
-all completed judgments and every failed response as recovery evidence.  It
-removes only exhausted HTTP-429/503 or pre-request capacity-seal state so the
-unchanged semantic requests can be issued again with four executor workers.
+all completed judgments and every failed response as recovery evidence. It
+removes only exhausted HTTP-429/503, response-free DNS, or pre-request
+capacity-seal state so the unchanged semantic requests can be issued again.
 """
 from __future__ import annotations
 
@@ -24,6 +24,8 @@ RATE_LIMIT_MARKERS = (
     "Quota exceeded",
     "HTTP 503",
     '"status": "UNAVAILABLE"',
+    "Name or service not known",
+    "Temporary failure in name resolution",
     "shared capacity changed; refuse a split budget",
 )
 

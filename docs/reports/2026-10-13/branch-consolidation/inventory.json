@@ -1,0 +1,2004 @@
+{
+  "target_branch": "codex/biomnibench-results",
+  "base_commit": "e5d27c8e9a2bbae8d884fa3da7dcb04b0feb156e",
+  "sources": [
+    {
+      "branch": "aydan-red-team",
+      "commit": "bacb280241e05601e34d3c43dccb638fbace85ff",
+      "changed_files": []
+    },
+    {
+      "branch": "aydan-red-team-dropout",
+      "commit": "b3b0727dec051845a7427f7a75a9b8c3cd2d94fc",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "CODE_REVIEW.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "M",
+          "path": "README.md"
+        },
+        {
+          "status": "M",
+          "path": "docs/architecture.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-12/rubric-dropout-phase1.md"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/artifacts.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/controller.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/controller_recovery.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/controller_scoring.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/evaluation/targets.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/experiment.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/feedback.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/models.py"
+        },
+        {
+          "status": "A",
+          "path": "src/rubric_gen/submission_revision/rubric_dropout.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/study.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/study_validation_artifacts.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/study_validation_context.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/trace_defense_delivery.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_rubric_dropout.py"
+        }
+      ]
+    },
+    {
+      "branch": "codex/harvey-rtt-dev3",
+      "commit": "c648c9e1f4618a4c5ee7e887ba992ad0fe542909",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "M",
+          "path": "README.md"
+        },
+        {
+          "status": "M",
+          "path": "docs/harvey_harness_evolution.md"
+        },
+        {
+          "status": "A",
+          "path": "experiments/harvey-three-arm-dev3.yaml"
+        },
+        {
+          "status": "A",
+          "path": "scripts/harvey_rtt_smoke.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/benchmarks/harvey_lab/config.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/benchmarks/harvey_lab/controller.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/benchmarks/harvey_lab/designer.py"
+        },
+        {
+          "status": "A",
+          "path": "src/rubric_gen/benchmarks/harvey_lab/rtt.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/benchmarks/harvey_lab/study.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_experiment_matrix.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_harvey.py"
+        }
+      ]
+    },
+    {
+      "branch": "codex/result40-development-gap-diagnostic",
+      "commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/accounting.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/analysis.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/arm-condition-means.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/artifact-points.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/model-paired-rtt-static-differences.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/model-points.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/paired-rtt-static-differences.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/paired-task-means.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/task-means.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/uncertainty.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/usage-and-latency.csv"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/analyze.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/common.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/export_trajectories.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/forensics.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/preflight.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/report.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/run.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/runtime.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/score.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_result40_development_score.py"
+        }
+      ]
+    },
+    {
+      "branch": "codex/result40-rtt-gap-improvement-pilot",
+      "commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "AGENTS.md"
+        },
+        {
+          "status": "M",
+          "path": "CODE_REVIEW.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/accounting.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/analysis.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/arm-condition-means.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/artifact-points.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/model-paired-rtt-static-differences.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/model-points.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/paired-rtt-static-differences.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/paired-task-means.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/task-means.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/uncertainty.csv"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/usage-and-latency.csv"
+        },
+        {
+          "status": "M",
+          "path": "experiments/trace-v21-execution-verified-provenance-result40/rearm_gemini_rate_limits.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/analyze.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/common.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/export_trajectories.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/forensics.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/preflight.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/report.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/run.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/runtime.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-development-gap/score.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/analyze.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/audit-inventory.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/audit.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/audit_inventory.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/audit_sol_opus.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/common.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/configs/da-17-1.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/configs/da-17-5.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/configs/da-20-4.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/configs/da-26-2.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/configs/da-26-4.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/make_configs.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/path-map.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/preflight.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/prepare.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/raw_model_reconstruct.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/rearm-gemini.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/rearm-openai.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/rearm-sol-audit.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/rearm_gemini.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/rearm_historical_sol_audit.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/rearm_openai.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/recover-sol.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/recover_historical_sol.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/report.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/revise.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/revision_cli.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/run.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/runtime.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/smoke-audit.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-result40-gap-improvement/smoke-revise.sbatch"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/runtime/failures.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/controller.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/evolution.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/experiment.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/feedback.py"
+        },
+        {
+          "status": "A",
+          "path": "src/rubric_gen/submission_revision/gap_improvement_prompts.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/study.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_paraphrase_required.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_paraphrase_required_stage.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_required_enforcement.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/trace_defense.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/trace_defense_delivery.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/trace_defense_registry.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_experiment.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_gap_improvement.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_gap_improvement_audit.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_gap_improvement_openai_rearm.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_gap_improvement_sol_audit_rearm.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_result40_development_score.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_result40_gemini_rearm.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_study_transport_resume.py"
+        }
+      ]
+    },
+    {
+      "branch": "codex/trace-v21-complete-public-regression",
+      "commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "CODE_REVIEW.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/evidence-calibrated-new20.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/evidence-calibrated-new20.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5-matched-static.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5-matched-static.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-new20.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-new20.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-outlier-panel.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-outlier-panel.md"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/analyze_evidence_calibrated_new20.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/audit.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/audit_gemini.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/configs/da-26-4-rep002.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_new20_remaining16.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_new20_remaining5_recovery.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_original20_pool.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_original20_score.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_panel.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_panel_v2.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/extract_heldout_judge_cases.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/extract_heldout_judge_cases.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/extract_original20_evidence.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/heldout5.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/neutral_heldout5.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/neutral_new20.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/neutral_outlier_panel.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/neutral_static.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/original20_evidence.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/prepare_original20_neutral_pool.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_heldout5.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_heldout5.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_heldout5.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_heldout5.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_new20.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_new20.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_outlier_panel.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_outlier_panel.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_static.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/report_neutral_static.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/revise.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_evidence_calibrated_panel.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_gemini_audit.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_heldout5.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_neutral_heldout5.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_neutral_new20.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_neutral_outlier_panel.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/run_neutral_static.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-complete-public-regression/runtime.json"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/controller.py"
+        },
+        {
+          "status": "A",
+          "path": "src/rubric_gen/submission_revision/evaluation/evidence_policy.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/evolution.py"
+        },
+        {
+          "status": "A",
+          "path": "src/rubric_gen/submission_revision/execution_verified_complete_public_prompts.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/experiment.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/feedback.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/paraphrase_protocol.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/paraphrase_validation.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/paraphrases.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_paraphrase_required.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_paraphrase_required_stage.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_required_enforced_schema.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/task_required_enforcement.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/trace_defense_delivery.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/trace_defense_registry.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_evidence_calibrated_heldout_policy.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_execution_complete_public.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_execution_verified_dropout.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_experiment.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_original20_evidence_reanalysis.py"
+        },
+        {
+          "status": "M",
+          "path": "tests/test_rubric_paraphrases.py"
+        }
+      ]
+    },
+    {
+      "branch": "codex/trace-v21-provenance-result20-babel",
+      "commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "CODE_REVIEW.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "M",
+          "path": "README.md"
+        },
+        {
+          "status": "M",
+          "path": "docs/reports/2026-09-17/trace-v21-execution-verified-provenance-result20/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-19/paperbench-rtt-provenance-dev3/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-09-20/trace-v21-execution-verified-provenance-result20-feedback/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/auditor-rows.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/corrections.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/README.md"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps_no_errorbars.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps_no_errorbars.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps_no_errorbars.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh_no_errorbars.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh_no_errorbars.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh_no_errorbars.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_result20_plots.zip"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps_no_errorbars.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps_no_errorbars.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps_no_errorbars.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh_no_errorbars.pdf"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh_no_errorbars.png"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh_no_errorbars.svg"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/first-pass-decisions.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/raw-auditor-rows.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/second-pass-decisions.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/summary.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/targeted-decisions.json"
+        },
+        {
+          "status": "A",
+          "path": "docs/reports/2026-10-12/biomnibench-original20/verification.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/paperbench-rtt-provenance-dev3/analyze_dev3.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/paperbench-rtt-provenance-dev3/dev3.yaml"
+        },
+        {
+          "status": "A",
+          "path": "experiments/paperbench-rtt-provenance-dev3/run_local.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/detection/job_runner.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/runtime/failures.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/evaluation/direct.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/evaluation/rubric_judge.py"
+        },
+        {
+          "status": "M",
+          "path": "src/rubric_gen/submission_revision/evaluation/score_execution.py"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_repaired_provider_failures.py"
+        }
+      ]
+    },
+    {
+      "branch": "codex/trace-v21-provenance-result40-babel",
+      "commit": "e5d27c8e9a2bbae8d884fa3da7dcb04b0feb156e",
+      "changed_files": []
+    },
+    {
+      "branch": "codex/trace-v21-result50-babel",
+      "commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "changed_files": [
+        {
+          "status": "M",
+          "path": "EXPERIMENT_LOG.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_PLAN.md"
+        },
+        {
+          "status": "M",
+          "path": "EXPERIMENT_RUNS.md"
+        },
+        {
+          "status": "M",
+          "path": "experiments/trace-v21-execution-verified-provenance-result40/run.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/audit.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/common.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/make_configs.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/membership.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/prepare.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/revise.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/run.py"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/runtime.json"
+        },
+        {
+          "status": "A",
+          "path": "experiments/trace-v21-execution-verified-provenance-result50/setup.sbatch"
+        },
+        {
+          "status": "A",
+          "path": "tests/test_result50_extension.py"
+        }
+      ]
+    }
+  ],
+  "imported": [
+    {
+      "path": "docs/architecture.md",
+      "source_branch": "aydan-red-team-dropout",
+      "source_commit": "b3b0727dec051845a7427f7a75a9b8c3cd2d94fc",
+      "blob": "c4307e067318be6a32c68a1dc09b8b5039f98f10"
+    },
+    {
+      "path": "docs/harvey_harness_evolution.md",
+      "source_branch": "codex/harvey-rtt-dev3",
+      "source_commit": "c648c9e1f4618a4c5ee7e887ba992ad0fe542909",
+      "blob": "2f9c19ca7041343baa3d0a89e9540cf12c4818c6"
+    },
+    {
+      "path": "docs/reports/2026-09-12/rubric-dropout-phase1.md",
+      "source_branch": "aydan-red-team-dropout",
+      "source_commit": "b3b0727dec051845a7427f7a75a9b8c3cd2d94fc",
+      "blob": "4940209f68f91ceafc298740c2bca770ba05ce68"
+    },
+    {
+      "path": "docs/reports/2026-09-17/trace-v21-execution-verified-provenance-result20/README.md",
+      "source_branch": "codex/trace-v21-provenance-result20-babel",
+      "source_commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "blob": "a2967404b66549ecff998611f7bea94b3c2c4074"
+    },
+    {
+      "path": "docs/reports/2026-09-18/trace-v21-provenance-high-proposer-dropout/README.md",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "e67313ca833940e6a20595be541f980fb9d5bd67"
+    },
+    {
+      "path": "docs/reports/2026-09-18/trace-v21-provenance-high-proposer-dropout/dropout-comparison.json",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "ce9cf621bdce3a85f033fcc73034a422a2e5a4b8"
+    },
+    {
+      "path": "docs/reports/2026-09-19/gemini38-baseline-latest-result20/README.md",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "74034dd42d239396c6bfde2710474c3b7ba22fd8"
+    },
+    {
+      "path": "docs/reports/2026-09-19/gemini38-baseline-latest-result20/analysis.json",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "fe53ae53a41a206da869fb8fd903c2fe669bb8ce"
+    },
+    {
+      "path": "docs/reports/2026-09-19/gemini38-baseline-latest-result20/artifact-values.csv",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "25d6b62e8e8bff0969a12ddac83b3fb7580086ac"
+    },
+    {
+      "path": "docs/reports/2026-09-19/gemini38-baseline-latest-result20/paired-deltas.csv",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "d6365bfd8f4677294f693be1a977c8ae72db5030"
+    },
+    {
+      "path": "docs/reports/2026-09-19/gemini38-baseline-latest-result20/sol-opus-analysis.json",
+      "source_branch": "codex/healthbench-researchqa",
+      "source_commit": "a9d3fab9cd00c69e210947eddbd4c5f7f4bf90f6",
+      "blob": "802e314ae628c079a955e133904f05a395947a86"
+    },
+    {
+      "path": "docs/reports/2026-09-19/paperbench-rtt-provenance-dev3/README.md",
+      "source_branch": "codex/trace-v21-provenance-result20-babel",
+      "source_commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "blob": "6d5b90cf36d81add3c2363dba8ceb0398eeaa72a"
+    },
+    {
+      "path": "docs/reports/2026-09-20/trace-v21-execution-verified-provenance-result20-feedback/README.md",
+      "source_branch": "codex/trace-v21-provenance-result20-babel",
+      "source_commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "blob": "75f91bd7be8712676ca6015147000dbebb5ba83a"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/README.md",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "402b5afa17881e076133c6e4a155a59d253c5b86"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/evidence-calibrated-new20.json",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "d8ad6e08eb2acfa4fecf3edd6af969d730f85eb1"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/evidence-calibrated-new20.md",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "62445aa9274d54ccd8377facc7e4d91b41caf747"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5-matched-static.json",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "9e93d79d347b226a7d31fe7884a199672fa982d2"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5-matched-static.md",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "92f76b68d38bafb9c69e5751a6205eb49c101c5d"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5.json",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "58af5565e129447b01852c726b1b57622bc58a99"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-heldout5.md",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "e9763f7d8edc7c8be147b379aa8c9e02babde040"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-new20.json",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "7c9c01abd50e8f0db500a8eb3bd52c2316131990"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-new20.md",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "3452aad88ade87d1492d1a5b988c19de9ef63746"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-outlier-panel.json",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "957a952c05d80e1c2ed8aa405fb50c22d41ee5f0"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-complete-public-regression/neutral-outlier-panel.md",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "2ca2a020dc464623ab6dd4836c3d87176cc3730d"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/README.md",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "cb69425229636637d3d45a696713cc6dcb138dfc"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/accounting.json",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "ca539e0923ada9320e92e83be24fce530e1de12e"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/analysis.json",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "cf0a88cd703a25ef70ec448677741f7fdf8e02a5"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/arm-condition-means.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "3dccfd237e55f31be928c34fcf967021b0b0c920"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/artifact-points.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "65a4e200e6f3a85fcf18f1cf34b24dcda62d76f7"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/model-paired-rtt-static-differences.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "11aee3f6f632ca96ba97fde14d6599fe628b7d8a"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/model-points.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "c1bc842162ccd237d23aa1e748737622de4deefc"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/paired-rtt-static-differences.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "1079476e5cbf550f8ef73e13a940580df694c182"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/paired-task-means.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "41542b9f8c326b41ffcc391f544b43dcf67000fb"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/task-means.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "657f19ea0d3395b25a2a9cc21dc4594a97912ab5"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/uncertainty.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "d412346d09b33747b35615d6dbb90cee77bf30b6"
+    },
+    {
+      "path": "docs/reports/2026-09-21/trace-v21-result40-development-gap/usage-and-latency.csv",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "f1d97e21e3da58285f03f8656f6dddd2503eea40"
+    },
+    {
+      "path": "experiments/harvey-three-arm-dev3.yaml",
+      "source_branch": "codex/harvey-rtt-dev3",
+      "source_commit": "c648c9e1f4618a4c5ee7e887ba992ad0fe542909",
+      "blob": "402223a7041df568857f3dc90add0739f9cf665c"
+    },
+    {
+      "path": "experiments/paperbench-rtt-provenance-dev3/analyze_dev3.py",
+      "source_branch": "codex/trace-v21-provenance-result20-babel",
+      "source_commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "blob": "b2fbfc189799c09b29377e619b27d838fd2bed8c"
+    },
+    {
+      "path": "experiments/paperbench-rtt-provenance-dev3/dev3.yaml",
+      "source_branch": "codex/trace-v21-provenance-result20-babel",
+      "source_commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "blob": "7674093b1f3c0d9a16ca90e647f63e67fade34fd"
+    },
+    {
+      "path": "experiments/paperbench-rtt-provenance-dev3/run_local.py",
+      "source_branch": "codex/trace-v21-provenance-result20-babel",
+      "source_commit": "f6a0ac8fa6c7f95afedf7152c90883e7ebd1c733",
+      "blob": "7a44524c2dfb6239592b4f39ada5edef13762d57"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/analyze_evidence_calibrated_new20.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "0075d72eed318be1eecddba35fb031866501dc5c"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/audit.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "194eb3545b28fc7d0c0b92baee6e8f484ab45927"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/audit_gemini.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "fb0f303d75ae84a100884e7db2bd20c0f6c336d9"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/configs/da-26-4-rep002.yaml",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "0df034a018eb53791225aa4624c560b2903f6774"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_new20_remaining16.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "7ef2214b32a02b78d35da4fa851721fbe73fe96a"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_new20_remaining5_recovery.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "3471b061c6f7b4392484484ab7ffcbdf7778f1d3"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_original20_pool.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "c114ce384b86582ad9288a39aadf47996cae1958"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_original20_score.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "79a8f37029738238ea3d7f68f20cb5e3b4271990"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_panel.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "2137a03b498136da6bcc4491242ecbee87524f98"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/evidence_calibrated_panel_v2.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "eb0cec6f54f824c117c3e555ec1bbd40f963c58e"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/extract_heldout_judge_cases.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "46d5797bd4770425c6cb2c7c18dad1d6bb4104e4"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/extract_heldout_judge_cases.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "bd1c254745ef2d22e9e90be3900ec4d65e396d21"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/extract_original20_evidence.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "36cc30cd90265b68c842bfa0ec18396a4922485c"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/heldout5.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "cff6519543fa42efb5ac7d2ced7c4bdefb73dbc7"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/neutral_heldout5.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "24f152f5b24aa942b398f1682c8c0f99a6c15013"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/neutral_new20.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "a8bcfab24ff204841464e521ef888de2416ceb6c"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/neutral_outlier_panel.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "1bbb0571a97854667dc5d57b9331909ae9a0f59f"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/neutral_static.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "e4cbad5e6fa13497aa85f36eb38354604c7459cc"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/original20_evidence.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "4e071a0dd372c5ddde044c1ed9003cf648188a57"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/prepare_original20_neutral_pool.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "69ca33ec527a99fa2090dbd2db72e82b0ed1b1a6"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_heldout5.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "6b2cec9ca1705c23018f0d5a42f8064a6ae150cc"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_heldout5.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "b6876df9568e43453f0285293db432f6eac0d4f3"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_heldout5.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "3f26ef922dabfaaa77f2e845f3a055d6697b1c5d"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_heldout5.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "f58c14b8f7b9864c944e9144060b62f2b7445b1b"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_new20.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "3d698620f0b7529f0ec666c5e6a6f36de62ace48"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_new20.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "8b977007a9b7b71730a66b957d31eda04be6c1d9"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_outlier_panel.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "763adbb18d4c9ae988b1791ea04573742bb375c7"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_outlier_panel.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "ab038f8af1d1d7f1fc30b48fbe753c025fa92466"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_static.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "641aaec0a914ab5cea1f75e15c718f4337124325"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/report_neutral_static.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "68faf17f455df643719c11e8cce53982c766f86d"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/revise.sbatch",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "f4144a8c1fce1783f1c8620d4b3783f257469162"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_evidence_calibrated_panel.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "f26d4667cd24672942851a5a9119a0dbc33598ec"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_gemini_audit.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "6bcfae25052d7d5da45d94a33f578bb2b5802685"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_heldout5.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "8619d61d28bb40249faa9dac7070c5078769123c"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_neutral_heldout5.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "0e632348681a47526ec44ed9c2c9e69692f04217"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_neutral_new20.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "482624c26d2df2a238b67bcd755d21fe6df8ead4"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_neutral_outlier_panel.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "91e502a05d9632701554f3c57d31186b1ed86a5f"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/run_neutral_static.py",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "9192b6f7b43af642ca79a926809c4e3e9f28024f"
+    },
+    {
+      "path": "experiments/trace-v21-complete-public-regression/runtime.json",
+      "source_branch": "codex/trace-v21-complete-public-regression",
+      "source_commit": "e1367c348b3e590744b58cd9e795ba07922abd56",
+      "blob": "8686e901cac7fb703aa7c077021fed11b2eadc58"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result40/rearm_gemini_rate_limits.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "ee6d2f6b1e7e3cafe1c31db5a41ae47e3b1b6c44"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result40/run.py",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "04c9e2340b7a3d2000c59e098d6800b16700c341"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/audit.sbatch",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "0a6d21b96f18325e93e7ac04c2d764c4709d4ebf"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/common.sbatch",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "c43abfb2f4dcf17e1dd3ef6ca7fca064c5ce6025"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/make_configs.py",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "826bd9ae92c358a15e8e6060b564a97b540cd6a0"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/membership.json",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "7d0df7b0ebedcebd30e09873d21b9dda0b57b4b7"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/prepare.py",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "dcb1ae390808f57995bad6880626e15cf2ab3ecb"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/revise.sbatch",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "d01863957fe092852db1506550a0ff528981601d"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/run.py",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "e0666732e6e9c8c73f4e5ec45f0c806322d06eb3"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/runtime.json",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "6e89445bd28c1abc52020a1756c46d3e4ccdbaf8"
+    },
+    {
+      "path": "experiments/trace-v21-execution-verified-provenance-result50/setup.sbatch",
+      "source_branch": "codex/trace-v21-result50-babel",
+      "source_commit": "bcc353c4d44304958e4effeb4f53ebe91d2ea2ba",
+      "blob": "3811a60fb180d6c2f781a001a00c946966481ed1"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/analyze.py",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "8ce37d2082b7c72464875f21af111090fa3d14af"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/common.sbatch",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "9a34413393c8acc7f3bd07c3bf7f4ecb8ff46c43"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/export_trajectories.py",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "e4713f2cb2090d6a7ebdf4b890af2c8edaeca0ab"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/forensics.sbatch",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "7c01a8a404dde9ecc1c8a848338204ddad593e24"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/preflight.sbatch",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "fc80b05756fc94966850e7b1739f82c67156ab43"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/report.sbatch",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "a6f8951e8a8d28e9dfe8c80ad4d878f8fe7754b0"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/run.py",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "a7782b9f4527d16808c9d223b9e840fa89ca12ce"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/runtime.json",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "442c639598311ccd3c645b7be059a985d5d213f5"
+    },
+    {
+      "path": "experiments/trace-v21-result40-development-gap/score.sbatch",
+      "source_branch": "codex/result40-development-gap-diagnostic",
+      "source_commit": "bd2c764c424699d0bc7489cd7f4c816f2f60b736",
+      "blob": "5ae1c7a57de65e54fdc412befc4c3fa408303129"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/analyze.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "f3513198b884a2348e58f84fad5bf6641643d531"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/audit-inventory.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "6cd6f9f12a2e2027a64b8fc5c0fba493ae832db6"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/audit.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "93b60f8472f95d4cf6300c2395cb2c08016e4dd4"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/audit_inventory.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "78a39c4fec9199896607ee4cfec5ca00679b2e4d"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/audit_sol_opus.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "9717ceb517ee540df65490026c3ef378b5bd64b3"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/common.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "e9b47395dd57e28f1b2f2ce448af6608e3103522"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/configs/da-17-1.yaml",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "275ddde648526384a4a0ab0d3c5cea23b5c1093b"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/configs/da-17-5.yaml",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "ddc04b1fc0107a5c102d147b69d3a8e0df143da1"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/configs/da-20-4.yaml",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "5e1896dfcd8d535304784666867bda002ad72b40"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/configs/da-26-2.yaml",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "4b5efb1483dc6590de48032566243e1a33702da4"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/configs/da-26-4.yaml",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "261a91ac0b30002b07700afde97b42ce85589921"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/make_configs.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "68ed9d234a1a18d5a85b2023e17648020dbf02f2"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/path-map.json",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "67f81e4d38fdea389ff554c3e02fcd00f43b604f"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/preflight.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "dce95d0f5dde311d11e22b80d31a43591c01a367"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/prepare.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "e64fbdfee03c74cf79842b5cbd3e827066fc7ee9"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/raw_model_reconstruct.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "de528c4b03b4b1d176960f7279b0d883057f9c99"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/rearm-gemini.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "59d3a41b296b458d68b79ed0a9ec2dadae1490f3"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/rearm-openai.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "2167f6da54f185e7dc44fb2fbc830077980a0fcb"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/rearm-sol-audit.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "e5a8952310dc8e75dc5731f70d94f0916c1e9997"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/rearm_gemini.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "73f1afb8ebec0b11b67f26e48e703608659d9ff7"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/rearm_historical_sol_audit.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "a5576ed160d08be8104a9db28dfdec00c7dd69c6"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/rearm_openai.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "813888ab778c361e08de1661f8d7a32e42271e4a"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/recover-sol.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "aa347e4e2910ae9663d4a3f860a28209efa4ffdf"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/recover_historical_sol.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "b6f2f5102847e533d8da1772591ed2bacbf304e9"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/report.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "769f09328ec9e7fe62547c2802f4eb0d9aea3f1a"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/revise.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "4008e5a6a1e9c89e2a3a52f658a6b1d2c2e508ab"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/revision_cli.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "6f41683478dbded785cea7d08ca12b2ea5072630"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/run.py",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "35031417af0609402155368020a5331541bfab28"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/runtime.json",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "442c639598311ccd3c645b7be059a985d5d213f5"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/smoke-audit.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "ab56d8f03aea45c7d948001d47b550a1cfe17e86"
+    },
+    {
+      "path": "experiments/trace-v21-result40-gap-improvement/smoke-revise.sbatch",
+      "source_branch": "codex/result40-rtt-gap-improvement-pilot",
+      "source_commit": "e09f5fcadcbe6e3824199710349859912fe985dc",
+      "blob": "f5bf4aaa41d3bb01f83c55cfbfaa340ec8ea0afa"
+    },
+    {
+      "path": "scripts/harvey_rtt_smoke.py",
+      "source_branch": "codex/harvey-rtt-dev3",
+      "source_commit": "c648c9e1f4618a4c5ee7e887ba992ad0fe542909",
+      "blob": "11d94429a212d4122aa69fd1d78bae9cc60d249c"
+    }
+  ],
+  "retained_current_files": [
+    "docs/reports/2026-10-12/biomnibench-original20/README.md",
+    "docs/reports/2026-10-12/biomnibench-original20/auditor-rows.json",
+    "docs/reports/2026-10-12/biomnibench-original20/corrections.json",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/README.md",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps_no_errorbars.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps_no_errorbars.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_gaps_no_errorbars.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh_no_errorbars.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh_no_errorbars.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_opus_result20_rh_no_errorbars.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_result20_plots.zip",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps_no_errorbars.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps_no_errorbars.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_gaps_no_errorbars.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh_no_errorbars.pdf",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh_no_errorbars.png",
+    "docs/reports/2026-10-12/biomnibench-original20/figures/biomnibench_sol_result20_rh_no_errorbars.svg",
+    "docs/reports/2026-10-12/biomnibench-original20/first-pass-decisions.json",
+    "docs/reports/2026-10-12/biomnibench-original20/raw-auditor-rows.json",
+    "docs/reports/2026-10-12/biomnibench-original20/second-pass-decisions.json",
+    "docs/reports/2026-10-12/biomnibench-original20/summary.json",
+    "docs/reports/2026-10-12/biomnibench-original20/targeted-decisions.json",
+    "docs/reports/2026-10-12/biomnibench-original20/verification.json"
+  ],
+  "runtime_policy": "Current source/tests remain byte-identical to the latest Result40 branch. Experimental runtime variants and all retired commits remain reachable through the consolidation merge parents."
+}

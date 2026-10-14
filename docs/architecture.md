@@ -71,6 +71,9 @@ Submission revision control also uses explicit ownership.
 - `controller.py` coordinates the top-level revision state machine.
 - `controller_setup.py` builds and validates runtime dependencies.
 - `controller_scoring.py` owns judge checkpoints, reuse, feedback, and replay.
+- `rubric_dropout.py` selects deterministic, ephemeral criterion views for revision
+  feedback; `feedback.py` keeps their optimization score separate from the full
+  canonical score. Controller and completed-study replay use the same projection.
 - `controller_reference.py` resolves selected training references and independent
   master measurements through exact judgment reuse.
 - `controller_workspace.py` owns live workspaces and sealed submissions.

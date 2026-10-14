@@ -1,0 +1,27 @@
+{
+  "membership_source": "complete phylobio/BiomniBench-DA revision e1c8ca5e11a620087bc48d97888eb69176a1f235",
+  "randomization_seed": 20260820,
+  "replicates": 3,
+  "result40_count": 40,
+  "added10": [
+    "da-4-7",
+    "da-8-2",
+    "da-19-4",
+    "da-25-1",
+    "da-6-2",
+    "da-20-3",
+    "da-5-3",
+    "da-3-4",
+    "da-11-1",
+    "da-18-1"
+  ],
+  "conditions": [
+    "full-static",
+    "full-red-team-trace-execution-verified-proactive-provenance",
+    "user-simulator-static",
+    "user-simulator-red-team-trace-execution-verified-proactive-provenance"
+  ],
+  "assignments_per_task": 12,
+  "new_assignments": 120,
+  "result50_task_count": 50
+}

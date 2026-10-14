@@ -1,5 +1,7 @@
 # Rubric Gen
 
+Branch layout: `main` for the eventual integrated release; `codex/healthbench-researchqa` for HealthBench/ResearchQA; `codex/biomnibench-results` for BioMNIBench and saved PaperBench/Harvey work. Start with the [benchmark result index](docs/benchmark-results.md).
+
 Latest BioMNIBench tables: [complete Result40 — eight conditions, separate Sol/Opus-group and average W/S/H/A, gaps and RH](docs/reports/2026-10-13/biomnibench-result40/README.md) (2026-10-13, all accepted saved-evidence corrections). [Original20-only results](docs/reports/2026-10-12/biomnibench-original20/README.md) remain available separately.
 
 The BioMNIBench static baseline is frozen. Formal feedback conditions are **Full feedback** and **User simulator**, crossed with **Static rubric** and **Red-team trace**. See the [accepted checkpoint, scores and plots](docs/reports/2026-09-09/baseline-freeze/README.md) and [frozen configuration snapshots](experiments/frozen-biomnibench/README.md). Both static arms have60/60 assignments; User simulator trace has60/60 and Full feedback trace59/60. Trace mitigation is not yet jointly established. No new experiment is active or authorized by this checkpoint.

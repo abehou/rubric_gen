@@ -8,8 +8,6 @@ The displayed RH windows use their original Sol/Opus judgments. Earlier Haiku fa
 
 Canonical report and correction evidence: [current Original20 results](../../2026-10-12/biomnibench-original20/README.md). This replaces the outdated table/status at this entry point.
 
-[Previous dated report, execution details and historical recipe comparisons](https://github.com/abehou/rubric_gen/blob/daec7246410726c37de0a585b930bde91613a363/docs/reports/2026-09-20/trace-v21-execution-verified-provenance-result20-feedback/README.md) remain in Git history; v1/v2.1 are different methods and are not relabeled as this corrected RTT result.
-
 ## gpt-5.6-sol
 
 | Condition | W | S | H | A | W−S | S−H | H−A | W−A | RH full trajectory | RH final artifact |

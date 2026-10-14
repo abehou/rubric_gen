@@ -1,9 +1,8 @@
-"""Frozen Results40 revision and missing-only three-auditor audit owner."""
+"""Frozen Results40 new-task revision and concurrent Sol+Opus audit owner."""
 from __future__ import annotations
 
 import argparse
 from collections import Counter
-from contextlib import redirect_stderr, redirect_stdout
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import json
@@ -18,38 +17,32 @@ import threading
 from dotenv import dotenv_values
 
 from rubric_gen.artifacts.serialization import write_json_atomic
+from rubric_gen.runtime.audit_execution import provider_for
 from rubric_gen.runtime.capacity import policy
-from rubric_gen.submission_revision.evaluation.jobs import EvaluationConfig
-from rubric_gen.submission_revision.evaluation.targets import load_evaluation_targets
 from rubric_gen.submission_revision.execution_scope import terminal_records
 from rubric_gen.submission_revision.experiment import load_experiment
-from rubric_gen.submission_revision.source_resolution import resolve_study_sources
+from rubric_gen.submission_revision.study_validation import validate_completed_revision
 
 from make_configs import BUNDLE, CONDITIONS, ROOT, RUN, SHARDS, TASKS, config_path
 from prepare import PANEL, sha
-from audit_scope import (
-    GEMINI_PANEL,
-    SOL_OPUS_PANEL,
-    THREE_MODEL_PANEL,
-    all_gemini_scopes,
-    historical_revision_prompt,
-    new20_sol_opus_scopes,
-)
 
 UV = Path("/home/aydanh/tools/uv/uv")
 PYTHON = Path("/home/aydanh/repos/rubric_gen/.venv/bin/python")
+ASSIGNMENT_COUNT = len(TASKS) * len(CONDITIONS) * 3
 
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def credentials(mode: str) -> None:
+def credentials() -> None:
     values = dotenv_values("/home/aydanh/repos/rubric_gen/.env.local")
-    keys = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY")
-    if mode == "audit":
-        keys = (*keys, "GEMINI_API_KEY")
-    for key in keys:
+    provider_keys = {
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "google": "GEMINI_API_KEY",
+    }
+    for key in {provider_keys[provider_for(model)] for model in PANEL}:
         if not values.get(key):
             raise RuntimeError(f"configured credential unavailable: {key}")
         os.environ[key] = str(values[key])
@@ -73,14 +66,14 @@ def experiment(task: str, kind: str):
 
 def runtime(mode: str) -> dict:
     value = policy()
-    if value["aggregate_concurrency"] != 60 or value["audit_studies"] != 3:
+    if value["aggregate_concurrency"] != 60 or value["audit_studies"] != 1:
         raise RuntimeError("Results40 runtime owner capacity changed")
-    expected_audit = {"openai": 60, "anthropic": 60, "google": 60}
-    if value.get("audit_provider_concurrency") != expected_audit:
-        raise RuntimeError("Results40 Sol/Opus/Gemini provider partitions changed")
+    expected_providers = {provider_for(model): 60 for model in PANEL}
+    if value.get("audit_provider_concurrency") != expected_providers:
+        raise RuntimeError("audit provider partitions differ from the configured panel")
     return {
         **value,
-        "stage_workers": revision_shard_workers() * revision_assignment_workers() if mode == "execute" else 180,
+        "stage_workers": revision_shard_workers() * revision_assignment_workers() if mode == "execute" else 120,
         "revision_shard_workers": revision_shard_workers() if mode == "execute" else None,
         "revision_assignment_workers": revision_assignment_workers() if mode == "execute" else None,
     }
@@ -100,14 +93,6 @@ def revision_assignment_workers() -> int:
     return workers
 
 
-def audit_scope_workers(models: tuple[str, ...]) -> int:
-    if models == SOL_OPUS_PANEL:
-        return 120
-    if models == GEMINI_PANEL:
-        return 1
-    raise RuntimeError(f"unsupported Results40 audit panel: {models}")
-
-
 def owner(mode: str, commit: str, capacity: dict) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     root = RUN / "owners" / f"{mode}-{os.environ['SLURM_JOB_ID']}-{stamp}"
@@ -120,7 +105,7 @@ def owner(mode: str, commit: str, capacity: dict) -> Path:
         "started_at": stamp,
         "tasks": list(TASKS),
         "conditions": list(CONDITIONS),
-        "assignment_count": 240,
+        "assignment_count": ASSIGNMENT_COUNT,
         "cpus": int(os.environ["SLURM_CPUS_PER_TASK"]),
         "memory_mb": int(os.environ["SLURM_MEM_PER_NODE"]),
         "runtime": capacity,
@@ -151,50 +136,6 @@ def uv_stage(task: str, kind: str, stage: str, workers: int, log: Path) -> dict:
     return {"task_id": task, "shard": kind, "stage": stage, "exit_code": completed.returncode, "started_at": started, "finished_at": now(), "log": str(log)}
 
 
-def audit_stage(name: str, exp, workers: int, log: Path) -> dict:
-    """Run the native detect implementation for one in-memory audit scope."""
-
-    from rubric_gen.runtime.audit_execution import audit_output_owner
-    from rubric_gen.submission_revision.commands import _run_detect_owned
-
-    started = now()
-    output_dir = Path(exp.dag["detect"]["output_dir"])
-    args = argparse.Namespace(max_concurrency=workers, resume=True)
-    exit_code = 1
-    error = None
-    category = None
-    try:
-        with log.open("a") as output, redirect_stdout(output), redirect_stderr(output):
-            with audit_output_owner(output_dir):
-                with historical_revision_prompt(name, exp):
-                    exit_code = _run_detect_owned(
-                        args,
-                        exp,
-                        Path(exp.dag["revise"]["output_dir"]),
-                        Path(exp.dag["paraphrase"]["output_dir"]),
-                        output_dir,
-                    )
-    except Exception as exc:
-        from rubric_gen.runtime.failures import failure_category
-
-        error = f"{type(exc).__name__}: {exc}"
-        category = failure_category(exc)
-    return {
-        "scope": name,
-        "stage": "detect",
-        "models": list(exp.outcome_audit["models"]),
-        "experiment_id": exp.experiment_id,
-        "study_dir": str(exp.dag["revise"]["output_dir"]),
-        "audit_dir": str(output_dir),
-        "exit_code": int(exit_code),
-        "error": error,
-        "failure_category": category,
-        "started_at": started,
-        "finished_at": now(),
-        "log": str(log),
-    }
-
-
 def complete_shard(task: str, kind: str) -> list[dict]:
     exp = experiment(task, kind)
     study = Path(exp.dag["revise"]["output_dir"])
@@ -202,24 +143,11 @@ def complete_shard(task: str, kind: str) -> list[dict]:
     rows = terminal_records(exp, ledger)
     if len(rows) != 6 or any(row["status"] != "completed" for row in rows):
         raise RuntimeError(f"{task}/{kind} is not 6/6 complete")
-    # StudyRunner performs full artifact/hash validation before it changes an
-    # assignment record to completed.  Repeating that scan here re-read large
-    # immutable workspaces and exhausted several recovery wall-time limits.
-    # Reopen the exact sources through the audit target loader instead: this
-    # rechecks study/producer identity, terminal state, rubric generations and
-    # the concrete initial/final targets without duplicating workspace hashing.
-    sources = resolve_study_sources(study, exp)
-    targets = load_evaluation_targets(EvaluationConfig(
-        experiment=exp,
-        study_dir=study,
-        paraphrase_dir=Path(exp.dag["paraphrase"]["output_dir"]),
-        output_dir=Path(exp.dag["detect"]["output_dir"]),
-        max_concurrency=6,
-        resume=True,
-    ), sources)
-    expected = {row["assignment_id"] for row in rows}
-    if len(targets) != 6 or {target.assignment_id for target in targets} != expected:
-        raise RuntimeError(f"{task}/{kind} audit target scope differs from completed assignments")
+    assignments = {a.assignment_id: a for a in exp.execution_assignments}
+    seed = Path(exp.dag["seed"]["output_dir"])
+    paraphrase = Path(exp.dag["paraphrase"]["output_dir"])
+    for row in rows:
+        validate_completed_revision(study / row["experiment_dir"], assignments[row["assignment_id"]], exp, seed, paraphrase)
     return rows
 
 
@@ -284,7 +212,7 @@ def execute(path: Path) -> None:
         "success": True,
         "job_id": os.environ["SLURM_JOB_ID"],
         "source_commit": clean_commit(),
-        "assignment_count": 240,
+        "assignment_count": ASSIGNMENT_COUNT,
         "tasks": list(TASKS),
         "configs": {f"{task}-{kind}": {"experiment_id": experiment(task, kind).experiment_id, "sha256": sha(config(task, kind))} for task, kind in SHARDS},
         "finished_at": now(),
@@ -295,7 +223,7 @@ def check_revision_receipt() -> None:
     receipt = json.loads((RUN / "revision-completion.json").read_text())
     if (
         receipt.get("success") is not True
-        or receipt.get("assignment_count") != 240
+        or receipt.get("assignment_count") != ASSIGNMENT_COUNT
         or tuple(receipt.get("tasks", ())) != TASKS
     ):
         raise RuntimeError("Results40 revision completion receipt is unavailable")
@@ -314,40 +242,16 @@ def check_revision_receipt() -> None:
 def audit(path: Path) -> None:
     check_revision_receipt()
     status_path = RUN / "audit-status.json"
-    status = {
-        "job_id": os.environ["SLURM_JOB_ID"],
-        "started_at": now(),
-        "panels": {
-            "sol_opus": list(SOL_OPUS_PANEL),
-            "gemini": list(GEMINI_PANEL),
-            "three_model": list(THREE_MODEL_PANEL),
-        },
-        "scopes": {},
-    }
+    status = {"job_id": os.environ["SLURM_JOB_ID"], "started_at": now(), "tasks": {}}
     write_json_atomic(status_path, status)
     failures = []
-    # Finish the already-authoritative Sol+Opus panel first, then add Gemini
-    # without placing a Google access failure between Sol/Opus and completion.
-    scopes = (*new20_sol_opus_scopes(), *all_gemini_scopes())
-    for name, exp in scopes:
-        # Gemini's 20M input-token/minute quota was still exceeded with two
-        # request workers on the long original20 inputs.  One worker keeps
-        # the unchanged requests below that provider limit; the sealed Google
-        # provider partition remains 60 and Sol/Opus remains 60+60.
-        workers = audit_scope_workers(tuple(exp.outcome_audit["models"]))
-        result = audit_stage(name, exp, workers, path / f"detect-{name}.log")
-        status["scopes"][name] = result
+    for task, kind in SHARDS:
+        result = uv_stage(task, kind, "detect", 120, path / f"detect-{task}-{kind}.log")
+        status["tasks"][f"{task}-{kind}"] = result
         write_json_atomic(status_path, status)
         print(json.dumps(result), flush=True)
         if result["exit_code"]:
-            failures.append(name)
-            # A Gemini failure on the first counted scope is the live access
-            # test. Preserve it and do not repeat the same provider failure
-            # across the remaining 42 scopes.
-            if tuple(exp.outcome_audit["models"]) == GEMINI_PANEL:
-                status["gemini_stopped_after_first_failed_scope"] = name
-                write_json_atomic(status_path, status)
-                break
+            failures.append(f"{task}-{kind}")
     status["finished_at"] = now()
     status["complete"] = not failures
     write_json_atomic(status_path, status)
@@ -356,24 +260,20 @@ def audit(path: Path) -> None:
     sys.path.insert(0, str(ROOT / "scripts/diagnostics"))
     from check_audit_coverage import check
     coverage = {}
-    for name, exp in scopes:
-        coverage[name] = check(
+    for task, kind in SHARDS:
+        exp = experiment(task, kind)
+        key = f"{task}-{kind}"
+        coverage[key] = check(
             Path(exp.dag["revise"]["output_dir"]),
             Path(exp.dag["detect"]["output_dir"]),
-            expected_models=tuple(exp.outcome_audit["models"]),
+            expected_models=PANEL,
         )
-        expected = 6 if name.startswith("new20-") else (
-            120 if name == "old20-current-gemini" else 60
-        )
-        if coverage[name].get("assignment_count") != expected:
-            raise RuntimeError(
-                f"{name} audit assignment coverage differs from {expected}"
-            )
+        if coverage[key].get("assignment_count") != 6:
+            raise RuntimeError(f"{task}/{kind} audit assignment coverage differs from 6")
     write_json_atomic(RUN / "audit-completion.json", {
         "success": True,
         "job_id": os.environ["SLURM_JOB_ID"],
         "source_commit": clean_commit(),
-        "panels": status["panels"],
         "coverage": coverage,
         "finished_at": now(),
     })
@@ -392,7 +292,7 @@ def main() -> None:
         exp = experiment(task, kind)
         if len(exp.execution_assignments) != 6 or tuple(exp.outcome_audit["models"]) != PANEL:
             raise RuntimeError(f"frozen Results40 task shard changed: {task}/{kind}")
-    credentials(args.mode)
+    credentials()
     path = owner(args.mode, commit, capacity)
     (execute if args.mode == "execute" else audit)(path)
     write_json_atomic(path / "completed.json", {"success": True, "finished_at": now()})

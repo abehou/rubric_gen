@@ -1,3 +1,7 @@
+## 2026-10-13 — Consolidate benchmark result branches
+
+- 23:38 PDT: Collected131 saved reports/figures/configurations from nine retiring branches plus two PaperBench reports from the existing local integration checkout into `codex/biomnibench-results`; current Result40/runtime/tests remain unchanged. All retired commits are retained through merge ancestry, active HealthBench/ResearchQA work and main are untouched, no Babel jobs or open PRs depend on the retired refs, and the branch/source inventory documents recovery locations.
+
 ## 2026-10-13 — Publish complete corrected BioMNIBench Result40
 
 - 23:23 PDT: Published all eight conditions with separate Sol/Opus-group and equal-weight average tables, W/S/H/A, four gaps and full-trajectory/final-artifact RH; retained all accepted corrections and actual auditor provenance in 1,920 saved rows. Replaced stale current Result40 tables and recovery-status reports, verified all panel/aggregate means and rendered cells, and made no provider/revision calls; this publication targets only `codex/trace-v21-provenance-result40-babel`.

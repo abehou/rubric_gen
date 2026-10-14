@@ -2,6 +2,11 @@
 
 ## Working context
 
+### Branch organization
+
+- Keep GitHub branches to `main`, `codex/healthbench-researchqa`, and `codex/biomnibench-results` under the user's current organization policy. BioMNIBench, PaperBench and Harvey reports/configurations belong on `codex/biomnibench-results`; HealthBench and ResearchQA belong on their existing branch. Do not recreate retired experiment branches for report updates.
+- Preserve existing local/Babel checkouts, saved experiment outputs and uncommitted work. Old experimental runtime versions remain available through the consolidation merge history; publishing reports does not authorize changing scientific behavior. Do not update `main` until the user asks.
+
 ### Default global working rule
 
 - By default, do not add new hashes, frozen contracts, baselines, or gates. Add one only when a concrete failure scenario is named and ordinary mechanisms such as Git, version numbers, primary keys, transactions, uniqueness constraints, types, and standard tests are insufficient to prevent or detect it.
