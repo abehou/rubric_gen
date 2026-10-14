@@ -1,0 +1,29 @@
+{
+  "input": [
+    [
+      100.0,
+      -3.0
+    ],
+    [
+      100.0,
+      -1.0
+    ],
+    [
+      100.0,
+      1.0
+    ],
+    [
+      100.0,
+      3.0
+    ]
+  ],
+  "ordered_singular_values": [
+    199.99999999999997,
+    4.47213595499958
+  ],
+  "centered_projection_variance_ratios": [
+    0.0,
+    1.0
+  ],
+  "conclusion": "For uncentered SVD, descending singular values do not imply descending centered explained-variance ratios. This disproves the specific impossibility criticism, not the correctness of every experimental output."
+}

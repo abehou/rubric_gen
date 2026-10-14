@@ -1,0 +1,16 @@
+{
+  "verified_rows": 1920,
+  "verified_summary_rows": 16,
+  "verified_H_corrections": 220,
+  "verified_A_corrections": 106,
+  "review_coverage": 480,
+  "expected_artifacts": 480,
+  "reading_modes": {
+    "full_text": 349,
+    "complete_base_plus_all_changes": 131
+  },
+  "missing_review": [],
+  "prior_corrections_preserved": true,
+  "Static_W_S_RH_and_actual_model_provenance": "unchanged",
+  "api_calls": 0
+}

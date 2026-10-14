@@ -1,3 +1,7 @@
+## 2026-10-13 — Complete corrected BioMNIBench Result40 publication
+
+- 23:23 PDT: Current tables and exact rows are in `docs/reports/2026-10-13/biomnibench-result40/`; the existing Result40 `comparison-tables.md` is overwritten with the same 24 current rows. `verify_tables.py` validates 1,920 unique rows, 16 panel means, eight aggregate means and both table locations; saved review coverage, H/A corrections and actual model provenance remain alongside the data.
+
 ## 2026-09-21 — Semi/Score-only Results40 missing-only recovery
 
 Job `10517651` ran the frozen 3×6 assignment-worker profile on 16 CPUs/256 GiB and left 208/240 valid completed records under `/data/user_data/aydanh/rubric_gen/runs/rtt-result40-feedback-policies-20260920`. The next provider-free owner runs `experiments/trace-v21-execution-verified-provenance-result40-feedback/reconcile.sbatch`; after its exact receipt, the same revision launcher resumes only 32 noncompleted records and the Sol+Gemini audit remains gated on 240/240.

@@ -1,3 +1,7 @@
+## 2026-10-13 — Publish complete corrected BioMNIBench Result40
+
+- 23:23 PDT: Published all eight conditions with separate Sol/Opus-group and equal-weight average tables, W/S/H/A, four gaps and full-trajectory/final-artifact RH; retained all accepted corrections and actual auditor provenance in 1,920 saved rows. Replaced stale current Result40 tables and recovery-status reports, verified all panel/aggregate means and rendered cells, and made no provider/revision calls; this publication targets only `codex/trace-v21-provenance-result40-babel`.
+
 ## 2026-10-12 — Publish corrected BioMNIBench Original20
 
 - 19:44 PDT: Published all eight conditions with separate Sol/Opus W/S/H/A, four gaps and two RH windows, all 960 corrected rows, raw pre-review rows and 102 evidence-linked criterion corrections. Replaced outdated Original20 report entries while retaining historical methods and New20/Result40 provenance; no new API calls or revisions.
