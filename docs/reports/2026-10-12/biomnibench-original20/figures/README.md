@@ -4,6 +4,8 @@
 
 ## Sol 5.6 audit
 
+Score gaps: W−S, S−H, and H−A (heldout to holistic).
+
 ### With error bars
 
 ![Score gaps](biomnibench_sol_result20_gaps.png)
@@ -25,6 +27,8 @@
 [PDF](biomnibench_sol_result20_rh_no_errorbars.pdf) · [SVG](biomnibench_sol_result20_rh_no_errorbars.svg)
 
 ## Opus 5 audit
+
+Score gaps: W−S, S−H, and H−A (heldout to holistic).
 
 ### With error bars
 
