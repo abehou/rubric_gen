@@ -2,7 +2,7 @@
 
 [Download both overviews (PNG/PDF/SVG)](benchmark_overviews.zip)
 
-Paired Static/RTT bars without error bars. Colors identify feedback conditions; the lighter matching color identifies RTT. The S−A negative segment uses a compressed scale with explicit break marks, and the two result panels within each benchmark share scales.
+Paired Static/RTT bars without error bars. Colors identify feedback conditions; the lighter matching color identifies RTT. The H−A negative segment uses a compressed scale with explicit break marks, and the two result panels within each benchmark share scales.
 
 ## BioMNIBench, HealthBench and ResearchQA
 
