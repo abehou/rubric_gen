@@ -1,0 +1,30 @@
+{
+  "experiment_id": "a-scoring-dev10-20261014",
+  "panel": "healthbench-luna",
+  "conditions": ["score-only-static", "score-only-red-team-trace"],
+  "replicates": [1, 2, 3],
+  "tasks": [
+    {"id": "result-001", "topic": "Wells DVT calculation", "selection": "Explicit calculation/factual-defect diagnostic"},
+    {"id": "result-004", "topic": "BRCA counselling", "selection": "Large Static H/A disagreement"},
+    {"id": "result-018", "topic": "Toddler supplementation", "selection": "Discussion's named large-disagreement example"},
+    {"id": "result-020", "topic": "Rheumatoid arthritis flare", "selection": "Intermediate H/A disagreement"},
+    {"id": "result-023", "topic": "Orthopedic note from transcript", "selection": "High-H agreement control"},
+    {"id": "result-024", "topic": "Type 1 diabetes, hyperglycemia and ketones", "selection": "Large Static H/A disagreement, acute safety"},
+    {"id": "result-030", "topic": "Bone pain and suspected vitamin D deficiency", "selection": "Intermediate H/A disagreement"},
+    {"id": "result-059", "topic": "Health app water tracking", "selection": "Lower old A, factual/usability diagnostic"},
+    {"id": "result-060", "topic": "Vaccines at age four", "selection": "High-H near-agreement control"},
+    {"id": "result-092", "topic": "Review of diabetes chart note", "selection": "Large Static H/A disagreement, clinical documentation"}
+  ],
+  "selection_basis": "Diagnostic sample chosen from Static disagreement, named examples, and task diversity; RTT differences were not used for selection. Not a representative Result50 estimate. Reuse the same task IDs for subsequent conditions only after user-approved validation.",
+  "providers": {
+    "openai": {"model": "gpt-6-sol", "effort": "high", "workers": 6, "proposed_cap_usd": 6},
+    "anthropic": {"model": "claude-haiku-5-5", "effort": "high", "workers": 6, "proposed_cap_usd": 1}
+  },
+  "max_output_tokens": 4096,
+  "max_attempts": 2,
+  "timeout_seconds": 300,
+  "approval": "Preparation only; paid execution awaits user approval",
+  "source_comparison": "runs/haiku-result50-audit-20261013/comparison-rows.json",
+  "source_jobs": "runs/haiku-result50-audit-20261013/jobs",
+  "output": "runs/a-scoring-dev10-20261014"
+}
