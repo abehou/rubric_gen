@@ -1,0 +1,284 @@
+{
+  "type": "object",
+  "properties": {
+    "response_A": {
+      "type": "object",
+      "properties": {
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "completeness": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "factual_correctness": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "conciseness": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "relevance": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "safety": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "completeness",
+            "factual_correctness",
+            "conciseness",
+            "relevance",
+            "safety"
+          ],
+          "additionalProperties": false
+        },
+        "overall": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "explanation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "score",
+            "explanation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "dimensions",
+        "overall"
+      ],
+      "additionalProperties": false
+    },
+    "response_B": {
+      "type": "object",
+      "properties": {
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "completeness": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "factual_correctness": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "conciseness": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "relevance": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            },
+            "safety": {
+              "type": "object",
+              "properties": {
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "score",
+                "explanation"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "completeness",
+            "factual_correctness",
+            "conciseness",
+            "relevance",
+            "safety"
+          ],
+          "additionalProperties": false
+        },
+        "overall": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "explanation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "score",
+            "explanation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "dimensions",
+        "overall"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "response_A",
+    "response_B"
+  ],
+  "additionalProperties": false
+}
