@@ -1,8 +1,10 @@
-# ResearchQA GPT Luna Result50
+# ResearchQA Luna6 Result50
 
-Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and actual model/source pointers remain separate in the accompanying score exports.
+Model labels in this curated export are user-assigned normalized labels, not the original API execution model identifiers. Original experimental records are backed up separately; source identities, scores and RH labels are unchanged.
 
-## GPT Luna / openai auditor
+Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and normalized model labels/source pointers remain separate in the accompanying score exports.
+
+## Luna6 / GPT-6Sol audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -15,7 +17,7 @@ Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded 
 | User Static | 150 | 94.17 | 91.00 | 89.92 | 84.93 | 3.17 | 1.08 | 4.99 | 15/150 | 1 |
 | User RTT | 150 | 93.84 | 90.76 | 90.62 | 86.40 | 3.08 | 0.14 | 4.22 | 8/150 | 2 |
 
-## GPT Luna / anthropic auditor
+## Luna6 / ClaudeOpus5 audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|

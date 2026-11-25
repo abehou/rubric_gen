@@ -1,8 +1,10 @@
-# ResearchQA Haiku 5.5 Result50
+# ResearchQA Haiku5.5 Result50
 
-Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and actual model/source pointers remain separate in the accompanying score exports.
+Model labels in this curated export are user-assigned normalized labels, not the original API execution model identifiers. Original experimental records are backed up separately; source identities, scores and RH labels are unchanged.
 
-## Haiku 5.5 / openai auditor
+Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and normalized model labels/source pointers remain separate in the accompanying score exports.
+
+## Haiku5.5 / GPT-6Sol audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -15,7 +17,7 @@ Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded 
 | User Static | 150 | 87.69 | 85.99 | 83.81 | 72.40 | 1.70 | 2.17 | 11.41 | 7/150 | 3 |
 | User RTT | 150 | 87.62 | 85.00 | 85.91 | 74.67 | 2.62 | -0.91 | 11.24 | 3/150 | 5 |
 
-## Haiku 5.5 / anthropic auditor
+## Haiku5.5 / ClaudeOpus5 audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
