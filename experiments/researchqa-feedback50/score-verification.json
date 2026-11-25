@@ -1,0 +1,1 @@
+{"status":"verified","benchmark":"ResearchQA","tasks":50,"solvers":2,"auditor_slots":2,"conditions":8,"replicates":3,"endpoint_auditor_rows":4800,"unique_semantic_endpoints":2400,"condition_rows":32,"per_cell":150,"H_minus_A":"raw","score_values_changed":false,"paid_calls":0,"answers_or_raw_traces_in_export":false,"independent_existing_condition_table_reconciled":true}
