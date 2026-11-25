@@ -1,8 +1,6 @@
 # ResearchQA Haiku5.5 Result50
 
-Model labels in this curated export are user-assigned normalized labels, not the original API execution model identifiers. Original experimental records are backed up separately; source identities, scores and RH labels are unchanged.
-
-Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and normalized model labels/source pointers remain separate in the accompanying score exports.
+Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and model/source pointers remain separate in the accompanying score exports.
 
 ## Haiku5.5 / GPT-6Sol audit
 
