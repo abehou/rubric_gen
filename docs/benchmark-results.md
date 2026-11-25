@@ -4,7 +4,7 @@ This branch, `codex/biomnibench-results`, owns BioMNIBench results and the saved
 
 | Benchmark / experiment | Saved scope and status | Report |
 |---|---|---|
-| BioMNIBench current Result40 | Complete40 tasks × eight conditions × three replicates; separate Sol/Opus-group and average tables, all accepted corrections | [Current Result40](reports/2026-10-13/biomnibench-result40/README.md) |
+| BioMNIBench current Result40 | Luna and Haiku solvers: each40 tasks × eight conditions × three replicates; separate actual-auditor panels, current accepted scores, RH and original/accepted source pointers | [Current Result40](reports/2026-10-13/biomnibench-result40/README.md) |
 | BioMNIBench Original20 | Historical20-task report and figures retained | [Original20](reports/2026-10-12/biomnibench-original20/README.md) |
 | BioMNIBench dropout | Saved development comparison | [Dropout comparison](reports/2026-09-18/trace-v21-provenance-high-proposer-dropout/README.md) |
 | BioMNIBench heldout / execution diagnostics | Saved five-heldout, neutral and evidence-calibrated analyses; separate from current primary Result40 | [Heldout analyses](reports/2026-09-21/trace-v21-complete-public-regression/README.md) · [Development-gap analysis](reports/2026-09-21/trace-v21-result40-development-gap/README.md) |

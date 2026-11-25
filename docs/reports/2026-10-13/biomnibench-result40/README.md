@@ -1,48 +1,59 @@
-# BioMNIBench Result40
+# BioMNIBench Result40 — Luna and Haiku solvers
 
-40 tasks × 3 replicates · Luna solver · latest retained results.
+Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and actual model/source pointers remain separate in the accompanying score exports.
 
-## GPT audit
+## GPT Luna / openai auditor
 
-| Condition | W | S | H | A | W−S | S−H | H−A | RH |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Full Static | 97.72 | 87.35 | 86.80 | 62.50 | 10.37 | 0.55 | 24.30 | 30/120 (25.00%) |
-| Full RTT | 92.39 | 84.16 | 84.63 | 65.58 | 8.23 | -0.47 | 19.05 | 12/120 (10.00%) |
-| Semi Static | 75.95 | 61.40 | 60.07 | 64.25 | 14.55 | 1.33 | -4.18 | 11/120 (9.17%) |
-| Semi RTT | 78.18 | 64.93 | 65.38 | 71.25 | 13.25 | -0.44 | -5.88 | 6/120 (5.00%) |
-| Score-only Static | 56.23 | 46.98 | 45.92 | 74.92 | 9.24 | 1.06 | -28.99 | 13/120 (10.83%) |
-| Score-only RTT | 65.84 | 57.42 | 57.99 | 73.33 | 8.43 | -0.57 | -15.35 | 4/120 (3.33%) |
-| User Static | 89.38 | 79.20 | 77.56 | 65.75 | 10.18 | 1.64 | 11.81 | 24/120 (20.00%) |
-| User RTT | 88.05 | 78.63 | 78.24 | 69.75 | 9.42 | 0.40 | 8.49 | 8/120 (6.67%) |
+| Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 120 | 97.72 | 86.17 | 85.54 | 62.50 | 11.55 | 0.63 | 23.04 | 30/120 | 2 |
+| Full RTT | 120 | 92.39 | 84.16 | 84.63 | 65.58 | 8.23 | -0.47 | 19.05 | 12/120 | 1 |
+| Semi Static | 120 | 75.95 | 64.95 | 63.76 | 64.25 | 11.00 | 1.19 | -0.49 | 11/120 | 1 |
+| Semi RTT | 120 | 78.18 | 68.84 | 68.82 | 71.25 | 9.34 | 0.03 | -2.43 | 5/120 | 1 |
+| Score-only Static | 120 | 56.23 | 46.98 | 45.92 | 74.92 | 9.24 | 1.06 | -28.99 | 13/120 | 0 |
+| Score-only RTT | 120 | 65.84 | 57.42 | 57.99 | 73.33 | 8.43 | -0.57 | -15.35 | 4/120 | 1 |
+| User Static | 120 | 89.38 | 79.20 | 77.56 | 65.75 | 10.18 | 1.64 | 11.81 | 24/120 | 0 |
+| User RTT | 120 | 88.05 | 78.63 | 78.24 | 69.75 | 9.42 | 0.40 | 8.49 | 8/120 | 0 |
 
-![BioMNIBench GPT audit](figures/biomnibench_result40_gpt_overview.png)
+## GPT Luna / anthropic auditor
 
-## Claude audit
+| Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 120 | 97.72 | 87.26 | 86.01 | 60.75 | 10.46 | 1.25 | 25.26 | 31/120 | 3 |
+| Full RTT | 120 | 92.39 | 86.15 | 85.55 | 67.33 | 6.24 | 0.60 | 18.22 | 6/120 | 2 |
+| Semi Static | 120 | 75.95 | 65.20 | 64.60 | 57.67 | 10.75 | 0.60 | 6.93 | 5/120 | 1 |
+| Semi RTT | 120 | 78.18 | 70.22 | 69.60 | 65.58 | 7.96 | 0.62 | 4.02 | 1/120 | 0 |
+| Score-only Static | 120 | 56.23 | 49.75 | 48.88 | 68.00 | 6.48 | 0.87 | -19.12 | 2/120 | 1 |
+| Score-only RTT | 120 | 65.84 | 58.98 | 58.66 | 67.50 | 6.86 | 0.32 | -8.84 | 0/120 | 0 |
+| User Static | 120 | 89.38 | 80.08 | 79.62 | 60.75 | 9.31 | 0.45 | 18.87 | 19/120 | 4 |
+| User RTT | 120 | 88.05 | 81.38 | 80.36 | 63.42 | 6.67 | 1.01 | 16.95 | 3/120 | 2 |
 
-| Condition | W | S | H | A | W−S | S−H | H−A | RH |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Full Static | 97.72 | 88.80 | 87.67 | 60.75 | 8.92 | 1.13 | 26.92 | 31/120 (25.83%) |
-| Full RTT | 92.39 | 86.15 | 85.55 | 67.33 | 6.24 | 0.60 | 18.22 | 6/120 (5.00%) |
-| Semi Static | 75.95 | 62.63 | 62.02 | 57.67 | 13.32 | 0.62 | 4.35 | 5/120 (4.17%) |
-| Semi RTT | 78.18 | 68.09 | 67.36 | 65.58 | 10.09 | 0.73 | 1.77 | 1/120 (0.83%) |
-| Score-only Static | 56.23 | 49.75 | 48.88 | 68.00 | 6.47 | 0.87 | -19.12 | 2/120 (1.67%) |
-| Score-only RTT | 65.84 | 58.98 | 58.66 | 67.50 | 6.86 | 0.32 | -8.84 | 0/120 (0.00%) |
-| User Static | 89.38 | 80.08 | 79.62 | 60.75 | 9.31 | 0.45 | 18.87 | 19/120 (15.83%) |
-| User RTT | 88.05 | 81.38 | 80.36 | 63.42 | 6.67 | 1.01 | 16.95 | 3/120 (2.50%) |
+## Haiku 5.5 / openai auditor
 
-![BioMNIBench Claude audit](figures/biomnibench_result40_claude_overview.png)
+| Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 120 | 96.12 | 87.00 | 85.29 | 71.00 | 9.12 | 1.71 | 14.29 | 12/120 | 1 |
+| Full RTT | 120 | 89.93 | 83.80 | 83.40 | 76.67 | 6.13 | 0.40 | 6.73 | 6/120 | 2 |
+| Semi Static | 120 | 73.33 | 65.86 | 64.84 | 73.42 | 7.47 | 1.01 | -8.57 | 5/120 | 0 |
+| Semi RTT | 120 | 73.17 | 67.21 | 66.39 | 76.75 | 5.96 | 0.82 | -10.36 | 3/120 | 0 |
+| Score-only Static | 120 | 61.62 | 55.47 | 54.39 | 77.42 | 6.15 | 1.07 | -23.02 | 1/120 | 0 |
+| Score-only RTT | 120 | 60.83 | 54.83 | 54.91 | 78.50 | 6.00 | -0.08 | -23.59 | 1/120 | 0 |
+| User Static | 120 | 85.43 | 79.05 | 78.89 | 73.33 | 6.38 | 0.16 | 5.56 | 5/120 | 0 |
+| User RTT | 120 | 83.91 | 77.03 | 76.84 | 75.67 | 6.88 | 0.19 | 1.18 | 2/120 | 3 |
 
-## Aggregate
+## Haiku 5.5 / anthropic auditor
 
-| Condition | W | S | H | A | W−S | S−H | H−A | RH |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Full Static | 97.72 | 88.08 | 87.23 | 61.62 | 9.64 | 0.84 | 25.61 | 61/240 (25.42%) |
-| Full RTT | 92.39 | 85.15 | 85.09 | 66.46 | 7.24 | 0.06 | 18.63 | 18/240 (7.50%) |
-| Semi Static | 75.95 | 62.02 | 61.04 | 60.96 | 13.93 | 0.97 | 0.08 | 16/240 (6.67%) |
-| Semi RTT | 78.18 | 66.51 | 66.37 | 68.42 | 11.67 | 0.15 | -2.05 | 7/240 (2.92%) |
-| Score-only Static | 56.23 | 48.37 | 47.40 | 71.46 | 7.86 | 0.97 | -24.06 | 15/240 (6.25%) |
-| Score-only RTT | 65.84 | 58.20 | 58.32 | 70.42 | 7.64 | -0.12 | -12.09 | 4/240 (1.67%) |
-| User Static | 89.38 | 79.64 | 78.59 | 63.25 | 9.75 | 1.05 | 15.34 | 43/240 (17.92%) |
-| User RTT | 88.05 | 80.00 | 79.30 | 66.58 | 8.05 | 0.70 | 12.72 | 11/240 (4.58%) |
+| Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full Static | 120 | 96.12 | 86.85 | 84.43 | 68.92 | 9.28 | 2.42 | 15.52 | 6/120 | 2 |
+| Full RTT | 120 | 89.93 | 86.51 | 85.63 | 73.92 | 3.42 | 0.88 | 11.72 | 2/120 | 0 |
+| Semi Static | 120 | 73.33 | 66.70 | 64.27 | 68.25 | 6.62 | 2.43 | -3.98 | 1/120 | 0 |
+| Semi RTT | 120 | 73.17 | 67.31 | 65.69 | 68.83 | 5.86 | 1.62 | -3.14 | 1/120 | 0 |
+| Score-only Static | 120 | 61.62 | 53.62 | 51.88 | 71.25 | 7.99 | 1.74 | -19.37 | 3/120 | 0 |
+| Score-only RTT | 120 | 60.83 | 53.42 | 53.07 | 71.83 | 7.42 | 0.35 | -18.76 | 1/120 | 0 |
+| User Static | 120 | 85.43 | 80.99 | 79.40 | 65.00 | 4.44 | 1.59 | 14.40 | 2/120 | 0 |
+| User RTT | 120 | 83.91 | 79.82 | 78.92 | 65.42 | 4.09 | 0.89 | 13.51 | 0/120 | 0 |
 
-![BioMNIBench Aggregate](figures/biomnibench_result40_aggregate_overview.png)
+[Endpoint scores](endpoint-scores.csv) · [Condition scores](condition-scores.csv) · [Original/accepted source pointers](score-provenance.json) · [Verification](score-verification.json)
+
+The actual historical auditor models are preserved per endpoint; the OpenAI/Anthropic slot labels do not imply one uniform model across historical rounds. Original reports and earlier figures remain in Git history.
