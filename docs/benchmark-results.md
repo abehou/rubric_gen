@@ -1,10 +1,12 @@
 # Benchmark results
 
+Model labels in this curated export are user-assigned normalized labels, not the original API execution model identifiers. Original experimental records are backed up separately; source identities, scores and RH labels are unchanged.
+
 This branch, `codex/biomnibench-results`, owns BioMNIBench results and the saved PaperBench/Harvey work. HealthBench and ResearchQA remain on `codex/healthbench-researchqa`; `main` is unchanged.
 
 | Benchmark / experiment | Saved scope and status | Report |
 |---|---|---|
-| BioMNIBench current Result40 | Luna and Haiku solvers: each40 tasks × eight conditions × three replicates; separate actual-auditor panels, current accepted scores, RH and original/accepted source pointers | [Current Result40](reports/2026-10-13/biomnibench-result40/README.md) |
+| BioMNIBench current Result40 | Luna6 and Haiku5.5 solver labels: each40 tasks × eight conditions × three replicates; separate curated GPT-6Sol/ClaudeOpus5 audit panels, current accepted scores, RH and original/accepted source pointers | [Current Result40](reports/2026-10-13/biomnibench-result40/README.md) |
 | BioMNIBench Original20 | Historical20-task report and figures retained | [Original20](reports/2026-10-12/biomnibench-original20/README.md) |
 | BioMNIBench dropout | Saved development comparison | [Dropout comparison](reports/2026-09-18/trace-v21-provenance-high-proposer-dropout/README.md) |
 | BioMNIBench heldout / execution diagnostics | Saved five-heldout, neutral and evidence-calibrated analyses; separate from current primary Result40 | [Heldout analyses](reports/2026-09-21/trace-v21-complete-public-regression/README.md) · [Development-gap analysis](reports/2026-09-21/trace-v21-result40-development-gap/README.md) |

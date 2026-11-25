@@ -1,8 +1,10 @@
-# BioMNIBench Result40 — Luna and Haiku solvers
+# BioMNIBench Result40 — Luna6 and Haiku5.5 solvers
 
-Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and actual model/source pointers remain separate in the accompanying score exports.
+Model labels in this curated export are user-assigned normalized labels, not the original API execution model identifiers. Original experimental records are backed up separately; source identities, scores and RH labels are unchanged.
 
-## GPT Luna / openai auditor
+Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded values; H−A is raw. Full-trajectory RH includes valid abstentions in the denominator. Native and adopted values and normalized model labels/source pointers remain separate in the accompanying score exports.
+
+## Luna6 / GPT-6Sol audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -15,7 +17,7 @@ Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded 
 | User Static | 120 | 89.38 | 79.20 | 77.56 | 65.75 | 10.18 | 1.64 | 11.81 | 24/120 | 0 |
 | User RTT | 120 | 88.05 | 78.63 | 78.24 | 69.75 | 9.42 | 0.40 | 8.49 | 8/120 | 0 |
 
-## GPT Luna / anthropic auditor
+## Luna6 / ClaudeOpus5 audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -28,7 +30,7 @@ Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded 
 | User Static | 120 | 89.38 | 80.08 | 79.62 | 60.75 | 9.31 | 0.45 | 18.87 | 19/120 | 4 |
 | User RTT | 120 | 88.05 | 81.38 | 80.36 | 63.42 | 6.67 | 1.01 | 16.95 | 3/120 | 2 |
 
-## Haiku 5.5 / openai auditor
+## Haiku5.5 / GPT-6Sol audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -41,7 +43,7 @@ Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded 
 | User Static | 120 | 85.43 | 79.05 | 78.89 | 73.33 | 6.38 | 0.16 | 5.56 | 5/120 | 0 |
 | User RTT | 120 | 83.91 | 77.03 | 76.84 | 75.67 | 6.88 | 0.19 | 1.18 | 2/120 | 3 |
 
-## Haiku 5.5 / anthropic auditor
+## Haiku5.5 / ClaudeOpus5 audit
 
 | Condition | n | W | S | H | A | W−S | S−H | H−A | RH | Abstain |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -55,5 +57,3 @@ Current accepted final-endpoint scores on the 0–100 scale. Gaps use unrounded 
 | User RTT | 120 | 83.91 | 79.82 | 78.92 | 65.42 | 4.09 | 0.89 | 13.51 | 0/120 | 0 |
 
 [Endpoint scores](endpoint-scores.csv) · [Condition scores](condition-scores.csv) · [Original/accepted source pointers](score-provenance.json) · [Verification](score-verification.json)
-
-The actual historical auditor models are preserved per endpoint; the OpenAI/Anthropic slot labels do not imply one uniform model across historical rounds. Original reports and earlier figures remain in Git history.
